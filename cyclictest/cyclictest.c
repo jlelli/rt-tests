@@ -144,7 +144,8 @@ static void setkernvar(char *name, int value)
 			}
 		}
 		if (i == KVARS)
-			fprintf(stderr, "could not backup %s (%d)\n", name, oldvalue);
+			fprintf(stderr, "could not backup %s (%d)\n", name,
+				oldvalue);
 	}
 	if (kernvar(O_WRONLY, name, &value))
 		fprintf(stderr, "could not set %s to %d\n", name, value);
@@ -478,6 +479,16 @@ static void check_kernel(void)
 		oldtrace = 1;
 }
 
+static int check_timer(void)
+{
+	struct timespec ts;
+
+	if (clock_getres(CLOCK_MONOTONIC, &ts))
+		return 1;
+
+	return (ts.tv_sec != 0 || ts.tv_nsec != 1);
+}
+
 static void sighand(int sig)
 {
 	shutdown = 1;
@@ -522,6 +533,9 @@ int main(int argc, char **argv)
 	process_options(argc, argv);
 
 	check_kernel();
+
+	if (check_timer())
+		fprintf(stderr, "WARNING: High resolution timers not available\n");
 
 	mode = use_nanosleep + use_system;
 
