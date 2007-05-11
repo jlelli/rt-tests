@@ -4,12 +4,12 @@
  * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
  *
  * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License Veriosn
- * 2 as published by the Free Software Foundation;
+ * modify it under the terms of the GNU General Public License Version
+ * 2 as published by the Free Software Foundation.
  *
  */
 
-#define VERSION_STRING "V 0.13"
+#define VERSION_STRING "V 0.14"
 
 #include <fcntl.h>
 #include <getopt.h>
@@ -52,6 +52,9 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 /* Must be power of 2 ! */
 #define VALBUF_SIZE		16384
 
+#define KVARS			32
+#define KVARNAMELEN		32
+
 /* Struct to transfer parameters to the thread */
 struct thread_param {
 	int prio;
@@ -83,6 +86,82 @@ static int shutdown;
 static int tracelimit = 0;
 static int ftrace = 0;
 static int oldtrace = 0;
+
+/* Backup of kernel variables that we modify */
+static struct kvars {
+	char name[KVARNAMELEN];
+	int value;
+} kv[KVARS];
+
+static char *procfileprefix = "/proc/sys/kernel/";
+
+static int kernvar(int mode, char *name, int *value)
+{
+	int retval = 1;
+	int procfilepath;
+	char procfilename[128];
+
+	strncpy(procfilename, procfileprefix, sizeof(procfilename));
+	strncat(procfilename, name,
+		sizeof(procfilename) - sizeof(procfileprefix));
+	procfilepath = open(procfilename, mode);
+	if (procfilepath >= 0) {
+		char buffer[32];
+
+		if (mode == O_RDONLY) {
+			if (read(procfilepath, buffer, sizeof(buffer)) > 0) {
+				char *endptr;
+				*value = strtol(buffer, &endptr, 0);
+				if (endptr != buffer)
+					retval = 0;
+			}
+		} else if (mode == O_WRONLY) {
+			snprintf(buffer, sizeof(buffer), "%d\n", *value);
+			if (write(procfilepath, buffer, strlen(buffer))
+			    == strlen(buffer))
+				retval = 0;
+		}
+		close(procfilepath);
+	}
+	return retval;
+}
+
+static void setkernvar(char *name, int value)
+{
+	int i;
+	int oldvalue;
+
+	if (kernvar(O_RDONLY, name, &oldvalue))
+		fprintf(stderr, "could not retrieve %s\n", name);
+	else {
+		for (i = 0; i < KVARS; i++) {
+			if (!strcmp(kv[i].name, name))
+				break;
+			if (kv[i].name[0] == '\0') {
+				strncpy(kv[i].name, name, sizeof(kv[i].name));
+				kv[i].value = oldvalue;
+				break;
+			}
+		}
+		if (i == KVARS)
+			fprintf(stderr, "could not backup %s (%d)\n", name, oldvalue);
+	}
+	if (kernvar(O_WRONLY, name, &value))
+		fprintf(stderr, "could not set %s to %d\n", name, value);
+}
+
+static void restorekernvars(void)
+{
+	int i;
+
+	for (i = 0; i < KVARS; i++) {
+		if (kv[i].name[0] != '\0') {
+			if (kernvar(O_WRONLY, kv[i].name, &kv[i].value))
+				fprintf(stderr, "could not restore %s to %d\n",
+					kv[i].name, kv[i].value);
+		}
+	}
+}
 
 static inline void tsnorm(struct timespec *ts)
 {
@@ -132,19 +211,18 @@ void *timerthread(void *param)
 	interval.tv_nsec = (par->interval % USEC_PER_SEC) * 1000;
 
 	if (tracelimit) {
-		system("echo 1 > /proc/sys/kernel/trace_all_cpus");
-		system("echo 1 > /proc/sys/kernel/trace_freerunning");
-		system("echo 0 > /proc/sys/kernel/trace_print_on_crash");
-		system("echo 1 > /proc/sys/kernel/trace_user_triggered");
-		system("echo -1 > /proc/sys/kernel/trace_user_trigger_irq");
-		system("echo 0 > /proc/sys/kernel/trace_verbose");
-		system("echo 0 > /proc/sys/kernel/preempt_thresh");
-		system("echo 0 > /proc/sys/kernel/wakeup_timing");
-		system("echo 0 > /proc/sys/kernel/preempt_max_latency");
+		setkernvar("trace_all_cpus", 1);
+		setkernvar("trace_freerunning", 1);
+		setkernvar("trace_print_on_crash", 0);
+		setkernvar("trace_user_triggered", 1);
+		setkernvar("trace_user_trigger_irq", -1);
+		setkernvar("trace_verbose", 0);
+		setkernvar("preempt_thresh", 0);
+		setkernvar("wakeup_timing", 0);
+		setkernvar("preempt_max_latency", 0);
 		if (ftrace)
-			system("echo 1 > /proc/sys/kernel/mcount_enabled");
-
-		system("echo 1 > /proc/sys/kernel/trace_enabled");
+			setkernvar("mcount_enabled", 1);
+		setkernvar("trace_enabled", 1);
 	}
 
 	stat->tid = gettid();
@@ -437,7 +515,7 @@ int main(int argc, char **argv)
 	int i, ret = -1;
 
 	if (geteuid()) {
-		printf("need to run as root!\n");
+		fprintf(stderr, "cyclictest: need to run as root!\n");
 		exit(-1);
 	}
 
@@ -532,5 +610,8 @@ int main(int argc, char **argv)
  outpar:
 	free(par);
  out:
+	/* Be a nice program, cleanup */
+	restorekernvars();
+
 	exit(ret);
 }
