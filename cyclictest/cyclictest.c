@@ -9,7 +9,7 @@
  *
  */
 
-#define VERSION_STRING "V 0.16"
+#define VERSION_STRING "V 0.17"
 
 #include <fcntl.h>
 #include <getopt.h>
