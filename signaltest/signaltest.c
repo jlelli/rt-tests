@@ -355,8 +355,8 @@ int main(int argc, char **argv)
 		stat[i].min = 1000000;
 		stat[i].max = -1000000;
 		stat[i].avg = 0.0;
-		pthread_create(&stat[i].thread, NULL, signalthread, &par[i]);
 		stat[i].threadstarted = 1;
+		pthread_create(&stat[i].thread, NULL, signalthread, &par[i]);
 	}
 
 	while (!shutdown) {
