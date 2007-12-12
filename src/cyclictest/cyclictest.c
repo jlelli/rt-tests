@@ -9,8 +9,6 @@
  *
  */
 
-#define VERSION_STRING "V 0.17"
-
 #include <fcntl.h>
 #include <getopt.h>
 #include <pthread.h>
@@ -366,7 +364,7 @@ out:
 /* Print usage information */
 static void display_help(void)
 {
-	printf("cyclictest %s\n", VERSION_STRING);
+	printf("cyclictest V %1.2f\n", VERSION_STRING);
 	printf("Usage:\n"
 	       "cyclictest <options>\n\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"

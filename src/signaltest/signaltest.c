@@ -9,8 +9,6 @@
  *
  */
 
-#define VERSION_STRING "V 0.1"
-
 #include <fcntl.h>
 #include <getopt.h>
 #include <pthread.h>
@@ -201,7 +199,7 @@ out:
 /* Print usage information */
 static void display_help(void)
 {
-	printf("signaltest %s\n", VERSION_STRING);
+	printf("signaltest V %1.2f\n", VERSION_STRING);
 	printf("Usage:\n"
 	       "signaltest <options>\n\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
