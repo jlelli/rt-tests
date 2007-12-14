@@ -1,4 +1,4 @@
-VERSION_STRING = "0.17"
+VERSION_STRING = "0.18"
 
 TARGETS	= cyclictest signaltest
 FLAGS	= -Wall -Wno-nonnull -O2
