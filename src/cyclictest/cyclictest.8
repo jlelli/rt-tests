@@ -1,5 +1,5 @@
 .\"                                      Hey, EMACS: -*- nroff -*-
-.TH CYCLICTEST 8 "february  2, 2007"
+.TH CYCLICTEST 8 "december  20, 2007"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -35,8 +35,10 @@ Send break trace command when latency > USEC. This is a debugging option to cont
 It is useful to track down unexpected large latencies on a system. This option does only work with:
 
     * CONFIG_PREEMPT_RT=y
-    * CONFIG_LATENCY_TIMING=y
+	* CONFIG_WAKEUP_TIMING=y
     * CONFIG_LATENCY_TRACE=y
+	* CONFIG_CRITICAL_PREEMPT_TIMING=y
+	* CONFIG_CRITICAL_IRQSOFF_TIMING=y
 
 kernel configuration options enabled. The USEC parameter to the -b option defines a maximum latency value, which is compared against the actual latencies of the test. Once the measured latency is higher than the given maximum, the kernel tracer and cyclictest is stopped. The trace can be read from /proc/latency_trace. Please be aware that the tracer adds significant overhead to the kernel, so the latencies will be much higher than on a kernel with latency tracing disabled.
 .TP
