@@ -7,6 +7,7 @@ Group: Development/Tools
 URL: git://git.kernel.org/pub/scm/linux/kernel/git/tglx/rt-tests.git
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+Obsoletes: cyclictest signaltest pi_tests
 
 %description
 A set of programs that test and measure various components of "realtime"
