@@ -26,6 +26,9 @@ CLEANUP = $(TARGETS) *.o .depend *.*~ ChangeLog *.orig *.rej
 clean:
 	for F in $(CLEANUP); do find -type f -iname $$F | xargs rm -f; done
 
+distclean: clean
+	rm -rf BUILD RPMS SRPMS releases
+
 changelog:
 	git log >ChangeLog
 
