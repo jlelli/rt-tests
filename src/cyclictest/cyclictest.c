@@ -9,20 +9,23 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#define __USE_GNU
 #include <fcntl.h>
 #include <getopt.h>
 #include <pthread.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <sched.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
 #include <linux/unistd.h>
 
 #include <sys/prctl.h>
 #include <sys/stat.h>
+#include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -64,6 +67,7 @@ struct thread_param {
 	struct thread_stat *stats;
 	int bufmsk;
 	unsigned long interval;
+	int cpu;
 };
 
 /* Struct for statistics */
@@ -205,6 +209,15 @@ void *timerthread(void *param)
 	struct thread_stat *stat = par->stats;
 	int policy = par->prio ? SCHED_FIFO : SCHED_OTHER;
 	int stopped = 0;
+	cpu_set_t mask;
+
+	if (par->cpu != -1) {
+		CPU_ZERO(&mask);
+		CPU_SET(par->cpu, &mask);
+		if(sched_setaffinity(0, sizeof(mask), &mask) == -1)
+			fprintf(stderr,	"WARNING: Could not set CPU affinity "
+				"to CPU #%d\n", par->cpu);
+	}
 
 	interval.tv_sec = par->interval / USEC_PER_SEC;
 	interval.tv_nsec = (par->interval % USEC_PER_SEC) * 1000;
@@ -262,7 +275,7 @@ void *timerthread(void *param)
 		itimer.it_value.tv_usec = 0;
 		itimer.it_interval.tv_sec = interval.tv_sec;
 		itimer.it_interval.tv_usec = interval.tv_nsec / 1000;
-		setitimer (ITIMER_REAL,  &itimer, NULL);
+		setitimer (ITIMER_REAL, &itimer, NULL);
 	}
 
 	stat->threadstarted++;
@@ -348,7 +361,7 @@ out:
 		itimer.it_value.tv_usec = 0;
 		itimer.it_interval.tv_sec = 0;
 		itimer.it_interval.tv_usec = 0;
-		setitimer (ITIMER_REAL,  &itimer, NULL);
+		setitimer (ITIMER_REAL, &itimer, NULL);
 	}
 
 	/* switch to normal */
@@ -367,6 +380,8 @@ static void display_help(void)
 	printf("cyclictest V %1.2f\n", VERSION_STRING);
 	printf("Usage:\n"
 	       "cyclictest <options>\n\n"
+	       "-a       --affinity        run thread #N on processor #N, if possible\n"
+	       "-a PROC  --affinity=PROC   run all threads on processor #PROC\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 	       "-c CLOCK --clock=CLOCK     select clock\n"
 	       "                           0 = CLOCK_MONOTONIC (default)\n"
@@ -380,14 +395,15 @@ static void display_help(void)
 	       "-q       --quiet           print only a summary on exit\n"
 	       "-r       --relative        use relative timer instead of absolute\n"
 	       "-s       --system          use sys_nanosleep and sys_setitimer\n"
-	       "-t NUM   --threads=NUM     number of threads: default=1\n"
+	       "-t       --threads         one thread per available processor\n"
+	       "-t NUM   --threads=NUM     number of threads: without -t default=1\n"
 	       "-v       --verbose         output values on stdout for statistics\n"
 	       "                           format: n:c:v n=tasknum c=count v=value in us\n");
 	exit(0);
 }
 
 static int use_nanosleep;
-static int timermode  = TIMER_ABSTIME;
+static int timermode = TIMER_ABSTIME;
 static int use_system;
 static int priority;
 static int num_threads = 1;
@@ -397,6 +413,15 @@ static int verbose;
 static int quiet;
 static int interval = 1000;
 static int distance = 500;
+static int affinity = 0;
+
+enum {
+	AFFINITY_UNSPECIFIED,
+	AFFINITY_SPECIFIED,
+	AFFINITY_USEALL,
+};
+
+static int setaffinity = AFFINITY_UNSPECIFIED;
 
 static int clocksources[] = {
 	CLOCK_MONOTONIC,
@@ -407,10 +432,13 @@ static int clocksources[] = {
 static void process_options (int argc, char *argv[])
 {
 	int error = 0;
+	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
+
 	for (;;) {
 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
+			{"affinity", optional_argument, NULL, 'a'},
 			{"breaktrace", required_argument, NULL, 'b'},
 			{"clock", required_argument, NULL, 'c'},
 			{"distance", required_argument, NULL, 'd'},
@@ -422,16 +450,23 @@ static void process_options (int argc, char *argv[])
 			{"quiet", no_argument, NULL, 'q'},
 			{"relative", no_argument, NULL, 'r'},
 			{"system", no_argument, NULL, 's'},
-			{"threads", required_argument, NULL, 't'},
+			{"threads", optional_argument, NULL, 't'},
 			{"verbose", no_argument, NULL, 'v'},
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "b:c:d:fi:l:np:qrst:v",
+		int c = getopt_long (argc, argv, "a::b:c:d:fi:l:np:qrst::v",
 			long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
+		case 'a':
+			if (optarg != NULL) {
+				affinity = atoi(optarg);
+				setaffinity = AFFINITY_SPECIFIED;
+			} else
+				setaffinity = AFFINITY_USEALL;
+			break;
 		case 'b': tracelimit = atoi(optarg); break;
 		case 'c': clocksel = atoi(optarg); break;
 		case 'd': distance = atoi(optarg); break;
@@ -443,9 +478,24 @@ static void process_options (int argc, char *argv[])
 		case 'q': quiet = 1; break;
 		case 'r': timermode = TIMER_RELTIME; break;
 		case 's': use_system = MODE_SYS_OFFSET; break;
-		case 't': num_threads = atoi(optarg); break;
+		case 't':
+			if (optarg != NULL)
+				num_threads = atoi(optarg);
+			else
+				num_threads = max_cpus;
+			break;
 		case 'v': verbose = 1; break;
 		case '?': error = 1; break;
+		}
+	}
+
+	if (setaffinity == AFFINITY_SPECIFIED) {
+		if (affinity < 0)
+			error = 1;
+		if (affinity >= max_cpus) {
+			fprintf(stderr, "ERROR: CPU #%d not found, only %d CPUs available\n",
+			    affinity, max_cpus);
+			error = 1;
 		}
 	}
 
@@ -521,6 +571,7 @@ int main(int argc, char **argv)
 	int mode;
 	struct thread_param *par;
 	struct thread_stat *stat;
+	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
 	int i, ret = -1;
 
 	if (geteuid()) {
@@ -570,6 +621,11 @@ int main(int argc, char **argv)
 		interval += distance;
 		par[i].max_cycles = max_cycles;
 		par[i].stats = &stat[i];
+		switch (setaffinity) {
+		case AFFINITY_UNSPECIFIED: par[i].cpu = -1; break;
+		case AFFINITY_SPECIFIED: par[i].cpu = affinity; break;
+		case AFFINITY_USEALL: par[i].cpu = i % max_cpus; break;
+		}
 		stat[i].min = 1000000;
 		stat[i].max = -1000000;
 		stat[i].avg = 0.0;

@@ -30,6 +30,9 @@ options starting with two dashes (`-').
 A summary of options is included below.
 .\" For a complete description, see the Info files.
 .TP
+.B \-a, \-\-affinity[=PROC]
+Run all threads on procesor number PROC. If PROC is not specified, run thread #N on processor #N.
+.TP
 .B \-b, \-\-breaktrace=USEC
 Send break trace command when latency > USEC. This is a debugging option to control the latency tracer in the realtime preemption patch.
 It is useful to track down unexpected large latencies on a system. This option does only work with:
@@ -76,8 +79,9 @@ Use relative timers instead of absolute. The default behaviour of the tests is t
 .B \-s, \-\-system
 Use sys_nanosleep and sys_setitimer instead of posix timers. Note, that -s can only be used with one thread because itimers are per process and not per thread. -s in combination with -n uses the nanosleep syscall and is not restricted to one thread.
 .TP
-.B \-t, \-\-threads=NUM
-Set the number of test threads (default is 1). Create NUM test threads. See -d, -i and -p for further information.
+.B \-t, \-\-threads[=NUM]
+Set the number of test threads (default is 1). Create NUM test threads. If NUM is not specifed, NUM is set to
+the number of available CPUs. See -d, -i and -p for further information.
 .TP
 .B \-v, \-\-verbose
 Output values on stdout for statistics. This option is used to gather statistical information about the latency distribution. The output is sent to stdout. The output format is:
