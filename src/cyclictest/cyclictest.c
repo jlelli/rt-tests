@@ -55,6 +55,7 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 
 #define KVARS			32
 #define KVARNAMELEN		32
+#define KVALUELEN		32
 
 /* Struct to transfer parameters to the thread */
 struct thread_param {
@@ -87,70 +88,84 @@ struct thread_stat {
 static int shutdown;
 static int tracelimit = 0;
 static int ftrace = 0;
-static int oldtrace = 0;
+static int kernelversion;
+static int verbose = 0;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
 	char name[KVARNAMELEN];
-	int value;
+	char value[KVALUELEN];
 } kv[KVARS];
 
 static char *procfileprefix = "/proc/sys/kernel/";
+static char *debugfileprefix = "/debug/tracing/";
 
-static int kernvar(int mode, char *name, int *value)
+enum kernelversion {
+	KV_NOT_26,
+	KV_26_LT18,
+	KV_26_LT24,
+	KV_26_CURR
+};
+
+static int kernvar(int mode, char *name, char *value, size_t sizeofvalue)
 {
+	char filename[128];
+	char *prefix;
 	int retval = 1;
-	int procfilepath;
-	char procfilename[128];
+	int path;
 
-	strncpy(procfilename, procfileprefix, sizeof(procfilename));
-	strncat(procfilename, name,
-		sizeof(procfilename) - sizeof(procfileprefix));
-	procfilepath = open(procfilename, mode);
-	if (procfilepath >= 0) {
-		char buffer[32];
+	if (kernelversion == KV_26_CURR)
+		prefix = debugfileprefix;
+	else
+		prefix = procfileprefix;
 
+	strncpy(filename, prefix, sizeof(filename));
+	strncat(filename, name, sizeof(filename) - sizeof(prefix));
+	path = open(filename, mode);
+	if (path >= 0) {
 		if (mode == O_RDONLY) {
-			if (read(procfilepath, buffer, sizeof(buffer)) > 0) {
-				char *endptr;
-				*value = strtol(buffer, &endptr, 0);
-				if (endptr != buffer)
-					retval = 0;
+			int got;
+			if ((got = read(path, value, sizeofvalue)) > 0) {
+				retval = 0;
+				value[got-1] = '\0';
 			}
 		} else if (mode == O_WRONLY) {
-			snprintf(buffer, sizeof(buffer), "%d\n", *value);
-			if (write(procfilepath, buffer, strlen(buffer))
-			    == strlen(buffer))
+			if (write(path, value, sizeofvalue) == sizeofvalue)
 				retval = 0;
 		}
-		close(procfilepath);
+		close(path);
 	}
 	return retval;
 }
 
-static void setkernvar(char *name, int value)
+static void setkernvar(char *name, char *value)
 {
 	int i;
-	int oldvalue;
+	char oldvalue[KVALUELEN];
 
-	if (kernvar(O_RDONLY, name, &oldvalue))
-		fprintf(stderr, "could not retrieve %s\n", name);
-	else {
-		for (i = 0; i < KVARS; i++) {
-			if (!strcmp(kv[i].name, name))
-				break;
-			if (kv[i].name[0] == '\0') {
-				strncpy(kv[i].name, name, sizeof(kv[i].name));
-				kv[i].value = oldvalue;
-				break;
+	if (kernelversion != KV_26_CURR) {
+		if (kernvar(O_RDONLY, name, oldvalue, sizeof(oldvalue)))
+			fprintf(stderr, "could not retrieve %s\n", name);
+		else {
+			for (i = 0; i < KVARS; i++) {
+				if (!strcmp(kv[i].name, name))
+					break;
+				if (kv[i].name[0] == '\0') {
+					strncpy(kv[i].name, name,
+						sizeof(kv[i].name));
+					strncpy(kv[i].value, oldvalue,
+					    sizeof(kv[i].value));
+					break;
+				}
 			}
+			if (i == KVARS)
+				fprintf(stderr, "could not backup %s (%s)\n",
+					name, oldvalue);
 		}
-		if (i == KVARS)
-			fprintf(stderr, "could not backup %s (%d)\n", name,
-				oldvalue);
 	}
-	if (kernvar(O_WRONLY, name, &value))
-		fprintf(stderr, "could not set %s to %d\n", name, value);
+	if (kernvar(O_WRONLY, name, value, strlen(value)))
+		fprintf(stderr, "could not set %s to %s\n", name, value);
+
 }
 
 static void restorekernvars(void)
@@ -159,8 +174,9 @@ static void restorekernvars(void)
 
 	for (i = 0; i < KVARS; i++) {
 		if (kv[i].name[0] != '\0') {
-			if (kernvar(O_WRONLY, kv[i].name, &kv[i].value))
-				fprintf(stderr, "could not restore %s to %d\n",
+			if (kernvar(O_WRONLY, kv[i].name, kv[i].value,
+			    strlen(kv[i].value)))
+				fprintf(stderr, "could not restore %s to %s\n",
 					kv[i].name, kv[i].value);
 		}
 	}
@@ -180,6 +196,25 @@ static inline long calcdiff(struct timespec t1, struct timespec t2)
 	diff = USEC_PER_SEC * ((int) t1.tv_sec - (int) t2.tv_sec);
 	diff += ((int) t1.tv_nsec - (int) t2.tv_nsec) / 1000;
 	return diff;
+}
+
+void tracing(int on)
+{
+	if (on) {
+		switch (kernelversion) {
+		case KV_26_LT18: gettimeofday(0,(struct timezone *)1); break;
+		case KV_26_LT24: prctl(0, 1); break;
+		case KV_26_CURR: setkernvar("tracing_enabled", "1"); break;
+		default:	 break;
+		}
+	} else {
+		switch (kernelversion) {
+		case KV_26_LT18: gettimeofday(0,0); break;
+		case KV_26_LT24: prctl(0, 0); break;
+		case KV_26_CURR: setkernvar("tracing_enabled", "0"); break;
+		default:	 break;
+		}
+	}
 }
 
 /*
@@ -223,18 +258,40 @@ void *timerthread(void *param)
 	interval.tv_nsec = (par->interval % USEC_PER_SEC) * 1000;
 
 	if (tracelimit) {
-		setkernvar("trace_all_cpus", 1);
-		setkernvar("trace_freerunning", 1);
-		setkernvar("trace_print_on_crash", 0);
-		setkernvar("trace_user_triggered", 1);
-		setkernvar("trace_user_trigger_irq", -1);
-		setkernvar("trace_verbose", 0);
-		setkernvar("preempt_thresh", 0);
-		setkernvar("wakeup_timing", 0);
-		setkernvar("preempt_max_latency", 0);
-		if (ftrace)
-			setkernvar("mcount_enabled", 1);
-		setkernvar("trace_enabled", 1);
+		if (kernelversion == KV_26_CURR) {
+			char buffer[32];
+			sprintf(buffer, "%d", tracelimit);
+			setkernvar("tracing_thresh", buffer);
+			if (ftrace)
+				setkernvar("current_tracer", "ftrace");
+			else
+				setkernvar("current_tracer", "sched_switch");
+			setkernvar("iter_ctrl", "print-parent");
+			if (verbose) {
+				setkernvar("iter_ctrl", "sym-offset");
+				setkernvar("iter_ctrl", "sym-addr");
+				setkernvar("iter_ctrl", "verbose");
+			} else {
+				setkernvar("iter_ctrl", "nosym-offset");
+				setkernvar("iter_ctrl", "nosym-addr");
+				setkernvar("iter_ctrl", "noverbose");
+			}
+			setkernvar("tracing_max_latency", "0");
+			setkernvar("latency_hist/wakeup_latency/reset", "1");
+ 		} else {
+			setkernvar("trace_all_cpus", "1");
+			setkernvar("trace_freerunning", "1");
+			setkernvar("trace_print_on_crash", "0");
+			setkernvar("trace_user_triggered", "1");
+			setkernvar("trace_user_trigger_irq", "-1");
+			setkernvar("trace_verbose", "0");
+			setkernvar("preempt_thresh", "0");
+			setkernvar("wakeup_timing", "0");
+			setkernvar("preempt_max_latency", "0");
+			if (ftrace)
+				setkernvar("mcount_enabled", "1");
+			setkernvar("trace_enabled", "1");
+		}
 	}
 
 	stat->tid = gettid();
@@ -280,12 +337,9 @@ void *timerthread(void *param)
 
 	stat->threadstarted++;
 
-	if (tracelimit) {
-		if (oldtrace)
-			gettimeofday(0,(struct timezone *)1);
-		else
-			prctl(0, 1);
-	}
+	if (tracelimit)
+		tracing(1);
+
 	while (!shutdown) {
 
 		long diff;
@@ -332,10 +386,7 @@ void *timerthread(void *param)
 
 		if (!stopped && tracelimit && (diff > tracelimit)) {
 			stopped++;
-			if (oldtrace)
-				gettimeofday(0,0);
-			else
-				prctl(0, 0);
+			tracing(0);
 			shutdown++;
 		}
 		stat->act = diff;
@@ -409,7 +460,6 @@ static int priority;
 static int num_threads = 1;
 static int max_cycles;
 static int clocksel = 0;
-static int verbose;
 static int quiet;
 static int interval = 1000;
 static int distance = 500;
@@ -418,9 +468,8 @@ static int affinity = 0;
 enum {
 	AFFINITY_UNSPECIFIED,
 	AFFINITY_SPECIFIED,
-	AFFINITY_USEALL,
+	AFFINITY_USEALL
 };
-
 static int setaffinity = AFFINITY_UNSPECIFIED;
 
 static int clocksources[] = {
@@ -512,19 +561,28 @@ static void process_options (int argc, char *argv[])
 		display_help ();
 }
 
-static void check_kernel(void)
+static int check_kernel(void)
 {
 	size_t len;
 	char ver[256];
-	int fd, maj, min, sub;
+	int fd, maj, min, sub, kv;
 
 	fd = open("/proc/version", O_RDONLY, 0666);
-	len = read(fd, ver, 255);
+	len = read(fd, ver, sizeof(ver)-1);
 	close(fd);
-	ver[len-1] = 0x0;
+	ver[len-1] = '\0';
 	sscanf(ver, "Linux version %d.%d.%d", &maj, &min, &sub);
-	if (maj == 2 && min == 6 && sub < 18)
-		oldtrace = 1;
+	if (maj == 2 && min == 6) {
+		if (sub < 18)
+			kv = KV_26_LT18;
+		else if (sub < 24)
+			kv = KV_26_LT24;
+		else
+			kv = KV_26_CURR;
+	} else
+		kv = KV_NOT_26;
+
+	return kv;
 }
 
 static int check_timer(void)
@@ -540,6 +598,8 @@ static int check_timer(void)
 static void sighand(int sig)
 {
 	shutdown = 1;
+	if (tracelimit)
+		tracing(0);
 }
 
 static void print_stat(struct thread_param *par, int index, int verbose)
@@ -581,7 +641,22 @@ int main(int argc, char **argv)
 
 	process_options(argc, argv);
 
-	check_kernel();
+	kernelversion = check_kernel();
+
+	if (kernelversion == KV_NOT_26)
+		fprintf(stderr, "WARNING: Most functions require kernel 2.6\n");
+
+	if (tracelimit && kernelversion == KV_26_CURR) {
+		char testname[32];
+
+		strcpy(testname, debugfileprefix);
+		strcat(testname, "tracing_enabled");
+		if (access(testname, R_OK)) {
+			fprintf(stderr, "ERROR: %s not found\n"
+			    "debug fs not mounted, "
+			    "TRACERs not configured?\n", testname);
+		}
+	}
 
 	if (check_timer())
 		fprintf(stderr, "WARNING: High resolution timers not available\n");
@@ -678,8 +753,10 @@ int main(int argc, char **argv)
  outpar:
 	free(par);
  out:
+
 	/* Be a nice program, cleanup */
-	restorekernvars();
+	if (kernelversion != KV_26_CURR)
+		restorekernvars();
 
 	exit(ret);
 }
