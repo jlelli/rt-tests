@@ -90,6 +90,7 @@ static int tracelimit = 0;
 static int ftrace = 0;
 static int kernelversion;
 static int verbose = 0;
+static int oscope_reduction = 1;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -442,6 +443,7 @@ static void display_help(void)
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 	       "-n       --nanosleep       use clock_nanosleep\n"
+	       "-o RED   --oscope=RED      oscilloscope mode, reduce verbose output by RED\n"
 	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 	       "-q       --quiet           print only a summary on exit\n"
 	       "-r       --relative        use relative timer instead of absolute\n"
@@ -495,6 +497,7 @@ static void process_options (int argc, char *argv[])
 			{"interval", required_argument, NULL, 'i'},
 			{"loops", required_argument, NULL, 'l'},
 			{"nanosleep", no_argument, NULL, 'n'},
+			{"oscope", required_argument, NULL, 'o'},
 			{"priority", required_argument, NULL, 'p'},
 			{"quiet", no_argument, NULL, 'q'},
 			{"relative", no_argument, NULL, 'r'},
@@ -504,7 +507,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:c:d:fi:l:np:qrst::v",
+		int c = getopt_long (argc, argv, "a::b:c:d:fi:l:no:p:qrst::v",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -523,6 +526,7 @@ static void process_options (int argc, char *argv[])
 		case 'i': interval = atoi(optarg); break;
 		case 'l': max_cycles = atoi(optarg); break;
 		case 'n': use_nanosleep = MODE_CLOCK_NANOSLEEP; break;
+		case 'o': oscope_reduction = atoi(optarg); break;
 		case 'p': priority = atoi(optarg); break;
 		case 'q': quiet = 1; break;
 		case 'r': timermode = TIMER_RELTIME; break;
@@ -550,6 +554,14 @@ static void process_options (int argc, char *argv[])
 
 	if (clocksel < 0 || clocksel > ARRAY_SIZE(clocksources))
 		error = 1;
+
+	if (oscope_reduction < 1)
+		error = 1;
+
+	if (oscope_reduction > 1 && !verbose) {
+		fprintf(stderr, "ERROR: -o option only meaningful, if verbose\n");
+		error = 1;
+	}
 
 	if (priority < 0 || priority > 99)
 		error = 1;
@@ -617,8 +629,19 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 		}
 	} else {
 		while (stat->cycles != stat->cyclesread) {
-			long diff = stat->values[stat->cyclesread & par->bufmsk];
-			printf("%8d:%8lu:%8ld\n", index, stat->cyclesread, diff);
+			static int reduce = 0;
+			static long max = -1;
+			long diff = stat->values
+			    [stat->cyclesread & par->bufmsk];
+
+			if (diff > max)
+				max = diff;
+			if (++reduce == oscope_reduction) {
+				printf("%8d:%8lu:%8ld\n", index,
+				    stat->cyclesread, max);
+				reduce = 0;
+				max = -1;
+			}
 			stat->cyclesread++;
 		}
 	}

@@ -16,7 +16,7 @@
 cyclictest \- High resolution test program
 .SH SYNOPSIS
 .B cyclictest
-.RI "[ -hnqrsv ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] [\-i " intv " ] [\-l " loop " ] [\-p " prio " ] [\-t " num " ] "
+.RI "[ -hnqrsv ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] [\-t " num " ] "
 .\" .SH DESCRIPTION
 .\" This manual page documents briefly the
 .\" .B cyclictest commands.
@@ -65,6 +65,9 @@ Set the number of loops. The default is 0 (endless). This option is useful for a
 .TP
 .B \-n, \-\-nanosleep
 Use clock_nanosleep instead of posix interval timers. Setting this option runs the tests with clock_nanosleep instead of posix interval timers.
+.TP
+.B \-o, \-\-oscope=RED
+Oscilloscope mode, reduce verbose output by RED.
 .TP
 .B \-p, \-\-prio=PRIO
 Set the priority of the first thread. The given priority is set to the first test thread. Each further thread gets a lower priority:
