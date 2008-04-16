@@ -35,9 +35,28 @@
 #define gettid() syscall(__NR_gettid)
 #define sigev_notify_thread_id _sigev_un._tid
 
+#ifdef __UCLIBC__
+#include <errno.h>
+#define MAKE_PROCESS_CPUCLOCK(pid, clock) \
+	((~(clockid_t) (pid) << 3) | (clockid_t) (clock))
+#define CPUCLOCK_SCHED          2
+
+static int clock_nanosleep(clockid_t clock_id, int flags, const struct timespec *req,
+		struct timespec *rem)
+{
+	if (clock_id == CLOCK_THREAD_CPUTIME_ID)
+		return -EINVAL;
+	if (clock_id == CLOCK_PROCESS_CPUTIME_ID)
+		clock_id = MAKE_PROCESS_CPUCLOCK (0, CPUCLOCK_SCHED);
+
+	return syscall(__NR_clock_nanosleep, clock_id, flags, req, rem);
+}
+
+#else
 extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 			   __const struct timespec *__req,
 			   struct timespec *__rem);
+#endif
 
 #define USEC_PER_SEC		1000000
 #define NSEC_PER_SEC		1000000000
