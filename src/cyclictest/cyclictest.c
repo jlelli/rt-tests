@@ -52,6 +52,14 @@ static int clock_nanosleep(clockid_t clock_id, int flags, const struct timespec 
 	return syscall(__NR_clock_nanosleep, clock_id, flags, req, rem);
 }
 
+static int sched_setaffinity(pid_t pid, unsigned int cpusetsize,
+		cpu_set_t *mask)
+{
+	return -EINVAL;
+}
+
+static void CPU_SET(int cpu, cpu_set_t *set) { }
+static void CPU_ZERO(cpu_set_t *set) { }
 #else
 extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 			   __const struct timespec *__req,
