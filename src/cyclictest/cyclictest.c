@@ -307,7 +307,7 @@ void *timerthread(void *param)
 			}
 			setkernvar("tracing_max_latency", "0");
 			setkernvar("latency_hist/wakeup_latency/reset", "1");
- 		} else {
+		} else {
 			setkernvar("trace_all_cpus", "1");
 			setkernvar("trace_freerunning", "1");
 			setkernvar("trace_print_on_crash", "0");
@@ -660,14 +660,17 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 		while (stat->cycles != stat->cyclesread) {
 			static int reduce = 0;
 			static long max = -1;
+			static long cycleofmax = 0;
 			long diff = stat->values
 			    [stat->cyclesread & par->bufmsk];
 
-			if (diff > max)
+			if (diff > max) {
 				max = diff;
+				cycleofmax = stat->cyclesread;
+			}
 			if (++reduce == oscope_reduction) {
-				printf("%8d:%8lu:%8ld\n", index,
-				    stat->cyclesread, max);
+				printf("%8d:%8lu:%8ld\n", index, cycleofmax,
+				    max);
 				reduce = 0;
 				max = -1;
 			}
