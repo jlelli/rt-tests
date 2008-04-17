@@ -20,6 +20,7 @@
 #include <sched.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 
 #include <linux/unistd.h>
 
@@ -28,6 +29,7 @@
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/utsname.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -36,7 +38,6 @@
 #define sigev_notify_thread_id _sigev_un._tid
 
 #ifdef __UCLIBC__
-#include <errno.h>
 #define MAKE_PROCESS_CPUCLOCK(pid, clock) \
 	((~(clockid_t) (pid) << 3) | (clockid_t) (clock))
 #define CPUCLOCK_SCHED          2
@@ -602,15 +603,16 @@ static void process_options (int argc, char *argv[])
 
 static int check_kernel(void)
 {
-	size_t len;
-	char ver[256];
-	int fd, maj, min, sub, kv;
+	struct utsname kname;
+	int maj, min, sub, kv, ret;
 
-	fd = open("/proc/version", O_RDONLY, 0666);
-	len = read(fd, ver, sizeof(ver)-1);
-	close(fd);
-	ver[len-1] = '\0';
-	sscanf(ver, "Linux version %d.%d.%d", &maj, &min, &sub);
+	ret = uname(&kname);
+	if (ret) {
+		fprintf(stderr, "uname failed: %s. Assuming not 2.6\n",
+				strerror(errno));
+		return KV_NOT_26;
+	}
+	sscanf(kname.release, "%d.%d.%d", &maj, &min, &sub);
 	if (maj == 2 && min == 6) {
 		if (sub < 18)
 			kv = KV_26_LT18;
