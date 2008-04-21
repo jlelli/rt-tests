@@ -16,7 +16,7 @@
 cyclictest \- High resolution test program
 .SH SYNOPSIS
 .B cyclictest
-.RI "[ -hnqrsv ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] [\-t " num " ] "
+.RI "[ -hfnqrsv ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] [\-t " num " ] "
 .\" .SH DESCRIPTION
 .\" This manual page documents briefly the
 .\" .B cyclictest commands.
@@ -25,7 +25,7 @@ cyclictest \- High resolution test program
 .\" \fBcyclictest\fP is a program that...
 .SH OPTIONS
 These programs follow the usual GNU command line syntax, with long
-options starting with two dashes (`-').
+options starting with two dashes ('--').
 .br
 A summary of options is included below.
 .\" For a complete description, see the Info files.
@@ -35,13 +35,34 @@ Run all threads on procesor number PROC. If PROC is not specified, run thread #N
 .TP
 .B \-b, \-\-breaktrace=USEC
 Send break trace command when latency > USEC. This is a debugging option to control the latency tracer in the realtime preemption patch.
-It is useful to track down unexpected large latencies on a system. This option does only work with:
+It is useful to track down unexpected large latencies on a system. This option does only work with following kernel config options.
 
+    For kernel < 2.6.24:
+.br
     * CONFIG_PREEMPT_RT=y
-	* CONFIG_WAKEUP_TIMING=y
+.br
+    * CONFIG_WAKEUP_TIMING=y
+.br
     * CONFIG_LATENCY_TRACE=y
-	* CONFIG_CRITICAL_PREEMPT_TIMING=y
-	* CONFIG_CRITICAL_IRQSOFF_TIMING=y
+.br
+    * CONFIG_CRITICAL_PREEMPT_TIMING=y
+.br
+    * CONFIG_CRITICAL_IRQSOFF_TIMING=y
+.sp 1
+    For kernel >= 2.6.24:
+.br
+    * CONFIG_PREEMPT_RT=y
+.br
+    * CONFIG_FTRACE
+.br
+    * CONFIG_IRQSOFF_TRACER=y
+.br
+    * CONFIG_PREEMPT_TRACER=y
+.br
+    * CONFIG_SCHED_TRACER=y
+.br
+    * CONFIG_WAKEUP_LATENCY_HIST
+
 
 kernel configuration options enabled. The USEC parameter to the -b option defines a maximum latency value, which is compared against the actual latencies of the test. Once the measured latency is higher than the given maximum, the kernel tracer and cyclictest is stopped. The trace can be read from /proc/latency_trace. Please be aware that the tracer adds significant overhead to the kernel, so the latencies will be much higher than on a kernel with latency tracing disabled.
 .TP
@@ -56,6 +77,9 @@ This option has no influence when the -s option is given.
 .TP
 .B \-d, \-\-distance=DIST
 Set the distance of thread intervals in microseconds (default is 500us). When cylictest is called with the -t option and more than one thread is created, then this distance value is added to the interval of the threads: Interval(thread N) = Interval(thread N-1) + DIST
+.TP
+.B \-f, \-\-ftrace
+Enable function tracing using ftrace as tracer. This option is available only with -b.
 .TP
 .B \-i, \-\-interval=INTV
 Set the base interval of the thread(s) in microseconds (default is 1000us). This sets the interval of the first thread. See also -d.

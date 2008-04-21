@@ -576,7 +576,7 @@ static void display_help(void)
 	       "                           0 = CLOCK_MONOTONIC (default)\n"
 	       "                           1 = CLOCK_REALTIME\n"
 	       "-d DIST  --distance=DIST   distance of thread intervals in us default=500\n"
-	       "-f                         function trace (when -b is active)\n"
+	       "-f       --ftrace          function trace (when -b is active)\n"
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-I       --irqsoff         Irqsoff tracing (used with -b)\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
