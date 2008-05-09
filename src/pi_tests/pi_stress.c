@@ -51,6 +51,7 @@
 #include <signal.h>
 #include <getopt.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <sys/wait.h>
 #include <termios.h>
 
@@ -128,6 +129,9 @@ int have_errors = 0;
 // force running on one cpu
 int uniprocessor = 0;
 
+// lock all memory
+int lockall = 0;
+
 // command line options
 struct option options [] = {
 	{ "duration", required_argument, NULL, 't' },
@@ -141,6 +145,7 @@ struct option options [] = {
 	{ "prompt", no_argument, NULL, 'p'},
 	{ "debug", no_argument, NULL, 'd'},
 	{ "version", no_argument, NULL, 'V'},
+	{ "mlockall", no_argument, NULL, 'm'},
 	{ "help", no_argument, NULL, 'h'},
 	{ NULL, 0, NULL, 0},
 };
@@ -233,6 +238,13 @@ main (int argc, char **argv)
 
 	/* process command line arguments */
 	process_command_line(argc, argv);
+
+	/* lock memory */
+	if (lockall)
+		if (mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+			error("mlockall failed\n");
+			return FAILURE;
+		}
 
 	// boost main's priority (so we keep running) :)
 	prio_min = sched_get_priority_min(policy);
@@ -328,6 +340,8 @@ main (int argc, char **argv)
 	}
 	finish = time(NULL);
 	summary();
+	if (lockall)
+		munlockall();
 	exit(retval);
 }
 
@@ -852,6 +866,7 @@ usage(void)
 	printf("\t--rr\t\t- use SCHED_RR for test threads [SCHED_FIFO]\n");
 	printf("\t--prompt\t- prompt before starting the test\n");
 	printf("\t--uniprocessor\t- force all threads to run on one processor\n");
+	printf("\t--mlockall\t- lock current and future memory\n");
 	printf("\t--debug\t\t- turn on debug prints\n");
 	printf("\t--version\t- print version number on output\n");
 	printf("\t--help\t\t- print this message\n");
@@ -1082,6 +1097,9 @@ process_command_line(int argc, char **argv)
 			exit(0);
 		case 'u':
 			uniprocessor = 1;
+			break;
+		case 'm':
+			lockall = 1;
 			break;
 		}
 	}
