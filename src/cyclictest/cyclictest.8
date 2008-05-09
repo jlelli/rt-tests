@@ -110,6 +110,9 @@ Use sys_nanosleep and sys_setitimer instead of posix timers. Note, that -s can o
 Set the number of test threads (default is 1). Create NUM test threads. If NUM is not specifed, NUM is set to
 the number of available CPUs. See -d, -i and -p for further information.
 .TP
+.B \-m, \-\-mlockall
+Lock current an future memory allocations to prevent being paged out
+.TP
 .B \-v, \-\-verbose
 Output values on stdout for statistics. This option is used to gather statistical information about the latency distribution. The output is sent to stdout. The output format is:
 

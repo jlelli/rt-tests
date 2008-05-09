@@ -10,7 +10,7 @@
 pi_stress \- a stress test for POSIX Priority Inheritance mutexes
 .\"}}}
 .\"{{{ Synopsis
-.\" Usage:  pi_stress [-i n ] [-g n] [-v] [-d] [-s] [-r] [-p] [-u]
+.\" Usage:  pi_stress [-i n ] [-g n] [-v] [-d] [-s] [-r] [-p] [-u] [-m]
 .SH SYNOPSIS
 .B pi_stress
 .RB [ \-i|--inversions
@@ -24,6 +24,7 @@ pi_stress \- a stress test for POSIX Priority Inheritance mutexes
 .RB [ \-s|--signal ]
 .RB [ \-r|--rr ]
 .RB [ \-p|--prompt ]
+.RB [ \-m|--mlockall ]
 .RB [ \-u|--uniprocessor ]
 .br
 .\" help
@@ -70,6 +71,9 @@ Prompt before actually starting the stress test
 Run all threads on one processor. The default is to run all inversion
 group threads on one processor and the admin threads (reporting
 thread, keyboard reader, etc.) on a different processor.
+.IP \m|--mlockall
+Call mlockall to lock currnet and future memory allocations and
+prevent being paged out
 .IP -h|--help
 Display a short help message and options.
 .SH CAVEATS
