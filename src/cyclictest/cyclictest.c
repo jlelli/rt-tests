@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/mman.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -119,6 +120,7 @@ static int ftrace = 0;
 static int kernelversion;
 static int verbose = 0;
 static int oscope_reduction = 1;
+static int lockall = 0;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -478,6 +480,7 @@ static void display_help(void)
 	       "-s       --system          use sys_nanosleep and sys_setitimer\n"
 	       "-t       --threads         one thread per available processor\n"
 	       "-t NUM   --threads=NUM     number of threads: without -t default=1\n"
+	       "-m       --mlockall        lock current and future memory allocations\n"
 	       "-v       --verbose         output values on stdout for statistics\n"
 	       "                           format: n:c:v n=tasknum c=count v=value in us\n");
 	exit(0);
@@ -531,11 +534,12 @@ static void process_options (int argc, char *argv[])
 			{"relative", no_argument, NULL, 'r'},
 			{"system", no_argument, NULL, 's'},
 			{"threads", optional_argument, NULL, 't'},
+			{"mlockall", no_argument, NULL, 'm' },
 			{"verbose", no_argument, NULL, 'v'},
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:c:d:fi:l:no:p:qrst::v",
+		int c = getopt_long (argc, argv, "a::b:c:d:fi:l:no:p:qrsmt::v",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -566,6 +570,7 @@ static void process_options (int argc, char *argv[])
 				num_threads = max_cpus;
 			break;
 		case 'v': verbose = 1; break;
+		case 'm': lockall = 1; break;
 		case '?': error = 1; break;
 		}
 	}
@@ -696,6 +701,13 @@ int main(int argc, char **argv)
 
 	process_options(argc, argv);
 
+	/* lock all memory (prevent paging) */
+	if (lockall)
+		if (mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+			perror("mlockall");
+			goto out;
+		}
+		
 	kernelversion = check_kernel();
 
 	if (kernelversion == KV_NOT_26)
@@ -808,6 +820,10 @@ int main(int argc, char **argv)
  outpar:
 	free(par);
  out:
+
+	/* unlock everything */
+	if (lockall)
+		munlockall();
 
 	/* Be a nice program, cleanup */
 	if (kernelversion != KV_26_CURR)

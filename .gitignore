@@ -8,3 +8,7 @@ releases
 BUILD
 RPMS
 SRPMS
+classic_pi
+pi_stress
+cyclictest
+signaltest

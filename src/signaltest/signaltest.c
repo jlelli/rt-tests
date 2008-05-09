@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/mman.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -207,6 +208,7 @@ static void display_help(void)
 	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 	       "-q       --quiet           print only a summary on exit\n"
 	       "-t NUM   --threads=NUM     number of threads: default=2\n"
+	       "-m       --mlockall        lock current and future memory allocations\n"
 	       "-v       --verbose         output values on stdout for statistics\n"
 	       "                           format: n:c:v n=tasknum c=count v=value in us\n");
 	exit(0);
@@ -217,6 +219,7 @@ static int num_threads = 2;
 static int max_cycles;
 static int verbose;
 static int quiet;
+static int lockall = 0;
 
 /* Process commandline options */
 static void process_options (int argc, char *argv[])
@@ -235,7 +238,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "b:c:d:i:l:np:qrst:v",
+		int c = getopt_long (argc, argv, "b:c:d:i:l:np:qrsmt:v",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -245,6 +248,7 @@ static void process_options (int argc, char *argv[])
 		case 'p': priority = atoi(optarg); break;
 		case 'q': quiet = 1; break;
 		case 't': num_threads = atoi(optarg); break;
+		case 'm': lockall = 1; break;
 		case 'v': verbose = 1; break;
 		case '?': error = 1; break;
 		}
@@ -317,6 +321,13 @@ int main(int argc, char **argv)
 
 	process_options(argc, argv);
 
+	/* lock all memory (prevent paging) */
+	if (lockall)
+		if (mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+			perror("mlockall");
+			goto out;
+		}
+		
 	check_kernel();
 
 	sigemptyset(&sigset);
@@ -417,5 +428,8 @@ int main(int argc, char **argv)
  outpar:
 	free(par);
  out:
+	if (lockall)
+		munlockall();
+
 	exit(ret);
 }
