@@ -126,8 +126,12 @@ static struct kvars {
 	char value[KVALUELEN];
 } kv[KVARS];
 
+#define _STR(x) #x
+#define STR(x) _STR(x)
+#define MAX_PATH 256
+
 static char *procfileprefix = "/proc/sys/kernel/";
-static char *debugfileprefix = "/debug/tracing/";
+static char debugfileprefix[MAX_PATH];
 
 enum kernelversion {
 	KV_NOT_26,
@@ -135,6 +139,43 @@ enum kernelversion {
 	KV_26_LT24,
 	KV_26_CURR
 };
+
+enum {
+	ERROR_GENERAL	= -1,
+	ERROR_NOTFOUND	= -2,
+};
+
+/*
+ * Finds the path to the debugfs/tracing
+ */
+static int set_debugfileprefix(void)
+{
+	char type[100];
+	FILE *fp;
+	int size;
+
+	if ((fp = fopen("/proc/mounts","r")) == NULL)
+		return ERROR_GENERAL;
+
+	while (fscanf(fp, "%*s %"
+		      STR(MAX_PATH)
+		      "s %99s %*s %*d %*d\n",
+		      debugfileprefix, type) == 2) {
+		if (strcmp(type, "debugfs") == 0)
+			break;
+	}
+	fclose(fp);
+
+	if (strcmp(type, "debugfs") != 0)
+		return ERROR_NOTFOUND;
+
+	size = strlen(debugfileprefix);
+	size = MAX_PATH - size;
+
+	strncat(debugfileprefix, "/tracing", size);
+
+	return 0;
+}
 
 static int kernvar(int mode, char *name, char *value, size_t sizeofvalue)
 {
@@ -702,8 +743,9 @@ int main(int argc, char **argv)
 		fprintf(stderr, "WARNING: Most functions require kernel 2.6\n");
 
 	if (tracelimit && kernelversion == KV_26_CURR) {
-		char testname[32];
+		char testname[MAX_PATH];
 
+		set_debugfileprefix();
 		strcpy(testname, debugfileprefix);
 		strcat(testname, "tracing_enabled");
 		if (access(testname, R_OK)) {
