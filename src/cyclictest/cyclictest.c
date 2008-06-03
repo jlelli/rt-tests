@@ -396,7 +396,7 @@ void *timerthread(void *param)
 					if (ftrace)
 						ret = settracer("ftrace");
 					else
-						ret = settracer("sched-switch");
+						ret = settracer("sched_switch");
 				}
 			}
 
