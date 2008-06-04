@@ -39,7 +39,7 @@ install: all
 
 release: clean changelog
 	mkdir -p releases
-	tar -C ".." --exclude ".git" --exclude "patches" -c rt-tests | gzip >releases/rt-tests-$(VERSION_STRING).tar.gz
+	tar -C ".." --exclude ".git" --exclude "patches" --exclude "releases" -c rt-tests | gzip >releases/rt-tests-$(VERSION_STRING).tar.gz
 	rm -f ChangeLog
 
 HERE	:=	$(shell pwd)
