@@ -118,6 +118,9 @@ struct thread_stat {
 	pthread_t thread;
 	int threadstarted;
 	int tid;
+	long reduce;
+	long redmax;
+	long cycleofmax;
 };
 
 static int shutdown;
@@ -775,21 +778,18 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 		}
 	} else {
 		while (stat->cycles != stat->cyclesread) {
-			static int reduce = 0;
-			static long max = -1;
-			static long cycleofmax = 0;
 			long diff = stat->values
 			    [stat->cyclesread & par->bufmsk];
 
-			if (diff > max) {
-				max = diff;
-				cycleofmax = stat->cyclesread;
+			if (diff > stat->redmax) {
+				stat->redmax = diff;
+				stat->cycleofmax = stat->cyclesread;
 			}
-			if (++reduce == oscope_reduction) {
-				printf("%8d:%8lu:%8ld\n", index, cycleofmax,
-				    max);
-				reduce = 0;
-				max = -1;
+			if (++stat->reduce == oscope_reduction) {
+				printf("%8d:%8lu:%8ld\n", index, stat->cycleofmax,
+				    stat->redmax);
+				stat->reduce = 0;
+				stat->redmax = 0;
 			}
 			stat->cyclesread++;
 		}
