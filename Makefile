@@ -1,4 +1,4 @@
-VERSION_STRING = "0.20"
+VERSION_STRING = "0.22"
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress
 FLAGS	= -Wall -Wno-nonnull -O2
@@ -39,15 +39,18 @@ install: all
 
 release: clean changelog
 	mkdir -p releases
-	tar -C ".." --exclude ".git" --exclude "patches" -c rt-tests | gzip >releases/rt-tests-$(VERSION_STRING).tar.gz
+	tar -C ".." --exclude ".git" --exclude "patches" --exclude "releases" -c rt-tests | gzip >releases/rt-tests-$(VERSION_STRING).tar.gz
 	rm -f ChangeLog
+
+rt-tests.spec: Makefile rt-tests.spec-in
+	sed s/__VERSION__/$(VERSION_STRING)/ <$@-in >$@
 
 HERE	:=	$(shell pwd)
 RPMARGS	:=	--define "_topdir $(HERE)" 	\
 		--define "_sourcedir $(HERE)/releases" 	\
 		--define "_builddir $(HERE)/BUILD" 	\
 
-rpm:	rpmdirs release
+rpm:	rt-tests.spec rpmdirs release
 	rpmbuild -ba $(RPMARGS) rt-tests.spec
 
 rpmdirs:

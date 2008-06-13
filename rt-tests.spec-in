@@ -1,6 +1,6 @@
 Summary: Programs that test various rt-features
 Name: rt-tests
-Version: 0.22
+Version: __VERSION__
 Release: 1
 License: GPLv2
 Group: Development/Tools
