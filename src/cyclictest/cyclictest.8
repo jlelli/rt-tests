@@ -16,7 +16,7 @@
 cyclictest \- High resolution test program
 .SH SYNOPSIS
 .B cyclictest
-.RI "[ -hfmnqrsv ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] [\-t " num " ]"
+.RI "[ \-hfmnqrsv ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] [\-t " num " ]"
 .\" .SH DESCRIPTION
 .\" This manual page documents briefly the
 .\" .B cyclictest commands.
@@ -25,7 +25,7 @@ cyclictest \- High resolution test program
 .\" \fBcyclictest\fP is a program that...
 .SH OPTIONS
 These programs follow the usual GNU command line syntax, with long
-options starting with two dashes ('--').
+options starting with two dashes ('\-\-').
 .br
 A summary of options is included below.
 .\" For a complete description, see the Info files.
@@ -64,7 +64,7 @@ It is useful to track down unexpected large latencies on a system. This option d
     * CONFIG_WAKEUP_LATENCY_HIST
 
 
-kernel configuration options enabled. The USEC parameter to the -b option defines a maximum latency value, which is compared against the actual latencies of the test. Once the measured latency is higher than the given maximum, the kernel tracer and cyclictest is stopped. The trace can be read from /proc/latency_trace. Please be aware that the tracer adds significant overhead to the kernel, so the latencies will be much higher than on a kernel with latency tracing disabled.
+kernel configuration options enabled. The USEC parameter to the \-b option defines a maximum latency value, which is compared against the actual latencies of the test. Once the measured latency is higher than the given maximum, the kernel tracer and cyclictest is stopped. The trace can be read from /proc/latency_trace. Please be aware that the tracer adds significant overhead to the kernel, so the latencies will be much higher than on a kernel with latency tracing disabled.
 .TP
 .B \-c, \-\-clock=CLOCK
 Selects the clock, which is used:
@@ -73,16 +73,16 @@ Selects the clock, which is used:
     * 1 selects CLOCK_REALTIME, which is the time of day time.
 
 CLOCK_REALTIME can be set by settimeofday, while CLOCK_MONOTONIC can not be modified by the user.
-This option has no influence when the -s option is given.
+This option has no influence when the \-s option is given.
 .TP
 .B \-d, \-\-distance=DIST
-Set the distance of thread intervals in microseconds (default is 500us). When cylictest is called with the -t option and more than one thread is created, then this distance value is added to the interval of the threads: Interval(thread N) = Interval(thread N-1) + DIST
+Set the distance of thread intervals in microseconds (default is 500us). When cylictest is called with the \-t option and more than one thread is created, then this distance value is added to the interval of the threads: Interval(thread N) = Interval(thread N-1) + DIST
 .TP
 .B \-f, \-\-ftrace
-Enable function tracing using ftrace as tracer. This option is available only with -b.
+Enable function tracing using ftrace as tracer. This option is available only with \-b.
 .TP
 .B \-i, \-\-interval=INTV
-Set the base interval of the thread(s) in microseconds (default is 1000us). This sets the interval of the first thread. See also -d.
+Set the base interval of the thread(s) in microseconds (default is 1000us). This sets the interval of the first thread. See also \-d.
 .TP
 .B \-l, \-\-loops=LOOPS
 Set the number of loops. The default is 0 (endless). This option is useful for automated tests with a given number of test cycles. Cyclictest is stopped once the number of timer intervals has been reached.
@@ -104,11 +104,11 @@ Run the tests quiet and print only a summary on exit. Useful for automated tests
 Use relative timers instead of absolute. The default behaviour of the tests is to use absolute timers. This option is there for completeness and should not be used for reproducible tests.
 .TP
 .B \-s, \-\-system
-Use sys_nanosleep and sys_setitimer instead of posix timers. Note, that -s can only be used with one thread because itimers are per process and not per thread. -s in combination with -n uses the nanosleep syscall and is not restricted to one thread.
+Use sys_nanosleep and sys_setitimer instead of posix timers. Note, that \-s can only be used with one thread because itimers are per process and not per thread. \-s in combination with \-n uses the nanosleep syscall and is not restricted to one thread.
 .TP
 .B \-t, \-\-threads[=NUM]
 Set the number of test threads (default is 1). Create NUM test threads. If NUM is not specifed, NUM is set to
-the number of available CPUs. See -d, -i and -p for further information.
+the number of available CPUs. See \-d, \-i and \-p for further information.
 .TP
 .B \-m, \-\-mlockall
 Lock current an future memory allocations to prevent being paged out
@@ -118,7 +118,7 @@ Output values on stdout for statistics. This option is used to gather statistica
 
 n:c:v
 
-where n=task number c=count v=latency value in us. Use this option in combination with -l
+where n=task number c=count v=latency value in us. Use this option in combination with \-l
 .\" .SH SEE ALSO
 .\" .BR bar (1),
 .\" .BR baz (1).

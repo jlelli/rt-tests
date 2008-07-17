@@ -13,23 +13,23 @@ pi_stress \- a stress test for POSIX Priority Inheritance mutexes
 .\" Usage:  pi_stress [-i n ] [-g n] [-v] [-d] [-s] [-r] [-p] [-u] [-m]
 .SH SYNOPSIS
 .B pi_stress
-.RB [ \-i|--inversions
+.RB [ \-i|\-\-inversions
 .IR inversions ]
-.RB [ \-t|--duration
+.RB [ \-t|\-\-duration
 .IR seconds ]
-.RB [ \-g|--groups
+.RB [ \-g|\-\-groups
 .IR groups
-.RB [ \-d|--debug ]
-.RB [ \-v|--verbose ]
-.RB [ \-s|--signal ]
-.RB [ \-r|--rr ]
-.RB [ \-p|--prompt ]
-.RB [ \-m|--mlockall ]
-.RB [ \-u|--uniprocessor ]
+.RB [ \-d|\-\-debug ]
+.RB [ \-v|\-\-verbose ]
+.RB [ \-s|\-\-signal ]
+.RB [ \-r|\-\-rr ]
+.RB [ \-p|\-\-prompt ]
+.RB [ \-m|\-\-mlockall ]
+.RB [ \-u|\-\-uniprocessor ]
 .br
 .\" help
 .B pi_stress
-.RB \-h|--help
+.RB \-h|\-\-help
 .SH DESCRIPTION
 .B pi_stress
 is a program used to stress the
@@ -44,37 +44,37 @@ condition that will deadlock if
 doesn't work.
 
 .SH OPTIONS
-.IP "-i n|--inversions=n"
+.IP "\-i n|\-\-inversions=n"
 Run for
 .I n
 number of inversion conditions. This is the total number of inversions
 for all inversion groups. Default is -1 for infinite.
-.IP "-t n|--duration=n"
+.IP "\-t n|\-\-duration=n"
 Run the test for 
 .I n
 seconds and then terminate.
-.IP "-g n|--groups=n"
+.IP "\-g n|\-\-groups=n"
 The number of inversion groups to run. Defaults to 10.
-.IP \-d|--debug
+.IP \-d|\-\-debug
 Run in debug mode; lots of extra prints
-.IP -v|--verbose
+.IP \-v|\-\-verbose
 Run with verbose messages
-.IP \-s|--signal
+.IP \-s|\-\-signal
 Terminate on receipt of SIGTERM (Ctrl-C). Default is to terminate on
 any keypress.
-.IP \-r|--rr
+.IP \-r|\-\-rr
 Run inversion group threads as SCHED_RR (round-robin). The default is
 to run the inversion threads as SCHED_FIFO.
-.IP \-p|--prompt
+.IP \-p|\-\-prompt
 Prompt before actually starting the stress test
-.IP \-u|--uniprocessor
+.IP \-u|\-\-uniprocessor
 Run all threads on one processor. The default is to run all inversion
 group threads on one processor and the admin threads (reporting
 thread, keyboard reader, etc.) on a different processor.
-.IP \m|--mlockall
+.IP \m|\-\-mlockall
 Call mlockall to lock currnet and future memory allocations and
 prevent being paged out
-.IP -h|--help
+.IP \-h|\-\-help
 Display a short help message and options.
 .SH CAVEATS
 The pi_stress test threads run as SCHED_FIFO or SCHED_RR threads,
