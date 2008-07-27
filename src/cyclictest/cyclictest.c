@@ -575,7 +575,6 @@ static void display_help(void)
 	       "cyclictest <options>\n\n"
 	       "-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
 	       "                           with NUM pin all threads to the processor NUM\n"
-	       "-a PROC  --affinity=PROC   run all threads on processor #PROC\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 	       "-B       --preemptirqs     both preempt and irqsoff tracing (used with -b)\n"
 	       "-c CLOCK --clock=CLOCK     select clock\n"
