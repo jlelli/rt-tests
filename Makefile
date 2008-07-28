@@ -1,4 +1,4 @@
-VERSION_STRING = "0.26"
+VERSION_STRING = "0.27"
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress
 FLAGS	= -Wall -Wno-nonnull -O2
@@ -50,7 +50,7 @@ RPMARGS	:=	--define "_topdir $(HERE)" 	\
 		--define "_sourcedir $(HERE)/releases" 	\
 		--define "_builddir $(HERE)/BUILD" 	\
 
-rpm:	rt-tests.spec rpmdirs release
+rpm:	rpmdirs release rt-tests.spec
 	rpmbuild -ba $(RPMARGS) rt-tests.spec
 
 rpmdirs:
