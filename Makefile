@@ -1,4 +1,4 @@
-VERSION_STRING = "0.25"
+VERSION_STRING = "0.26"
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress
 FLAGS	= -Wall -Wno-nonnull -O2
@@ -21,7 +21,7 @@ classic_pi: src/pi_tests/classic_pi.c
 pi_stress:  src/pi_tests/pi_stress.c
 	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
-CLEANUP = $(TARGETS) *.o .depend *.*~ ChangeLog *.orig *.rej
+CLEANUP = $(TARGETS) *.o .depend *.*~ ChangeLog *.orig *.rej rt-tests.spec
 
 clean:
 	for F in $(CLEANUP); do find -type f -iname $$F | xargs rm -f; done
