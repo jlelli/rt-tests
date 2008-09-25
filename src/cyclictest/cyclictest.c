@@ -132,7 +132,6 @@ static int verbose = 0;
 static int oscope_reduction = 1;
 static int lockall = 0;
 static int tracetype;
-static int lockall = 0;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -655,7 +654,6 @@ static void process_options (int argc, char *argv[])
 			{"relative", no_argument, NULL, 'r'},
 			{"system", no_argument, NULL, 's'},
 			{"threads", optional_argument, NULL, 't'},
-			{"mlockall", no_argument, NULL, 'm' },
 			{"verbose", no_argument, NULL, 'v'},
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
