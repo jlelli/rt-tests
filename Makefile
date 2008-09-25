@@ -1,4 +1,4 @@
-VERSION_STRING = "0.23"
+VERSION_STRING = "0.27"
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress
 FLAGS	= -Wall -Wno-nonnull -O2
@@ -21,7 +21,7 @@ classic_pi: src/pi_tests/classic_pi.c
 pi_stress:  src/pi_tests/pi_stress.c
 	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
-CLEANUP = $(TARGETS) *.o .depend *.*~ ChangeLog *.orig *.rej
+CLEANUP = $(TARGETS) *.o .depend *.*~ ChangeLog *.orig *.rej rt-tests.spec
 
 clean:
 	for F in $(CLEANUP); do find -type f -iname $$F | xargs rm -f; done
@@ -50,7 +50,7 @@ RPMARGS	:=	--define "_topdir $(HERE)" 	\
 		--define "_sourcedir $(HERE)/releases" 	\
 		--define "_builddir $(HERE)/BUILD" 	\
 
-rpm:	rt-tests.spec rpmdirs release
+rpm:	rpmdirs release rt-tests.spec
 	rpmbuild -ba $(RPMARGS) rt-tests.spec
 
 rpmdirs:

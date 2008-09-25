@@ -132,6 +132,7 @@ static int verbose = 0;
 static int oscope_reduction = 1;
 static int lockall = 0;
 static int tracetype;
+static int lockall = 0;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -575,7 +576,6 @@ static void display_help(void)
 	       "cyclictest <options>\n\n"
 	       "-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
 	       "                           with NUM pin all threads to the processor NUM\n"
-	       "-a PROC  --affinity=PROC   run all threads on processor #PROC\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 	       "-B       --preemptirqs     both preempt and irqsoff tracing (used with -b)\n"
 	       "-c CLOCK --clock=CLOCK     select clock\n"
@@ -586,6 +586,7 @@ static void display_help(void)
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-I       --irqsoff         Irqsoff tracing (used with -b)\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+	       "-m       --mlockall        lock current and future memory allocations\n"
 	       "-n       --nanosleep       use clock_nanosleep\n"
 	       "-o RED   --oscope=RED      oscilloscope mode, reduce verbose output by RED\n"
 	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
@@ -645,6 +646,7 @@ static void process_options (int argc, char *argv[])
 			{"interval", required_argument, NULL, 'i'},
 			{"irqsoff", no_argument, NULL, 'I'},
 			{"loops", required_argument, NULL, 'l'},
+			{"mlockall", no_argument, NULL, 'm' },
 			{"nanosleep", no_argument, NULL, 'n'},
 			{"oscope", required_argument, NULL, 'o'},
 			{"priority", required_argument, NULL, 'p'},
