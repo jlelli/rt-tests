@@ -16,7 +16,10 @@
 cyclictest \- High resolution test program
 .SH SYNOPSIS
 .B cyclictest
-.RI "[ \-hfmnqrsv ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] [\-h " histogram " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] [\-t " num " ]"
+.RI "[ \-hfmnqrsv ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] \
+[\-h " histogram " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] \
+[\-t " num " ] [\-D " time "]
+
 .\" .SH DESCRIPTION
 .\" This manual page documents briefly the
 .\" .B cyclictest commands.
@@ -81,8 +84,8 @@ Set the distance of thread intervals in microseconds (default is 500us). When cy
 .B \-f, \-\-ftrace
 Enable function tracing using ftrace as tracer. This option is available only with \-b.
 .TP
-.B \-h=MAXLATENCYINUS
-Dump latency histogram to stdout.
+.B \-h, \-\-histogram=MAXLATENCYINUS
+Dump latency histogram to stdout
 .TP
 .B \-i, \-\-interval=INTV
 Set the base interval of the thread(s) in microseconds (default is 1000us). This sets the interval of the first thread. See also \-d.
@@ -125,6 +128,9 @@ Output values on stdout for statistics. This option is used to gather statistica
 n:c:v
 
 where n=task number c=count v=latency value in us. Use this option in combination with \-l
+.TP
+.B \\-D, \-\-duration=TIME
+Run the test for the specified time, which defaults to seconds. Append 'm', 'h', or 'd' to specify minutes, hours or days
 .\" .SH SEE ALSO
 .\" .BR bar (1),
 .\" .BR baz (1).

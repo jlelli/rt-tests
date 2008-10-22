@@ -136,6 +136,7 @@ static int oscope_reduction = 1;
 static int lockall = 0;
 static int tracetype;
 static int histogram = 0;
+static int duration = 0;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -334,6 +335,40 @@ static int settracer(char *tracer)
 	return ret;
 }
 
+/* 
+ * parse an input value as a base10 value followed by an optional
+ * suffix. The input value is presumed to be in seconds, unless 
+ * followed by a modifier suffix: m=minutes, h=hours, d=days
+ *
+ * the return value is a value in seconds
+ */
+int
+parse_time_string(char *val)
+{
+	char *end;
+	int t = strtol(val, &end, 10);
+	if (end) {
+		switch (*end) {
+		case 'm':
+		case 'M':
+			t *= 60;
+			break;
+
+		case 'h':
+		case 'H':
+			t *= 60*60;
+			break;
+
+		case 'd':
+		case 'D':
+			t *= 24*60*60;
+			break;
+
+		}
+	}
+	return t;
+}
+
 /*
  * timer thread
  *
@@ -355,7 +390,7 @@ void *timerthread(void *param)
 	struct sigevent sigev;
 	sigset_t sigset;
 	timer_t timer;
-	struct timespec now, next, interval;
+	struct timespec now, next, interval, stop;
 	struct itimerval itimer;
 	struct itimerspec tspec;
 	struct thread_stat *stat = par->stats;
@@ -463,6 +498,12 @@ void *timerthread(void *param)
 	next = now;
 	next.tv_sec++;
 
+	if (duration) {
+		memset(&stop, 0, sizeof(stop)); /* grrr */
+		stop = now;
+		stop.tv_sec += duration;
+		tsnorm(&stop);
+	}
 	if (par->mode == MODE_CYCLIC) {
 		if (par->timermode == TIMER_ABSTIME)
 			tspec.it_value = next;
@@ -530,6 +571,9 @@ void *timerthread(void *param)
 			stat->max = diff;
 		stat->avg += (double) diff;
 
+		if (duration && (calcdiff(now, stop) >= 0))
+			shutdown++;
+		
 		if (!stopped && tracelimit && (diff > tracelimit)) {
 			stopped++;
 			tracing(0);
@@ -606,7 +650,13 @@ static void display_help(void)
 	       "                           without NUM, threads = max_cpus\n"
 	       "                           without -t default = 1\n"
 	       "-v       --verbose         output values on stdout for statistics\n"
-	       "                           format: n:c:v n=tasknum c=count v=value in us\n");
+	       "                           format: n:c:v n=tasknum c=count v=value in us\n"
+	       "-D       --duration=t      specify a length for the test run\n"
+	       "                           default is in seconds, but 'm', 'h', or 'd' maybe added\n"
+	       "                           to modify value to minutes, hours or days\n"
+	       "-h       --histogram=US    dump a latency histogram to stdout after the run\n"
+	       "                           US is the max time to be be tracked in microseconds\n"
+		);
 	exit(0);
 }
 
@@ -664,10 +714,11 @@ static void process_options (int argc, char *argv[])
 			{"system", no_argument, NULL, 's'},
 			{"threads", optional_argument, NULL, 't'},
 			{"verbose", no_argument, NULL, 'v'},
+			{"duration",required_argument, NULL, 'D'},
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:Bc:d:fh:i:Il:no:p:Pmqrst::v",
+		int c = getopt_long (argc, argv, "a::b:Bc:d:fh:i:Il:no:p:Pmqrst::vD:",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -709,6 +760,8 @@ static void process_options (int argc, char *argv[])
 			break;
 		case 'v': verbose = 1; break;
 		case 'm': lockall = 1; break;
+		case 'D': duration = parse_time_string(optarg);
+			break;
 		case '?': error = 1; break;
 		}
 	}
@@ -973,6 +1026,9 @@ int main(int argc, char **argv)
 			print_stat(&par[i], i, verbose);
 			if(max_cycles && stat[i].cycles >= max_cycles)
 				allstopped++;
+		}
+		if (duration) {
+			
 		}
 		usleep(10000);
 		if (shutdown || allstopped)
