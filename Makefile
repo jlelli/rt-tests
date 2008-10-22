@@ -39,7 +39,9 @@ install: all
 
 release: clean changelog
 	mkdir -p releases
-	tar -C ".." --exclude ".git" --exclude "patches" --exclude "releases" -c rt-tests | gzip >releases/rt-tests-$(VERSION_STRING).tar.gz
+	rm -rf tmp && mkdir -p tmp/rt-tests
+	cp -r Makefile COPYING ChangeLog src tmp/rt-tests
+	tar -C tmp -czf rt-tests-$(VERSION_STRING).tar.gz rt-tests
 	rm -f ChangeLog
 
 rt-tests.spec: Makefile rt-tests.spec-in
