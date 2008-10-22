@@ -93,6 +93,8 @@ enum {
 	IRQPREEMPTOFF,
 };
 
+#define HIST_MAX		1000000
+
 /* Struct to transfer parameters to the thread */
 struct thread_param {
 	int prio;
@@ -116,6 +118,7 @@ struct thread_stat {
 	long act;
 	double avg;
 	long *values;
+	long *hist_array;
 	pthread_t thread;
 	int threadstarted;
 	int tid;
@@ -132,6 +135,7 @@ static int verbose = 0;
 static int oscope_reduction = 1;
 static int lockall = 0;
 static int tracetype;
+static int histogram = 0;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -536,6 +540,9 @@ void *timerthread(void *param)
 
 		if (par->bufmsk)
 			stat->values[stat->cycles & par->bufmsk] = diff;
+	
+		if (histogram && (diff < histogram))
+			stat->hist_array[diff] += 1;
 
 		next.tv_sec += interval.tv_sec;
 		next.tv_nsec += interval.tv_nsec;
@@ -582,6 +589,7 @@ static void display_help(void)
 	       "                           1 = CLOCK_REALTIME\n"
 	       "-d DIST  --distance=DIST   distance of thread intervals in us default=500\n"
 	       "-f       --ftrace          function trace (when -b is active)\n"
+ 	       "-h H_MAX                   latency histogram size in us default 0 (off)\n"
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-I       --irqsoff         Irqsoff tracing (used with -b)\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
@@ -642,6 +650,7 @@ static void process_options (int argc, char *argv[])
 			{"clock", required_argument, NULL, 'c'},
 			{"distance", required_argument, NULL, 'd'},
 			{"ftrace", no_argument, NULL, 'f'},
+			{"histogram", required_argument, NULL, 'h'},
 			{"interval", required_argument, NULL, 'i'},
 			{"irqsoff", no_argument, NULL, 'I'},
 			{"loops", required_argument, NULL, 'l'},
@@ -658,7 +667,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:Bc:d:fi:Il:no:p:Pmqrst::v",
+		int c = getopt_long (argc, argv, "a::b:Bc:d:fh:i:Il:no:p:Pmqrst::v",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -679,6 +688,7 @@ static void process_options (int argc, char *argv[])
 		case 'c': clocksel = atoi(optarg); break;
 		case 'd': distance = atoi(optarg); break;
 		case 'f': ftrace = 1; break;
+ 		case 'h': histogram = atoi(optarg); break;
 		case 'i': interval = atoi(optarg); break;
 		case 'I': tracetype = IRQSOFF; break;
 		case 'l': max_cycles = atoi(optarg); break;
@@ -723,6 +733,9 @@ static void process_options (int argc, char *argv[])
 		fprintf(stderr, "ERROR: -o option only meaningful, if verbose\n");
 		error = 1;
 	}
+
+	if (histogram < 0)
+		error = 1;
 
 	if (priority < 0 || priority > 99)
 		error = 1;
@@ -774,6 +787,36 @@ static void sighand(int sig)
 	shutdown = 1;
 	if (tracelimit)
 		tracing(0);
+}
+
+static void print_hist(struct thread_param *par, int nthreads)
+{
+	int i, j;
+	unsigned long long log_entries[nthreads];
+	unsigned long max_latency = 0;
+	
+	bzero(log_entries, sizeof(log_entries));
+
+	printf("# Histogram\n");
+	for (i = 0; i < histogram; i++) {
+
+		printf("%05d ", i);
+
+		for (j = 0; j < nthreads; j++) {
+			unsigned long curr_latency=par[j].stats->hist_array[i];
+			printf("%06lu\t", curr_latency);
+			log_entries[j] += curr_latency;
+			if (curr_latency && max_latency < i)
+				max_latency = i;
+		}
+		printf("\n");
+		
+	}
+	printf("# Total:");
+	for (j = 0; j < nthreads; j++)
+		printf(" %09llu", log_entries[j]);
+	printf("\n");
+	printf("# Max Latency: %lu / %d\n", max_latency, histogram);
 }
 
 static void print_stat(struct thread_param *par, int index, int verbose)
@@ -874,6 +917,12 @@ int main(int argc, char **argv)
 		goto outpar;
 
 	for (i = 0; i < num_threads; i++) {
+		if (histogram) {
+			if (histogram > HIST_MAX)
+				histogram = HIST_MAX;
+			stat[i].hist_array = calloc(histogram, sizeof(long));
+		}
+
 		if (verbose) {
 			stat[i].values = calloc(VALBUF_SIZE, sizeof(long));
 			if (!stat[i].values)
@@ -882,14 +931,17 @@ int main(int argc, char **argv)
 		}
 
 		par[i].prio = priority;
-		if (priority)
+		if (priority && !histogram)
 			priority--;
 		par[i].clock = clocksources[clocksel];
 		par[i].mode = mode;
 		par[i].timermode = timermode;
 		par[i].signal = signum;
 		par[i].interval = interval;
-		interval += distance;
+		if (!histogram) /* histogram requires same interval on CPUs*/
+			interval += distance;
+		if (verbose)
+			printf("Thread %d Interval: %d\n", i, interval);
 		par[i].max_cycles = max_cycles;
 		par[i].stats = &stat[i];
 		switch (setaffinity) {
@@ -932,6 +984,7 @@ int main(int argc, char **argv)
  outall:
 	shutdown = 1;
 	usleep(50000);
+
 	if (quiet)
 		quiet = 2;
 	for (i = 0; i < num_threads; i++) {
@@ -939,12 +992,19 @@ int main(int argc, char **argv)
 			pthread_kill(stat[i].thread, SIGTERM);
 		if (stat[i].threadstarted) {
 			pthread_join(stat[i].thread, NULL);
-			if (quiet)
+			if (quiet && !histogram)
 				print_stat(&par[i], i, 0);
 		}
 		if (stat[i].values)
 			free(stat[i].values);
 	}
+
+	if (histogram) {
+		print_hist(par, num_threads);
+		for (i = 0; i < num_threads; i++) 
+			free (stat[i].hist_array);
+	}
+
 	free(stat);
  outpar:
 	free(par);
