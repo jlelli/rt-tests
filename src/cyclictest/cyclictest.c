@@ -774,7 +774,8 @@ static void process_options (int argc, char *argv[])
 			    affinity, max_cpus);
 			error = 1;
 		}
-	}
+	} else if (tracelimit)
+		fileprefix = procfileprefix;
 
 	if (clocksel < 0 || clocksel > ARRAY_SIZE(clocksources))
 		error = 1;
