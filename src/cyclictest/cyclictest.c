@@ -87,7 +87,9 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 #define KVALUELEN		32
 
 enum {
-	DEFAULTTRACE,
+	NOTRACE,
+	EVENTS,
+	CTXTSWITCH,
 	IRQSOFF,
 	PREEMPTOFF,
 	IRQPREEMPTOFF,
@@ -134,7 +136,7 @@ static int kernelversion;
 static int verbose = 0;
 static int oscope_reduction = 1;
 static int lockall = 0;
-static int tracetype;
+static int tracetype = NOTRACE;
 static int histogram = 0;
 static int duration = 0;
 
@@ -426,6 +428,12 @@ void *timerthread(void *param)
 			fileprefix = debugfileprefix;
 
 			switch (tracetype) {
+			case NOTRACE:
+				if (ftrace)
+					ret = settracer("ftrace");
+				else
+					ret = 0;
+				break;
 			case IRQSOFF:
 				ret = settracer("irqsoff");
 				break;
@@ -435,13 +443,18 @@ void *timerthread(void *param)
 			case IRQPREEMPTOFF:
 				ret = settracer("preemptirqsoff");
 				break;
+			case EVENTS:
+				ret = settracer("events");
+				if (ftrace)
+					ret = settracer("ftrace");
+				break;
+			case CTXTSWITCH:
+				ret = settracer("sched_switch");
+				break;
 			default:
-				if ((ret = settracer("events"))) {
-					if (ftrace)
-						ret = settracer("ftrace");
-					else
-						ret = settracer("sched_switch");
-				}
+				printf("cyclictest: unknown tracer!\n");
+				ret = 0;
+				break;
 			}
 
 			if (ret)
@@ -629,9 +642,11 @@ static void display_help(void)
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 	       "-B       --preemptirqs     both preempt and irqsoff tracing (used with -b)\n"
 	       "-c CLOCK --clock=CLOCK     select clock\n"
+	       "-C       --context         context switch tracing (used with -b)\n"
 	       "                           0 = CLOCK_MONOTONIC (default)\n"
 	       "                           1 = CLOCK_REALTIME\n"
 	       "-d DIST  --distance=DIST   distance of thread intervals in us default=500\n"
+	       "-E       --event           event tracing (used with -b)\n"
 	       "-f       --ftrace          function trace (when -b is active)\n"
  	       "-h H_MAX                   latency histogram size in us default 0 (off)\n"
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
@@ -698,7 +713,9 @@ static void process_options (int argc, char *argv[])
 			{"breaktrace", required_argument, NULL, 'b'},
 			{"preemptirqs", no_argument, NULL, 'B'},
 			{"clock", required_argument, NULL, 'c'},
+			{"context", no_argument, NULL, 'C'},
 			{"distance", required_argument, NULL, 'd'},
+			{"event", no_argument, NULL, 'E'},
 			{"ftrace", no_argument, NULL, 'f'},
 			{"histogram", required_argument, NULL, 'h'},
 			{"interval", required_argument, NULL, 'i'},
@@ -737,7 +754,9 @@ static void process_options (int argc, char *argv[])
 		case 'b': tracelimit = atoi(optarg); break;
 		case 'B': tracetype = IRQPREEMPTOFF; break;
 		case 'c': clocksel = atoi(optarg); break;
+		case 'C': tracetype = CTXTSWITCH; break;
 		case 'd': distance = atoi(optarg); break;
+		case 'E': tracetype = EVENTS; break;
 		case 'f': ftrace = 1; break;
  		case 'h': histogram = atoi(optarg); break;
 		case 'i': interval = atoi(optarg); break;
