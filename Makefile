@@ -1,4 +1,4 @@
-VERSION_STRING = "0.28"
+VERSION_STRING = "0.30"
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress
 FLAGS	= -Wall -Wno-nonnull -O2
@@ -24,7 +24,7 @@ pi_stress:  src/pi_tests/pi_stress.c
 CLEANUP = $(TARGETS) *.o .depend *.*~ ChangeLog *.orig *.rej rt-tests.spec
 
 clean:
-	for F in $(CLEANUP); do find -type f -iname $$F | xargs rm -f; done
+	for F in $(CLEANUP); do find -type f -name $$F | xargs rm -f; done
 
 distclean: clean
 	rm -rf BUILD RPMS SRPMS releases
