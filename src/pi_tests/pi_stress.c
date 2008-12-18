@@ -120,11 +120,11 @@ unsigned long report_interval = (unsigned long) SEC_TO_USEC(0.75);
 // global that indicates we should shut down
 volatile int shutdown = 0;
 
-// reader-writer lock to protect shutdown 
-pthread_rwlock_t shutdown_lock;
-
 // indicate if errors have occured
 int have_errors = 0;
+
+// indicated that keyboard interrupt has happened
+int interrupted = 0;
 
 // force running on one cpu
 int uniprocessor = 0;
@@ -203,7 +203,14 @@ struct group_parameters {
 
 	// total number of inversions performed
 	unsigned long total;
+
+	// total watchdog hits
+	int watchdog_hits;
+
 } *groups;
+
+// number of consecutive watchdog hits before quitting
+#define WATCHDOG_LIMIT 5
 
 /* number of online processors */
 long num_processors = 0;
@@ -298,13 +305,6 @@ main (int argc, char **argv)
 		return FAILURE;
 	}
 
-	// set up our rwlock for shutdown flag
-	status = pthread_rwlock_init(&shutdown_lock, NULL);
-	if (status) {
-		error("initializing rwlock: %s\n", strerror(status));
-		return FAILURE;
-	}
-
 	// create the groups
 	info("Creating %d test groups\n", ngroups);
 	for (core = 0; core < num_processors; core++)
@@ -347,7 +347,7 @@ main (int argc, char **argv)
 	cleanup();
 
 	// wait for all threads to notice the shutdown flag
-	if (have_errors == 0) {
+	if (have_errors == 0 && interrupted == 0) {
 		info("waiting for all threads to complete\n");
 		status = pthread_barrier_wait(&all_threads_done);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -357,6 +357,8 @@ main (int argc, char **argv)
 		info("All threads terminated!\n");
 		retval = SUCCESS;
 	}
+	else
+		kill(0, SIGTERM);
 	finish = time(NULL);
 	summary();
 	if (lockall)
@@ -481,9 +483,13 @@ watchdog_check(void)
 			// don't report deadlock if group is finished
 			if (g->inversions == g->total)
 				continue;
-			error("WATCHDOG triggered: group %d is deadlocked!\n", i);
-			failures++;
+			if (++g->watchdog_hits >= WATCHDOG_LIMIT) {
+				error("WATCHDOG triggered: group %d is deadlocked!\n", i);
+				failures++;
+			}
 		}
+		else
+			g->watchdog_hits = 0;
 	}
 	return failures ? FAILURE : SUCCESS;
 }	
@@ -498,7 +504,7 @@ pending_interrupt(void)
 		return 0;
 	}
 	
-	return sigismember(&pending, SIGINT);
+	return interrupted = sigismember(&pending, SIGINT);
 }
 	
 static inline void tsnorm(struct timespec *ts)
@@ -584,6 +590,7 @@ reporter(void *arg)
 		
 	}
 	debug("reporter: finished\n");
+	cleanup();
 	return NULL;
 }
 
@@ -627,12 +634,6 @@ low_priority(void *arg)
 
 	debug("low_priority[%d]: starting inversion loop\n", p->id);
 
-	// grab the shutdown lock to hold off a writer
-	status = pthread_rwlock_rdlock(&shutdown_lock);
-	if (status) {
-		error("aquiring initial rwlock: %s\n", strerror(status));
-		return NULL;
-	}
 	while (!shutdown && (unbounded || (p->total < p->inversions))) {
 		/* initial state */
 		debug("low_priority[%d]: entering start wait (%d)\n", p->id, count++);
@@ -641,18 +642,12 @@ low_priority(void *arg)
 			error("low_priority[%d]: pthread_barrier_wait(start): %x\n", p->id, status);
 			return NULL;
 		}
-		// release the shutdown lock while we know our entire group
-		// is in the loop
-		status = pthread_rwlock_unlock(&shutdown_lock);
-		if (status) {
-			error("low_priority[%d]: releasing (read) shutdown lock: %s\n", 
-			      p->id, strerror(status));
-			return NULL;
-		}
+		if (shutdown) continue;
 		debug("low_priority[%d]: claiming mutex\n", p->id);
 		pthread_mutex_lock(&p->mutex);
 		debug("low_priority[%d]: mutex locked\n", p->id);
 
+		if (shutdown) continue;
 		debug("low_priority[%d]: entering locked wait\n", p->id);
 		status = pthread_barrier_wait(&p->locked_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -660,6 +655,7 @@ low_priority(void *arg)
 			return NULL;
 		}
 
+		if (shutdown) continue;
 		// wait for priority boost
 		debug("low_priority[%d]: entering elevated wait\n", p->id);
 		p->low_unlocked = 0; /* prevent race with med_priority */
@@ -675,25 +671,14 @@ low_priority(void *arg)
 		pthread_mutex_unlock(&p->mutex);
 
 		// finish state 
+		if (shutdown) continue;
 		debug("low_priority[%d]: entering finish wait\n", p->id);
 		status = pthread_barrier_wait(&p->finish_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 			error("low_priority[%d]: pthread_barrier_wait(elevate): %x\n", p->id, status);
 			return NULL;
 		}
-		// reacquire the shutdown lock so that we can safely
-		// test the loop control
-		status = pthread_rwlock_rdlock(&shutdown_lock);
-		if (status) {
-			error("low_priority[%d]: acquiring (read) shutdown lock: %s\n", 
-			      p->id, strerror(status));
-			return NULL;
-		}
 	}
-	status = pthread_rwlock_unlock(&shutdown_lock);
-	if (status)
-		error("low_priority[%d]: releasing (read) shutdown lock: %s\n", 
-			  p->id, strerror(status));
 	cleanup();
 	debug("low_priority[%d]: entering done barrier\n", p->id);
 	/* wait for all threads to finish */
@@ -732,11 +717,6 @@ med_priority(void *arg)
 	unbounded = (p->inversions < 0);
 
 	debug("med_priority[%d]: starting inversion loop\n", p->id);
-	status = pthread_rwlock_rdlock(&shutdown_lock);
-	if (status) {
-		error("aquiring initial rwlock: %s\n", strerror(status));
-		return NULL;
-	}
 	while (!shutdown && (unbounded || (p->total < p->inversions))) {
 		/* start state */
 		debug("med_priority[%d]: entering start state (%d)\n", p->id, count++);
@@ -745,45 +725,34 @@ med_priority(void *arg)
 			error("med_priority[%d]: pthread_barrier_wait(start): %x", p->id, status);
 			return NULL;
 		}
-		status = pthread_rwlock_unlock(&shutdown_lock);
-		if (status) {
-			error("med_priority[%d]: releasing (read) shutdown lock: %s\n", 
-			      p->id, strerror(status));
-			return NULL;
-		}
 		debug("med_priority[%d]: entering elevate state\n", p->id);
 		do {
+			if (shutdown) break;
 			status = pthread_barrier_wait(&p->elevate_barrier);
 			if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 				error("med_priority[%d]: pthread_barrier_wait(elevate): %x", p->id, status);
 				return NULL;
 			}
 		} while (!p->high_has_run && !p->low_unlocked);
+		if (shutdown) continue;
 		debug("med_priority[%d]: entering finish state\n", p->id);
 		status = pthread_barrier_wait(&p->finish_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 			error("med_priority[%d]: pthread_barrier_wait(finished): %x", p->id, status);
 			return NULL;
 		}
-		status = pthread_rwlock_rdlock(&shutdown_lock);
-		if (status) {
-			error("med_priority[%d]: acquiring (read) shutdown lock: %s\n", 
-			      p->id, strerror(status));
-			return NULL;
-		}
 	}
-	status = pthread_rwlock_unlock(&shutdown_lock);
-	if (status)
-		error("med_priority[%d]: releasing (read) shutdown lock: %s\n", 
-			  p->id, strerror(status));
+	cleanup();
 
 	debug("med_priority[%d]: entering done barrier\n", p->id);
-
 	/* wait for all threads to finish */
-	status = pthread_barrier_wait(&all_threads_done);
-	if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
-		error("med_priority[%d]: pthread_barrier_wait(all_threads_done): %x", p->id, status);
-		return NULL;
+	if (have_errors == 0) {
+		status = pthread_barrier_wait(&all_threads_done);
+		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
+			error("med_priority[%d]: pthread_barrier_wait(all_threads_done): %x", 
+			      p->id, status);
+			return NULL;
+		}
 	}
 	// exit
 	debug("med_priority[%d]: exiting\n", p->id);
@@ -809,16 +778,12 @@ high_priority(void *arg)
 	/* wait for all threads to be ready */
 	status = pthread_barrier_wait(&all_threads_ready);
 	if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
-		error("high_priority[%d]: pthread_barrier_wait(all_threads_ready): %x", p->id, status);
+		error("high_priority[%d]: pthread_barrier_wait(all_threads_ready): %x", 
+		      p->id, status);
 		return NULL;
 	}
 	unbounded = (p->inversions < 0);
 	debug("high_priority[%d]: starting inversion loop\n", p->id);
-	status = pthread_rwlock_rdlock(&shutdown_lock);
-	if (status) {
-		error("aquiring initial rwlock: %s\n", strerror(status));
-		return NULL;
-	}
 	while (!shutdown && (unbounded || (p->total < p->inversions))) {
 		p->high_has_run = 0;
 		debug("high_priority[%d]: entering start state (%d)\n", p->id, count++);
@@ -827,12 +792,7 @@ high_priority(void *arg)
 			error("high_priority[%d]: pthread_barrier_wait(start): %x", p->id, status);
 			return NULL;
 		}
-		status = pthread_rwlock_unlock(&shutdown_lock);
-		if (status) {
-			error("high_priority[%d]: releasing (read) shutdown lock: %s\n", 
-			      p->id, strerror(status));
-			return NULL;
-		}
+		if (shutdown) continue;
 		debug("high_priority[%d]: entering running state\n", p->id);
 		status = pthread_barrier_wait(&p->locked_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -846,6 +806,7 @@ high_priority(void *arg)
 		debug("high_priority[%d]: unlocking mutex\n", p->id);
 		pthread_mutex_unlock(&p->mutex);
 		debug("high_priority[%d]: entering finish state\n", p->id);
+		if (shutdown) continue;
 		status = pthread_barrier_wait(&p->finish_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 			error("high_priority[%d]: pthread_barrier_wait(finish): %x", status);
@@ -858,27 +819,20 @@ high_priority(void *arg)
 		// update the watchdog counter
 		p->watchdog++;
 
-		status = pthread_rwlock_rdlock(&shutdown_lock);
-		if (status) {
-			error("high_priority[%d]: acquiring (read) shutdown lock: %s\n", 
-			      p->id, strerror(status));
-			return NULL;
-		}
 	}
+	cleanup();
 
-	status = pthread_rwlock_unlock(&shutdown_lock);
-	if (status)
-		error("high_priority[%d]: releasing (read) shutdown lock: %s\n", 
-			  p->id, strerror(status));
 	debug("high_priority[%d]: entering done barrier\n", p->id);
 
-	/* wait for all threads to finish */
-	status = pthread_barrier_wait(&all_threads_done);
-	if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
-		error("high_priority[%d]: pthread_barrier_wait(all_threads_done): %x", p->id, status);
-		return NULL;
-	}
-       
+	if (have_errors == 0) {
+		/* wait for all threads to finish */
+		status = pthread_barrier_wait(&all_threads_done);
+		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
+			error("high_priority[%d]: pthread_barrier_wait(all_threads_done): %x",
+			      p->id, status);
+			return NULL;
+		}
+	}       
 	// exit
 	debug("high_priority[%d]: exiting\n", p->id);
 	return NULL;
@@ -987,24 +941,10 @@ allow_sigterm(void)
 void
 cleanup(void)
 {
-	int status;
-	
 	if (shutdown == 0) {
 		// tell anyone that's looking that we're done
-		debug("acquiring write lock on shutdown variable\n");
-		status = pthread_rwlock_wrlock(&shutdown_lock);
-		if (status) {
-			error("acquiring (write) shutdown lock: %s\n", strerror(status));
-			return;
-		}
 		info("setting shutdown flag\n");
 		shutdown = 1;
-		debug("releasing shutdown lock\n");
-		status = pthread_rwlock_unlock(&shutdown_lock);
-		if (status) {
-			error("releasing (write) shutdown lock: %s\n", strerror(status));
-			return;
-		}
 	}
 }
 
