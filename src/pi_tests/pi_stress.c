@@ -78,7 +78,7 @@ const char *version = "pi_stress v" VERSION_STRING " (" __DATE__ " " __TIME__ ")
 #endif
 
 #if HAVE_PI_MUTEX == 0
-#error "Can't run this test without PI Muxtex support"
+#error "Can't run this test without PI Mutex support"
 #endif
 
 #define SUCCESS 0
@@ -96,7 +96,7 @@ int duration = -1;
 time_t start, finish;
 
 // the number of groups to create
-int ngroups = 10;
+int ngroups = 0;
 
 // the number of times a group causes a priority inversion situation 
 // default to infinite
@@ -176,6 +176,9 @@ struct group_parameters {
 	// group id (index)
 	int id;
 
+	// cpu this group is bound to
+	long cpu;
+
 	// threads in the group
 	pthread_t low_tid;
 	pthread_t med_tid;
@@ -202,6 +205,9 @@ struct group_parameters {
 	unsigned long total;
 } *groups;
 
+/* number of online processors */
+long num_processors = 0;
+
 /* forward prototypes */
 void *low_priority(void *arg);
 void *med_priority(void *arg);
@@ -219,7 +225,7 @@ int block_signals(void);
 int allow_sigterm(void);
 void cleanup(void);
 int initialize_group(struct group_parameters *group);
-int create_group(struct group_parameters *group, cpu_set_t *mask);
+int create_group(struct group_parameters *group);
 unsigned long total_inversions(void);
 void banner(void);
 void summary(void);
@@ -232,9 +238,16 @@ main (int argc, char **argv)
 	struct sched_param thread_param;
 	int i;
 	int retval = FAILURE;
+	int core;
 
 	/* Make sure we see all message, even those on stdout.  */
 	setvbuf (stdout, NULL, _IONBF, 0);
+
+	/* get the number of processors */
+	num_processors = sysconf(_SC_NPROCESSORS_ONLN);
+
+	/* calculate the number of inversion groups to run */
+	ngroups = num_processors == 1 ? 1 : num_processors - 1;
 
 	/* process command line arguments */
 	process_command_line(argc, argv);
@@ -249,7 +262,7 @@ main (int argc, char **argv)
 	// boost main's priority (so we keep running) :)
 	prio_min = sched_get_priority_min(policy);
 	thread_param.sched_priority = MAIN_PRIO();
-	status = pthread_setschedparam(pthread_self(), SCHED_FIFO, &thread_param);
+	status = pthread_setschedparam(pthread_self(), policy, &thread_param);
 	if (status) {
 		error("main: boosting to max priority: 0x%x\n", status);
 		return FAILURE;
@@ -294,9 +307,15 @@ main (int argc, char **argv)
 
 	// create the groups
 	info("Creating %d test groups\n", ngroups);
+	for (core = 0; core < num_processors; core++)
+		if (CPU_ISSET(core, &test_cpu_mask))
+			break;
 	for (i = 0; i < ngroups; i++) {
 		groups[i].id = i;
-		if (create_group(&groups[i], &test_cpu_mask))
+		groups[i].cpu = core++;
+		if (core >= num_processors) 
+			core = 0;
+		if (create_group(&groups[i]) != SUCCESS)
 			return FAILURE;
 	}
 
@@ -386,7 +405,17 @@ set_cpu_affinity(cpu_set_t *test_mask, cpu_set_t *admin_mask)
 {
 	int status, i, admin_proc;
 	cpu_set_t current_mask;
-	int max_processors = sizeof(cpu_set_t) * 8;
+
+	// handle uniprocessor case
+	if (num_processors == 1 || uniprocessor) {
+		CPU_ZERO(admin_mask);
+		CPU_ZERO(test_mask);
+		CPU_SET(0, admin_mask);
+		CPU_SET(0, test_mask);
+		if (!quiet)
+			printf("admin and test threads running on one processor\n");
+		return SUCCESS;
+	}
 
 	// first set our main thread to run on the first
 	// scheduleable processor we can find
@@ -395,11 +424,11 @@ set_cpu_affinity(cpu_set_t *test_mask, cpu_set_t *admin_mask)
 		error("failed getting CPU affinity mask: 0x%x\n", status);
 		return FAILURE;
 	}
-	for (i = 0; i < max_processors; i++) {
+	for (i = 0; i < num_processors; i++) {
 		if (CPU_ISSET(i, &current_mask))
 		break;
 	}
-	if (i >= max_processors) {
+	if (i >= num_processors) {
 		error("No schedulable CPU found for main!\n");
 		return FAILURE;
 	}
@@ -412,25 +441,20 @@ set_cpu_affinity(cpu_set_t *test_mask, cpu_set_t *admin_mask)
 		return FAILURE;
 	}
 	if (!quiet)
-		printf("Admin threads running on processor: %d\n", i);
+		printf("Admin thread running on processor: %d\n", i);
 
-	/* Now set up a CPU affinity mask so that tests only run on one processor */
-	if (uniprocessor == 0) {
-		for (i = max_processors - 1; i >= 0; i--) {
-			if (CPU_ISSET(i, &current_mask))
-				break;
-		}
-		if (i < 0) {
-			error("No schedulable CPU found for tests!\n");
-			return FAILURE;
-		}
-	}
-	else
-		i = admin_proc;
+	/* Set test affinity so that tests run on the non-admin processors */
 	CPU_ZERO(test_mask);
-	CPU_SET(i, test_mask);
-	if (!quiet)
-		printf("Test threads running on processor:  %d\n", i);
+	for (i = admin_proc+1; i < num_processors; i++)
+		CPU_SET(i, test_mask);
+	
+	if (!quiet) {
+		if (admin_proc+1 == num_processors -1)
+			printf("Test threads running on processor: %ld\n", num_processors-1);
+		else
+			printf("Test threads running on processors:  %d-%d\n", 
+			       admin_proc+1, (int)num_processors-1);
+	}
 	return SUCCESS;
 }
 
@@ -494,12 +518,16 @@ void *
 reporter(void *arg)
 {
 	int status;
+	int end = 0;
 	struct timespec ts;
 
 	ts.tv_sec = 0;
 	ts.tv_nsec = USEC_TO_NSEC(report_interval);
 
 	tsnorm(&ts);
+
+	if (duration >= 0)
+		end = duration + time(NULL);
 
 	// sleep initially to let everything get up and running
 	status = clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, NULL);
@@ -514,28 +542,34 @@ reporter(void *arg)
 		printf("Press Control-C to stop test\nCurrent Inversions: \n");
 
 	while (shutdown == 0) {
-
-		// check for a pending SIGINT
-		if (pending_interrupt()) {
-			if (!quiet)
-				printf("Keyboard Interrupt!\n");
-			break;
-		}
-
-		// clear watchdog counters
-		watchdog_clear();
-		
 		// wait for our reporting interval
 		status = clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, NULL);
 		if (status) {
 			error("from clock_nanosleep: %s\n", strerror(status));
 			break;
 		}
+
+		// check for signaled shutdown
 		if (shutdown == 0) {
 			if(!quiet) {
 				fputs(UP_ONE, stdout);
 				printf("Current Inversions: %lu\n", total_inversions());
 			}
+		}
+
+		// if we specified a duration, see if it has expired
+		if (end && time(NULL) > end) {
+			if (!quiet)
+				printf("duration reached (%d seconds)\n", duration);
+			cleanup();
+			continue;
+		}
+
+		// check for a pending SIGINT
+		if (pending_interrupt()) {
+			if (!quiet)
+				printf("Keyboard Interrupt!\n");
+			break;
 		}
 
 		// check watchdog stuff
@@ -545,11 +579,26 @@ reporter(void *arg)
 			break;
 		}
 			
+		// clear watchdog counters
+		watchdog_clear();
+		
 	}
 	debug("reporter: finished\n");
 	return NULL;
 }
 
+int
+verify_cpu(int cpu)
+{
+	int status;
+	cpu_set_t mask;
+
+	status = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
+
+	if (CPU_ISSET(cpu, &mask))
+		return SUCCESS;
+	return FAILURE;
+}
 
 void *
 low_priority(void *arg)
@@ -560,6 +609,11 @@ low_priority(void *arg)
 	struct group_parameters *p = (struct group_parameters *)arg;
 
 	allow_sigterm();
+
+	if (verify_cpu(p->cpu) != SUCCESS) {
+		error("low_priority[%d]: not bound to %ld\n", p->id, p->cpu);
+		return NULL;
+	}
 
 	debug("low_priority[%d]: entering ready state\n", p->id);
 	/* wait for all threads to be ready */
@@ -661,6 +715,12 @@ med_priority(void *arg)
 	struct group_parameters *p = (struct group_parameters *)arg;
 
 	allow_sigterm();
+
+	if (verify_cpu(p->cpu) != SUCCESS) {
+		error("med_priority[%d]: not bound to %ld\n", p->id, p->cpu);
+		return NULL;
+	}
+
 	debug("med_priority[%d]: entering ready state\n", p->id);
 	/* wait for all threads to be ready */
 	status = pthread_barrier_wait(&all_threads_ready);
@@ -739,6 +799,11 @@ high_priority(void *arg)
 	struct group_parameters *p = (struct group_parameters *)arg;
 
 	allow_sigterm();
+	if (verify_cpu(p->cpu) != SUCCESS) {
+		error("high_priority[%d]: not bound to %ld\n", p->id, p->cpu);
+		return NULL;
+	}
+
 	debug("high_priority[%d]: entering ready state\n", p->id);
 
 	/* wait for all threads to be ready */
@@ -1000,10 +1065,11 @@ initialize_group(struct group_parameters *group)
 }	
 // setup and create a groups threads
 int
-create_group(struct group_parameters *group, cpu_set_t *mask)
+create_group(struct group_parameters *group)
 {
 	int status;
 	pthread_attr_t thread_attr;
+	cpu_set_t mask;
 
 	// initialize group structure
 	status = initialize_group(group);
@@ -1012,9 +1078,14 @@ create_group(struct group_parameters *group, cpu_set_t *mask)
 		return FAILURE;
 	}
 
+	CPU_ZERO(&mask);
+	CPU_SET(group->cpu, &mask);
+
+	debug("group %d bound to cpu %ld\n", group->id, group->cpu);
+
 	/* start the low priority thread */
 	debug("creating low priority thread\n");
-	if (setup_thread_attr(&thread_attr, LOW_PRIO(), mask, policy))
+	if (setup_thread_attr(&thread_attr, LOW_PRIO(), &mask, policy))
 		return FAILURE;
 	status = pthread_create(&group->low_tid, 
 				&thread_attr, 
@@ -1027,7 +1098,7 @@ create_group(struct group_parameters *group, cpu_set_t *mask)
 
 	/* create the medium priority thread */
 	debug("creating medium priority thread\n");
-	if (setup_thread_attr(&thread_attr, MED_PRIO(), mask, policy))
+	if (setup_thread_attr(&thread_attr, MED_PRIO(), &mask, policy))
 		return FAILURE;
 	status = pthread_create(&group->med_tid,
 				&thread_attr, 
@@ -1040,7 +1111,7 @@ create_group(struct group_parameters *group, cpu_set_t *mask)
 
 	/* create the high priority thread */
 	debug("creating high priority thread\n");
-	if (setup_thread_attr(&thread_attr, HIGH_PRIO(), mask, policy))
+	if (setup_thread_attr(&thread_attr, HIGH_PRIO(), &mask, policy))
 		return FAILURE;
 	status = pthread_create(&group->high_tid,
 				&thread_attr, 
@@ -1124,8 +1195,12 @@ void banner(void)
 
 	printf("Starting PI Stress Test\n");
 	printf("Number of thread groups: %d\n", ngroups);
+	if (duration >= 0)
+		printf("Duration of test run: %d seconds\n", duration);
+	else
+		printf("Duration of test run: infinite\n");
 	if (inversions < 0)
-		printf("Number of inversions per group: infinite\n");
+		printf("Number of inversions per group: unlimited\n");
 	else
 		printf("Number of inversions per group: %d\n", inversions);
 	printf("Test threads using scheduler policy: %s\n", 
