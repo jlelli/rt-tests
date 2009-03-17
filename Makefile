@@ -21,7 +21,8 @@ classic_pi: src/pi_tests/classic_pi.c
 pi_stress:  src/pi_tests/pi_stress.c
 	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
-CLEANUP = $(TARGETS) *.o .depend *.*~ ChangeLog *.orig *.rej rt-tests.spec
+CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
+CLEANUP += $(if $(wildcard .git), ChangeLog)
 
 clean:
 	for F in $(CLEANUP); do find -type f -name $$F | xargs rm -f; done
