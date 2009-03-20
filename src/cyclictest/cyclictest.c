@@ -139,6 +139,7 @@ static int lockall = 0;
 static int tracetype = NOTRACE;
 static int histogram = 0;
 static int duration = 0;
+static int use_nsecs = 0;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -283,6 +284,14 @@ static inline long calcdiff(struct timespec t1, struct timespec t2)
 	long diff;
 	diff = USEC_PER_SEC * ((int) t1.tv_sec - (int) t2.tv_sec);
 	diff += ((int) t1.tv_nsec - (int) t2.tv_nsec) / 1000;
+	return diff;
+}
+
+static inline long calcdiff_ns(struct timespec t1, struct timespec t2)
+{
+	long diff;
+	diff = NSEC_PER_SEC * ((int) t1.tv_sec - (int) t2.tv_sec);
+	diff += ((int) t1.tv_nsec - (int) t2.tv_nsec);
 	return diff;
 }
 
@@ -599,7 +608,10 @@ void *timerthread(void *param)
 		}
 		clock_gettime(par->clock, &now);
 
-		diff = calcdiff(now, next);
+		if (use_nsecs)
+			diff = calcdiff_ns(now, next);
+		else
+			diff = calcdiff(now, next);
 		if (diff < stat->min)
 			stat->min = diff;
 		if (diff > stat->max)
@@ -676,6 +688,7 @@ static void display_help(void)
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 	       "-m       --mlockall        lock current and future memory allocations\n"
 	       "-n       --nanosleep       use clock_nanosleep\n"
+	       "-N       --nsecs           print results in ns instead of ms (default ms)\n"
 	       "-o RED   --oscope=RED      oscilloscope mode, reduce verbose output by RED\n"
 	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 	       "-P       --preemptoff      Preempt off tracing (used with -b)\n"
@@ -745,6 +758,7 @@ static void process_options (int argc, char *argv[])
 			{"loops", required_argument, NULL, 'l'},
 			{"mlockall", no_argument, NULL, 'm' },
 			{"nanosleep", no_argument, NULL, 'n'},
+			{"nsecs", no_argument, NULL, 'N'},
 			{"oscope", required_argument, NULL, 'o'},
 			{"priority", required_argument, NULL, 'p'},
 			{"preemptoff", no_argument, NULL, 'P'},
@@ -757,7 +771,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:Bc:d:fh:i:Il:no:p:Pmqrst::vD:",
+		int c = getopt_long (argc, argv, "a::b:Bc:d:fh:i:Il:nNo:p:Pmqrst::vD:",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -785,6 +799,7 @@ static void process_options (int argc, char *argv[])
 		case 'I': tracetype = IRQSOFF; break;
 		case 'l': max_cycles = atoi(optarg); break;
 		case 'n': use_nanosleep = MODE_CLOCK_NANOSLEEP; break;
+		case 'N': use_nsecs = 1; break;
 		case 'o': oscope_reduction = atoi(optarg); break;
 		case 'p': priority = atoi(optarg); break;
 		case 'P': tracetype = PREEMPTOFF; break;
@@ -927,7 +942,7 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 	if (!verbose) {
 		if (quiet != 1) {
 			printf("T:%2d (%5d) P:%2d I:%ld C:%7lu "
-			       "Min:%7ld Act:%5ld Avg:%5ld Max:%8ld\n",
+			       "Min:%7ld Act:%8ld Avg:%8ld Max:%8ld\n",
 			       index, stat->tid, par->prio, par->interval,
 			       stat->cycles, stat->min, stat->act,
 			       stat->cycles ?
