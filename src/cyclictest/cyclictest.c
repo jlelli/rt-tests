@@ -1003,7 +1003,7 @@ static void print_hist(struct thread_param *par, int nthreads)
 	printf("# Histogram\n");
 	for (i = 0; i < histogram; i++) {
 
-		printf("%05d ", i);
+		printf("%06d ", i);
 
 		for (j = 0; j < nthreads; j++) {
 			unsigned long curr_latency=par[j].stats->hist_array[i];
