@@ -955,7 +955,8 @@ check_privs(void)
 	}
 
 	/* we're good; change back and return success */
-	sched_setscheduler(0, policy, NULL);
+	param.sched_priority = 0;
+	sched_setscheduler(0, policy, &param);
 	return 0;
 }
 
