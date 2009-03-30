@@ -941,9 +941,14 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 
 	if (!verbose) {
 		if (quiet != 1) {
-			printf("T:%2d (%5d) P:%2d I:%ld C:%7lu "
-			       "Min:%7ld Act:%8ld Avg:%8ld Max:%8ld\n",
-			       index, stat->tid, par->prio, par->interval,
+			char *fmt;
+			if (use_nsecs)
+				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+					"Min:%7ld Act:%8ld Avg:%8ld Max:%8ld\n";
+			else
+				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+					"Min:%7ld Act:%5ld Avg:%5ld Max:%8ld\n";
+			printf(fmt, index, stat->tid, par->prio, par->interval,
 			       stat->cycles, stat->min, stat->act,
 			       stat->cycles ?
 			       (long)(stat->avg/stat->cycles) : 0, stat->max);
