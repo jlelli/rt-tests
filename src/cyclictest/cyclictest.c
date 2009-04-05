@@ -317,31 +317,37 @@ void tracing(int on)
 static int settracer(char *tracer)
 {
 	char filename[MAX_PATH];
-	char name[100];
+	char tracers[MAX_PATH];
+	char *name;
 	FILE *fp;
-	int ret;
-	int i;
+	int ret = -1;
+	int len;
+	const char *delim = " \t\n";
 
 	/* Make sure tracer is available */
 	strncpy(filename, debugfileprefix, sizeof(filename));
-	strncat(filename, "available_tracers", sizeof(filename) - strlen(debugfileprefix));
+	strncat(filename, "available_tracers", 
+		sizeof(filename) - strlen(debugfileprefix));
 
 	fp = fopen(filename, "r");
 	if (!fp)
 		return -1;
 
-	for (i = 0; i < 10; i++) {
-		ret = fscanf(fp, "%99s", name);
-		if (!ret) {
-			ret = -1;
-			break;
-		}
+	if (!(len = fread(tracers, 1, sizeof(tracers), fp))) {
+		fclose(fp);
+		return -1;
+	}
+	tracers[len] = '\0';
+	fclose(fp);
+
+	name = strtok(tracers, delim);
+	while (name) {
 		if (strcmp(name, tracer) == 0) {
 			ret = 0;
 			break;
 		}
+		name = strtok(NULL, delim);
 	}
-	fclose(fp);
 
 	if (!ret)
 		setkernvar("current_tracer", tracer);
