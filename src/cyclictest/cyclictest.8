@@ -104,7 +104,7 @@ Oscilloscope mode, reduce verbose output by RED.
 .TP
 .B \-p, \-\-prio=PRIO
 Set the priority of the first thread. The given priority is set to the first test thread. Each further thread gets a lower priority:
-Priority(Thread N) = Priority(Thread N-1)
+Priority(Thread N) = max(Priority(Thread N-1) - 1, 0)
 .TP
 .B \-q, \-\-quiet
 Run the tests quiet and print only a summary on exit. Useful for automated tests, where only the summary output needs to be captured.
