@@ -1,11 +1,11 @@
-VERSION_STRING = "0.34"
+VERSION_STRING = "0.35"
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress
 FLAGS	= -Wall -Wno-nonnull -O2
 LIBS 	= -lpthread -lrt
 DESTDIR	=
-prefix = /usr/local
-bindir = $(prefix)/bin
+prefix  = /usr/local
+bindir  = $(prefix)/bin
 mandir	= $(prefix)/share/man/man8
 
 all: $(TARGETS)
@@ -46,6 +46,7 @@ release: clean changelog
 	cp -r Makefile COPYING ChangeLog src tmp/rt-tests
 	tar -C tmp -czf rt-tests-$(VERSION_STRING).tar.gz rt-tests
 	rm -f ChangeLog
+	cp rt-tests-$(VERSION_STRING).tar.gz releases
 
 rt-tests.spec: Makefile rt-tests.spec-in
 	sed s/__VERSION__/$(VERSION_STRING)/ <$@-in >$@
