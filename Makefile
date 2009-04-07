@@ -3,9 +3,10 @@ VERSION_STRING = "0.34"
 TARGETS	= cyclictest signaltest classic_pi pi_stress
 FLAGS	= -Wall -Wno-nonnull -O2
 LIBS 	= -lpthread -lrt
-DESTDIR	= /usr/local
-INSTDIR = $(DESTDIR)/bin
-DOCDIR	= $(DESTDIR)/share/man/man8/
+DESTDIR	=
+prefix = /usr/local
+bindir = $(prefix)/bin
+mandir	= $(prefix)/share/man/man8
 
 all: $(TARGETS)
 
@@ -34,9 +35,10 @@ changelog:
 	git log >ChangeLog
 
 install: all
-	cp $(TARGETS) $(DESTDIR)/bin
-	gzip src/cyclictest/cyclictest.8 -c >$(DOCDIR)cyclictest.8.gz
-	gzip src/pi_tests/pi_stress.8 -c >$(DOCDIR)pi_stress.8.gz
+	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)"
+	cp $(TARGETS) "$(DESTDIR)$(bindir)"
+	gzip src/cyclictest/cyclictest.8 -c >"$(DESTDIR)$(mandir)/cyclictest.8.gz"
+	gzip src/pi_tests/pi_stress.8 -c >"$(DESTDIR)$(mandir)/pi_stress.8.gz"
 
 release: clean changelog
 	mkdir -p releases

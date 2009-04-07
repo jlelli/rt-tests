@@ -22,9 +22,8 @@ make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/usr/bin
-mkdir -p $RPM_BUILD_ROOT/usr/share/man/man8
-make DESTDIR=$RPM_BUILD_ROOT/usr install
+mkdir -p $RPM_BUILD_ROOT
+make DESTDIR=$RPM_BUILD_ROOT PREFIX=usr install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
