@@ -777,7 +777,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:Bc:d:fh:i:Il:nNo:p:Pmqrst::vD:",
+		int c = getopt_long (argc, argv, "a::b:Bc:Cd:Efh:i:Il:nNo:p:Pmqrst::vD:",
 			long_options, &option_index);
 		if (c == -1)
 			break;
