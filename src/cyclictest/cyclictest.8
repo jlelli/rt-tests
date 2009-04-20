@@ -78,8 +78,14 @@ Selects the clock, which is used:
 CLOCK_REALTIME can be set by settimeofday, while CLOCK_MONOTONIC can not be modified by the user.
 This option has no influence when the \-s option is given.
 .TP
+.B \-C, \-\-context
+context switch tracing (used with -b)
+.TP
 .B \-d, \-\-distance=DIST
 Set the distance of thread intervals in microseconds (default is 500us). When cylictest is called with the \-t option and more than one thread is created, then this distance value is added to the interval of the threads: Interval(thread N) = Interval(thread N-1) + DIST
+.TP
+.B \-E, \-\-event
+event tracing (used with -b)
 .TP
 .B \-f, \-\-ftrace
 Enable function tracing using ftrace as tracer. This option is available only with \-b.
