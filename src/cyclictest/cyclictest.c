@@ -688,7 +688,6 @@ static void display_help(void)
 	       "-d DIST  --distance=DIST   distance of thread intervals in us default=500\n"
 	       "-E       --event           event tracing (used with -b)\n"
 	       "-f       --ftrace          function trace (when -b is active)\n"
-	       "-h H_MAX                   latency histogram size in us default 0 (off)\n"
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-I       --irqsoff         Irqsoff tracing (used with -b)\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
