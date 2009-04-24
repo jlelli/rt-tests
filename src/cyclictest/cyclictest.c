@@ -719,8 +719,8 @@ static void display_help(void)
 	       "                           to modify value to minutes, hours or days\n"
 	       "-h       --histogram=US    dump a latency histogram to stdout after the run\n"
 	       "                           US is the max time to be be tracked in microseconds\n"
-               "-w       --wakeup          rt task wakeup tracing (used with -b)\n"
-               "-W       --wakeuprt        non_rt task wakeup_rt tracing (used with -b)\n"
+               "-w       --wakeup          task wakeup tracing (used with -b)\n"
+               "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n"
 		);
 	exit(0);
 }
@@ -788,7 +788,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:Bc:Cd:Efh:i:Il:nNo:p:Pmqrst::vD:wW:",
+		int c = getopt_long (argc, argv, "a::b:Bc:Cd:Efh:i:Il:nNo:p:Pmqrst::vD:wW",
 			long_options, &option_index);
 		if (c == -1)
 			break;
