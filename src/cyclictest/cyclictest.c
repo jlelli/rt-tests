@@ -93,6 +93,8 @@ enum {
 	IRQSOFF,
 	PREEMPTOFF,
 	IRQPREEMPTOFF,
+	WAKEUP,
+	WAKEUPRT,
 };
 
 #define HIST_MAX		1000000
@@ -415,6 +417,12 @@ static void setup_tracer(void)
 		case CTXTSWITCH:
 			ret = settracer("sched_switch");
 			break;
+               case WAKEUP:
+                       ret = settracer("wakeup");
+                       break;
+               case WAKEUPRT:
+                       ret = settracer("wakeup_rt");
+                       break;
 		default:
 			printf("cyclictest: unknown tracer!\n");
 			ret = 0;
@@ -711,6 +719,8 @@ static void display_help(void)
 	       "                           to modify value to minutes, hours or days\n"
 	       "-h       --histogram=US    dump a latency histogram to stdout after the run\n"
 	       "                           US is the max time to be be tracked in microseconds\n"
+               "-w       --wakeup          rt task wakeup tracing (used with -b)\n"
+               "-W       --wakeuprt        non_rt task wakeup_rt tracing (used with -b)\n"
 		);
 	exit(0);
 }
@@ -773,10 +783,12 @@ static void process_options (int argc, char *argv[])
 			{"threads", optional_argument, NULL, 't'},
 			{"verbose", no_argument, NULL, 'v'},
 			{"duration",required_argument, NULL, 'D'},
+                        {"wakeup", no_argument, NULL, 'w'},
+                        {"wakeuprt", no_argument, NULL, 'W'},
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:Bc:Cd:Efh:i:Il:nNo:p:Pmqrst::vD:",
+		int c = getopt_long (argc, argv, "a::b:Bc:Cd:Efh:i:Il:nNo:p:Pmqrst::vD:wW:",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -823,6 +835,8 @@ static void process_options (int argc, char *argv[])
 		case 'm': lockall = 1; break;
 		case 'D': duration = parse_time_string(optarg);
 			break;
+                case 'w': tracetype = WAKEUP; break;
+                case 'W': tracetype = WAKEUPRT; break;
 		case '?': error = 1; break;
 		}
 	}
