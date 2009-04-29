@@ -1,6 +1,7 @@
 /*
  * High resolution timer test software
  *
+ * (C) 2008-2008 Clark Williams <williams@redhat.com>
  * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
  *
  * This program is free software; you can redistribute it and/or
@@ -143,6 +144,7 @@ static int histogram = 0;
 static int duration = 0;
 static int use_nsecs = 0;
 
+
 /* Backup of kernel variables that we modify */
 static struct kvars {
 	char name[KVARNAMELEN];
@@ -156,6 +158,10 @@ static struct kvars {
 static char *procfileprefix = "/proc/sys/kernel/";
 static char debugfileprefix[MAX_PATH];
 static char *fileprefix;
+static char tracer[MAX_PATH];
+static char **traceptr;
+static int traceopt_count;
+static int traceopt_size;
 
 enum kernelversion {
 	KV_NOT_26,
@@ -297,6 +303,30 @@ static inline long calcdiff_ns(struct timespec t1, struct timespec t2)
 	return diff;
 }
 
+void traceopt(char *option)
+{
+	char *ptr;
+	if (traceopt_count + 1 > traceopt_size) {
+		traceopt_size += 16;
+		printf("expanding traceopt buffer to %d entries\n", traceopt_size);
+		traceptr = realloc(traceptr, sizeof(char*) * traceopt_size);
+		if (traceptr == NULL) {
+			fprintf(stderr, "Error allocating space for %d trace options\n",
+				traceopt_count+1);
+			exit(EXIT_FAILURE);
+		}
+	}
+	ptr = malloc(strlen(option)+1);
+	if (ptr == NULL) {
+		fprintf(stderr, "error allocating space for trace option %s\n", option);
+		exit(EXIT_FAILURE);
+	}
+	printf("adding traceopt %s\n", option);
+	strcpy(ptr, option);
+	traceptr[traceopt_count++] = ptr;
+}
+
+
 void tracing(int on)
 {
 	if (on) {
@@ -424,13 +454,20 @@ static void setup_tracer(void)
                        ret = settracer("wakeup_rt");
                        break;
 		default:
-			printf("cyclictest: unknown tracer!\n");
-			ret = 0;
+			if (strlen(tracer)) {
+				ret = settracer(tracer);
+				if (strcmp(tracer, "events") == 0 && ftrace)
+					ret = settracer(functiontracer);
+			}
+			else {
+				printf("cyclictest: unknown tracer!\n");
+				ret = 0;
+			}
 			break;
 		}
 
 		if (ret)
-			fprintf(stderr, "Requested tracer not available\n");
+			fprintf(stderr, "Requested tracer '%s' not available\n", tracer);
 
 		setkernvar(traceroptions, "print-parent");
 		if (verbose) {
@@ -441,6 +478,11 @@ static void setup_tracer(void)
 			setkernvar(traceroptions, "nosym-offset");
 			setkernvar(traceroptions, "nosym-addr");
 			setkernvar(traceroptions, "noverbose");
+		}
+		if (traceopt_count) {
+			int i;
+			for (i = 0; i < traceopt_count; i++)
+				setkernvar(traceroptions, traceptr[i]);
 		}
 		setkernvar("tracing_max_latency", "0");
 		setkernvar("latency_hist/wakeup_latency/reset", "1");
@@ -703,11 +745,13 @@ static void display_help(void)
 	       "-n       --nanosleep       use clock_nanosleep\n"
 	       "-N       --nsecs           print results in ns instead of ms (default ms)\n"
 	       "-o RED   --oscope=RED      oscilloscope mode, reduce verbose output by RED\n"
+	       "-O TOPT  --traceopt=TOPT    trace option\n"
 	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 	       "-P       --preemptoff      Preempt off tracing (used with -b)\n"
 	       "-q       --quiet           print only a summary on exit\n"
 	       "-r       --relative        use relative timer instead of absolute\n"
 	       "-s       --system          use sys_nanosleep and sys_setitimer\n"
+	       "-T TRACE --tracer=TRACE    set tracing function\n"
 	       "-t       --threads         one thread per available processor\n"
 	       "-t [NUM] --threads=NUM     number of threads:\n"
 	       "                           without NUM, threads = max_cpus\n"
@@ -786,9 +830,11 @@ static void process_options (int argc, char *argv[])
                         {"wakeup", no_argument, NULL, 'w'},
                         {"wakeuprt", no_argument, NULL, 'W'},
 			{"help", no_argument, NULL, '?'},
+			{"tracer", required_argument, NULL, 'T'},
+			{"traceopt", required_argument, NULL, 'O'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:Bc:Cd:Efh:i:Il:nNo:p:Pmqrst::vD:wW",
+		int c = getopt_long (argc, argv, "a::b:Bc:Cd:Efh:i:Il:nNo:O:p:Pmqrst::vD:wWT:",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -818,6 +864,7 @@ static void process_options (int argc, char *argv[])
 		case 'n': use_nanosleep = MODE_CLOCK_NANOSLEEP; break;
 		case 'N': use_nsecs = 1; break;
 		case 'o': oscope_reduction = atoi(optarg); break;
+		case 'O': traceopt(optarg); break;
 		case 'p': priority = atoi(optarg); break;
 		case 'P': tracetype = PREEMPTOFF; break;
 		case 'q': quiet = 1; break;
@@ -831,6 +878,7 @@ static void process_options (int argc, char *argv[])
 			else
 				num_threads = max_cpus;
 			break;
+		case 'T': strncpy(tracer, optarg, sizeof(tracer)); break;
 		case 'v': verbose = 1; break;
 		case 'm': lockall = 1; break;
 		case 'D': duration = parse_time_string(optarg);
