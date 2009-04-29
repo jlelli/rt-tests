@@ -108,6 +108,10 @@ Show results in nanoseconds instead of microseconds, which is the default unit.
 .B \-o, \-\-oscope=RED
 Oscilloscope mode, reduce verbose output by RED.
 .TP
+.B \-O, \-\-traceopt=TRACING_OPTION
+Used to pass tracing options to ftrace tracers. May be invoked mutiple
+times for multiple trace options. For example trace options look at /sys/kernel/debug/tracing/trace_options
+.TP
 .B \-p, \-\-prio=PRIO
 Set the priority of the first thread. The given priority is set to the first test thread. Each further thread gets a lower priority:
 Priority(Thread N) = max(Priority(Thread N-1) - 1, 0)
@@ -120,6 +124,10 @@ Use relative timers instead of absolute. The default behaviour of the tests is t
 .TP
 .B \-s, \-\-system
 Use sys_nanosleep and sys_setitimer instead of posix timers. Note, that \-s can only be used with one thread because itimers are per process and not per thread. \-s in combination with \-n uses the nanosleep syscall and is not restricted to one thread.
+.TP
+.B \-T, \-\-tracer=TRACEFUNC
+set the ftrace tracer function. Used with the -b option. Must be one
+of the trace functions available from <debugfs-mountpoint>/kernel/debug/tracing/available_tracers
 .TP
 .B \-t, \-\-threads[=NUM]
 Set the number of test threads (default is 1). Create NUM test threads. If NUM is not specifed, NUM is set to
