@@ -1,7 +1,7 @@
 /*
  * High resolution timer test software
  *
- * (C) 2008-2008 Clark Williams <williams@redhat.com>
+ * (C) 2008-2009 Clark Williams <williams@redhat.com>
  * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
  *
  * This program is free software; you can redistribute it and/or
@@ -724,6 +724,16 @@ out:
 /* Print usage information */
 static void display_help(void)
 {
+	char tracers[MAX_PATH];
+
+	if (set_debugfileprefix())
+		strcpy(tracers, "unavailable (debugfs not mounted)");
+	else {
+		fileprefix = debugfileprefix;
+		if (kernvar(O_RDONLY, "available_tracers", tracers, sizeof(tracers)))
+			strcpy(tracers, "none");
+	}
+		
 	printf("cyclictest V %1.2f\n", VERSION_STRING);
 	printf("Usage:\n"
 	       "cyclictest <options>\n\n"
@@ -751,7 +761,8 @@ static void display_help(void)
 	       "-q       --quiet           print only a summary on exit\n"
 	       "-r       --relative        use relative timer instead of absolute\n"
 	       "-s       --system          use sys_nanosleep and sys_setitimer\n"
-	       "-T TRACE --tracer=TRACE    set tracing function\n"
+	       "-T TRACE --tracer=TRACER   set tracing function\n"
+	       "    configured tracers: %s\n"
 	       "-t       --threads         one thread per available processor\n"
 	       "-t [NUM] --threads=NUM     number of threads:\n"
 	       "                           without NUM, threads = max_cpus\n"
@@ -764,7 +775,8 @@ static void display_help(void)
 	       "-h       --histogram=US    dump a latency histogram to stdout after the run\n"
 	       "                           US is the max time to be be tracked in microseconds\n"
                "-w       --wakeup          task wakeup tracing (used with -b)\n"
-               "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n"
+               "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n",
+	       tracers
 		);
 	exit(0);
 }
