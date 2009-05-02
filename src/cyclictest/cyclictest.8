@@ -79,13 +79,13 @@ CLOCK_REALTIME can be set by settimeofday, while CLOCK_MONOTONIC can not be modi
 This option has no influence when the \-s option is given.
 .TP
 .B \-C, \-\-context
-context switch tracing (used with -b)
+context switch tracing (used with \-b)
 .TP
 .B \-d, \-\-distance=DIST
-Set the distance of thread intervals in microseconds (default is 500us). When cylictest is called with the \-t option and more than one thread is created, then this distance value is added to the interval of the threads: Interval(thread N) = Interval(thread N-1) + DIST
+Set the distance of thread intervals in microseconds (default is 500us). When cylictest is called with the \-t option and more than one thread is created, then this distance value is added to the interval of the threads: Interval(thread N) = Interval(thread N\-1) + DIST
 .TP
 .B \-E, \-\-event
-event tracing (used with -b)
+event tracing (used with \-b)
 .TP
 .B \-f, \-\-ftrace
 Enable function tracing using ftrace as tracer. This option is available only with \-b.
@@ -114,7 +114,7 @@ times for multiple trace options. For example trace options look at /sys/kernel/
 .TP
 .B \-p, \-\-prio=PRIO
 Set the priority of the first thread. The given priority is set to the first test thread. Each further thread gets a lower priority:
-Priority(Thread N) = max(Priority(Thread N-1) - 1, 0)
+Priority(Thread N) = max(Priority(Thread N\-1) \- 1, 0)
 .TP
 .B \-q, \-\-quiet
 Run the tests quiet and print only a summary on exit. Useful for automated tests, where only the summary output needs to be captured.
@@ -126,7 +126,7 @@ Use relative timers instead of absolute. The default behaviour of the tests is t
 Use sys_nanosleep and sys_setitimer instead of posix timers. Note, that \-s can only be used with one thread because itimers are per process and not per thread. \-s in combination with \-n uses the nanosleep syscall and is not restricted to one thread.
 .TP
 .B \-T, \-\-tracer=TRACEFUNC
-set the ftrace tracer function. Used with the -b option. Must be one
+set the ftrace tracer function. Used with the \-b option. Must be one
 of the trace functions available from <debugfs-mountpoint>/kernel/debug/tracing/available_tracers
 .TP
 .B \-t, \-\-threads[=NUM]
@@ -147,10 +147,10 @@ where n=task number c=count v=latency value in us. Use this option in combinatio
 Run the test for the specified time, which defaults to seconds. Append 'm', 'h', or 'd' to specify minutes, hours or days
 .TP
 .B \\-w, \-\-wakeup 
-task wakeup tracing (used with -b)
+task wakeup tracing (used with \-b)
 .TP
 .B \\-W, \-\-wakeuprt
-rt-task wakeup tracing (used with -b)
+rt-task wakeup tracing (used with \-b)
 .\" .SH SEE ALSO
 .\" .BR bar (1),
 .\" .BR baz (1).
