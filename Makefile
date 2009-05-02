@@ -3,10 +3,10 @@ VERSION_STRING = "0.38"
 TARGETS	= cyclictest signaltest classic_pi pi_stress
 FLAGS	= -Wall -Wno-nonnull -O2
 LIBS 	= -lpthread -lrt
-DESTDIR	=
-prefix  = /usr/local
-bindir  = $(prefix)/bin
-mandir	= $(prefix)/share/man/man8
+DESTDIR	?=
+prefix  ?= /usr/local
+bindir  ?= $(prefix)/bin
+mandir	?= $(prefix)/share/man/man8
 
 all: $(TARGETS)
 
