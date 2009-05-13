@@ -1,6 +1,6 @@
-VERSION_STRING = "0.39"
+VERSION_STRING = "0.40"
 
-TARGETS	= cyclictest signaltest classic_pi pi_stress
+TARGETS	= cyclictest signaltest classic_pi pi_stress smidetect
 FLAGS	= -Wall -Wno-nonnull -O2
 LIBS 	= -lpthread -lrt
 DESTDIR	?=
@@ -22,6 +22,10 @@ classic_pi: src/pi_tests/classic_pi.c
 pi_stress:  src/pi_tests/pi_stress.c
 	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
+smidetect:  src/smidetect/smidetect.py
+	cp src/smidetect/smidetect.py smidetect
+	chmod +x smidetect
+
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)
 
@@ -39,6 +43,7 @@ install: all
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
 	gzip src/cyclictest/cyclictest.8 -c >"$(DESTDIR)$(mandir)/cyclictest.8.gz"
 	gzip src/pi_tests/pi_stress.8 -c >"$(DESTDIR)$(mandir)/pi_stress.8.gz"
+	gzip src/smidetect/smidetect.8 -c >"$(DESTDIR)$(mandir)/smidetect.8.gz"
 
 release: clean changelog
 	mkdir -p releases

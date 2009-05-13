@@ -34,11 +34,16 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/cyclictest
 /usr/bin/pi_stress
 /usr/bin/signaltest
+/usr/bin/smidetect
 %doc
 /usr/share/man/man8/cyclictest.8.gz
 /usr/share/man/man8/pi_stress.8.gz
+/usr/share/man/man8/smidetect.8.gz
 
 %changelog
+* Wed May 13 2009 Clark Williams <williams@redhat.com> - 0.40-1
+- added smidetect
+
 * Thu Jan 03 2008 Clark Williams <williams@redhat.com> - 0.18-1
 - Initial build.
 
