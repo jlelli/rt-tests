@@ -1,4 +1,4 @@
-VERSION_STRING = "0.40"
+VERSION_STRING = "0.41"
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress smidetect
 FLAGS	= -Wall -Wno-nonnull -O2

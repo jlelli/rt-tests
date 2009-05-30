@@ -5,14 +5,14 @@ import os
 import time
 import subprocess
 
-version = "0.4"
+version = "0.5"
 debugging = False
 quiet = False
 
 # defaults for parameters
-default_threshold = 100 # 100 microseconds
-default_interval  =   5 #   5 milliseconds
-default_width     =  20 #  20 milliseconds
+default_window    =  50000 # 50 milliseconds
+default_width     =   1000 #  1 milliseconds
+default_threshold =     10 #  10 microseconds
 
 def debug(str):
     if debugging: print(str)
@@ -20,8 +20,15 @@ def debug(str):
 def info(str):
     if not quiet: print(str)
 
+#
+# Class used to manage mounting and umounting the debugfs
+# filesystem. Note that if an instance of this class mounts
+# the debufs, it will unmount when cleaning up, but if it 
+# discovers that debugfs is already mounted, it will leave
+# it mounted.
+#
 class DebugFS(object):
-    '''class to manage the debugfs'''
+    '''class to manage mounting/umounting the debugfs'''
     def __init__(self):
         self.premounted = False
         self.mounted = False
@@ -63,6 +70,12 @@ class DebugFS(object):
         f.write(str(value))
         f.close()
 
+#
+# Class used to manage loading and unloading of the 
+# smi_detector kernel module. Like the debugfs class 
+# above, if the module is already loaded, this class will
+# leave it alone when cleaning up.
+#
 class Kmod(object):
     ''' class to manage loading and unloading smi_detector.ko'''
     def __init__(self, module='smi_detector'):
@@ -88,6 +101,9 @@ class Kmod(object):
         cmd = ['/sbin/modprobe', '-r', self.modname]
         return (subprocess.call(cmd) == 0)
 
+#
+# Class to simplify running the smi_detector kernel module
+#
 class SMI_Detector(object):
     '''class to wrap access to smi_detector debugfs files'''
     def __init__(self):
@@ -120,47 +136,41 @@ class SMI_Detector(object):
         if not self.debugfs.umount():
             raise RuntimeError, "Failed to unmount debugfs"
 
-    def get_avg_smi_interval(self):
-        return int(self.debugfs.getval("smi_detector/avg_smi_interval"))
-
-    def set_agv_smi_interval(self, interval):
-        self.debugfs.putval("smi_detector/avg_smi_interval", str(interval))
-
     def get_enable(self):
         return int(self.debugfs.getval("smi_detector/enable"))
 
     def set_enable(self, value):
         self.debugfs.putval("smi_detector/enable", value)
 
-    def get_latency_threshold_us(self):
-        return int(self.debugfs.getval("smi_detector/latency_threshold_us"))
+    def get_threshold(self):
+        return int(self.debugfs.getval("smi_detector/threshold"))
 
-    def set_latency_threshold_us(self, value):
-        self.debugfs.putval("smi_detector/latency_threshold_us", value)
+    def set_threshold(self, value):
+        self.debugfs.putval("smi_detector/threshold", value)
 
-    def get_max_sample_us(self):
-        return int(self.debugfs.getval("smi_detector/max_sample_us"))
+    def get_max(self):
+        return int(self.debugfs.getval("smi_detector/max"))
 
-    def set_max_sample_us(self, value):
-        self.debugfs.putval("smi_detector/max_sample_us", value)
+    def set_max(self, value):
+        self.debugfs.putval("smi_detector/max", value)
 
-    def get_ms_between_samples(self):
-        return int(self.debugfs.getval("smi_detector/ms_between_samples"))
+    def get_window(self):
+        return int(self.debugfs.getval("smi_detector/window"))
 
-    def set_ms_between_samples(self, value):
-        self.debugfs.putval("smi_detector/ms_between_samples", value)
+    def set_window(self, value):
+        self.debugfs.putval("smi_detector/window", value)
 
-    def get_ms_per_sample(self):
-        return int(self.debugfs.getval("smi_detector/ms_per_sample"))
+    def get_width(self):
+        return int(self.debugfs.getval("smi_detector/width"))
 
-    def set_ms_per_sample(self, value):
-        self.debugfs.putval("smi_detector/ms_per_sample", value)
+    def set_width(self, value):
+        self.debugfs.putval("smi_detector/width", value)
 
-    def get_sample_us(self):
-        return int(self.debugfs.getval("smi_detector/sample_us"))
+    def get_sample(self):
+        return int(self.debugfs.getval("smi_detector/sample"))
 
-    def get_smi_count(self):
-        return int(self.debugfs.getval("smi_detector/smi_count"))
+    def get_count(self):
+        return int(self.debugfs.getval("smi_detector/count"))
 
     def start(self):
         self.set_enable(1)
@@ -178,7 +188,7 @@ class SMI_Detector(object):
         try:
             self.start()
             while time.time() < testend:
-                val = self.get_sample_us()
+                val = self.get_sample()
                 self.samples.append(val)
         finally:
             debug("Stopping SMI detection")
@@ -202,7 +212,7 @@ def seconds(str):
     elif str[-1] == 'w':
         return int(str[0:-1]) * 86400 * 7
     else:
-        raise RuntimeError, "unknown suffix for seconds: '%s'" % str[-1]
+        raise RuntimeError, "unknown suffix for second conversion: '%s'" % str[-1]
 
 
 def milliseconds(str):
@@ -219,18 +229,18 @@ def milliseconds(str):
     elif str[-1] == 'h':
         return int(str[0:-1]) * 1000 * 60 * 60
     elif str[-1].isalpha():
-        raise RuntimeError, "unknown suffix for milliseconds: '%s'" % str[-1]
+        raise RuntimeError, "unknown suffix for millisecond conversion: '%s'" % str[-1]
     else:
         return int(str)
 
 def microseconds(str):
     "convert input string to microsecond value"
     if str[-2:] == 'ms':
-        return int(str[-2] * 1000)
+        return int(str[0:-2] * 1000)
     elif str[-1] == 's':
-        return int(str[-1] * 1000 * 1000)
+        return int(str[0:-1] * 1000 * 1000)
     elif str[-1].isalpha():
-        raise RuntimeError, "unknow suffix for microseconds: '%s'" % str[-1]
+        raise RuntimeError, "unknown suffix for microsecond conversion: '%s'" % str[-1]
     else:
         return int(str)
 
@@ -244,15 +254,15 @@ if __name__ == '__main__':
 
     parser.add_option("--threshold", default=None, type="string",
                       dest="threshold",
-                      help="value above which is considered an SMI (microseconds")
+                      help="value above which is considered an SMI")
 
-    parser.add_option("--interval", default=None, type="string",
-                      dest="interval",
-                      help="time between samples (milliseconds)")
+    parser.add_option("--window", default=None, type="string",
+                      dest="window",
+                      help="time between samples")
 
-    parser.add_option("--sample_width", default=None, type="string",
-                      dest="sample_width",
-                      help="time to actually measure (milliseconds)")
+    parser.add_option("--width", default=None, type="string",
+                      dest="width",
+                      help="time to actually measure")
 
     parser.add_option("--report", default=None, type="string",
                       dest="report",
@@ -290,27 +300,27 @@ if __name__ == '__main__':
 
     if o.threshold:
         t = microseconds(o.threshold)
-        smi.set_latency_threshold_us(t)
+        smi.set_threshold(t)
         debug("threshold set to %dus" % t)
     else:
-	smi.set_latency_threshold_us(default_threshold)
+	smi.set_threshold(default_threshold)
         debug("threshold defaulted to %dus" % default_threshold)
 
-    if o.interval:
-        i = milliseconds(o.interval)
-        smi.set_ms_between_samples(i)
-        debug("interval between samples set to %dms" % i)
+    if o.window:
+        i = microseconds(o.window)
+        smi.set_window(i)
+        debug("window for sampling set to %dus" % i)
     else:
-	smi.set_ms_between_samples(default_interval)
-        debug("interval defaulted to %dms" % default_interval)
+	smi.set_window(default_window)
+        debug("window defaulted to %dus" % default_window)
 
-    if o.sample_width:
-        w = milliseconds(o.sample_width)
-        smi.set_ms_per_sample(w)
-        debug("sample width set to %dms" % w)
+    if o.width:
+        w = microseconds(o.width)
+        smi.set_width(w)
+        debug("sample width set to %dus" % w)
     else:
-	smi.set_ms_per_sample(default_width)
-        debug("sample width defaulted to %dms" % default_width)
+	smi.set_width(default_width)
+        debug("sample width defaulted to %dus" % default_width)
 
     if o.duration:
         smi.testduration = seconds(o.duration)
@@ -322,9 +332,10 @@ if __name__ == '__main__':
 
     info("smidetect:  test duration %d seconds" % smi.testduration)
     info("   parameters:")
-    info("        Latency threshold: %dus" % smi.get_latency_threshold_us())
-    info("        Non-sampling gap:  %dms" % smi.get_ms_between_samples())
-    info("        Sample length:     %dms" % smi.get_ms_per_sample())
+    info("        Latency threshold: %dus" % smi.get_threshold())
+    info("        Sample window:     %dus" % smi.get_window())
+    info("        Sample width:      %dus" % smi.get_width())
+    info("     Non-sampling period:  %dus" % (smi.get_window() - smi.get_width()))
     info("        Output File:       %s" % reportfile)
     info("\nStarting test")
 
@@ -332,11 +343,10 @@ if __name__ == '__main__':
 
     info("test finished")
 
-    exceeding = smi.get_smi_count()
-    info("Max Latency: %dus" % smi.get_max_sample_us())
+    exceeding = smi.get_count()
+    info("Max Latency: %dus" % smi.get_max())
     info("Samples recorded: %d" % len(smi.samples))
     info("Samples exceeding threshold: %d" % exceeding)
-
 
     if reportfile:
         f = open(reportfile, "w")
