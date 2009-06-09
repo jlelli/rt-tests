@@ -4,15 +4,16 @@ import sys
 import os
 import time
 import subprocess
+import errno
 
 version = "0.5"
 debugging = False
 quiet = False
 
 # defaults for parameters
-default_window    =  50000 # 50 milliseconds
-default_width     =   1000 #  1 milliseconds
-default_threshold =     10 #  10 microseconds
+default_window    =  500000 # 500 milliseconds
+default_width     =  250000 # 250 milliseconds
+default_threshold =      10 #  10 microseconds
 
 def debug(str):
     if debugging: print(str)
@@ -57,18 +58,33 @@ class DebugFS(object):
         self.mounted = not (subprocess.call(cmd) == 0)
         return not self.mounted
 
-    def getval(self, item):
+    def getval(self, item, nonblocking=False):
         path = os.path.join(self.mountpoint, item)
-        f = open(path)
-        val = f.readline()
-        f.close()
+        if nonblocking == False:
+            f = open(path)
+            val = f.readline()
+            f.close()
+        else:
+            fd = os.open(path, os.O_RDONLY|os.O_NONBLOCK)
+            try:
+                val = os.read(fd, 256)
+            except OSError, e:
+                if e.errno == errno.EAGAIN:
+                    val = None
+                else:
+                    raise
+            os.close(fd)
         return val
 
     def putval(self, item, value):
         path = os.path.join(self.mountpoint, item)
         f = open(path, "w")
         f.write(str(value))
+        f.flush()
         f.close()
+
+    def getpath(self, item):
+        return os.path.join(self.mountpoint, item)
 
 #
 # Class used to manage loading and unloading of the 
@@ -140,34 +156,39 @@ class SMI_Detector(object):
         return int(self.debugfs.getval("smi_detector/enable"))
 
     def set_enable(self, value):
+         if value: value = 1
         self.debugfs.putval("smi_detector/enable", value)
 
     def get_threshold(self):
         return int(self.debugfs.getval("smi_detector/threshold"))
 
     def set_threshold(self, value):
+        debug("setting smi_detector/threshold to %d" % value)
         self.debugfs.putval("smi_detector/threshold", value)
 
     def get_max(self):
         return int(self.debugfs.getval("smi_detector/max"))
 
     def set_max(self, value):
+        debug("setting smi_detector/max to %d" % value)
         self.debugfs.putval("smi_detector/max", value)
 
     def get_window(self):
         return int(self.debugfs.getval("smi_detector/window"))
 
     def set_window(self, value):
+        debug("setting smi_detector/window to %d" % value)
         self.debugfs.putval("smi_detector/window", value)
 
     def get_width(self):
         return int(self.debugfs.getval("smi_detector/width"))
 
     def set_width(self, value):
+        debug("setting smi_detector/width to %d" % value)
         self.debugfs.putval("smi_detector/width", value)
 
     def get_sample(self):
-        return int(self.debugfs.getval("smi_detector/sample"))
+        return self.debugfs.getval("smi_detector/sample", nonblocking=True)
 
     def get_count(self):
         return int(self.debugfs.getval("smi_detector/count"))
@@ -187,9 +208,15 @@ class SMI_Detector(object):
         debug("Starting SMI detection for %d seconds" % (self.testduration))
         try:
             self.start()
-            while time.time() < testend:
-                val = self.get_sample()
-                self.samples.append(val)
+            try:
+                while time.time() < testend:
+                    val = self.get_sample()
+                    if val:
+                        self.samples.append(val)
+                    time.sleep(0.1)
+            except KeyboardInterrupt, e:
+                print "interrupted"
+                sys.exit(1)
         finally:
             debug("Stopping SMI detection")
             self.stop()
@@ -201,45 +228,29 @@ def seconds(str):
         return int(str)
     elif str[-2].isalpha():
         raise RuntimeError, "illegal suffix for seconds: '%s'" % str[-2:-1]
-    elif str[-1] == 's':
+    elif str[-1:] == 's':
         return int(str[0:-1])
-    elif str[-1] == 'm':
+    elif str[-1:] == 'm':
         return int(str[0:-1]) * 60
-    elif str[-1] == 'h':
+    elif str[-1:] == 'h':
         return int(str[0:-1]) * 3600
-    elif str[-1] == 'd':
+    elif str[-1:] == 'd':
         return int(str[0:-1]) * 86400
-    elif str[-1] == 'w':
+    elif str[-1:] == 'w':
         return int(str[0:-1]) * 86400 * 7
     else:
         raise RuntimeError, "unknown suffix for second conversion: '%s'" % str[-1]
 
 
-def milliseconds(str):
-    "convert input string to millsecond value"
-
-    if str.isdigit():
-        return int(str)
-    elif str[-2:] == 'ms':
-        return int(str[0:-2])
-    elif str[-1] == 's':
-        return int(str[0:-2]) * 1000
-    elif str[-1] == 'm':
-        return int(str[0:-1]) * 1000 * 60
-    elif str[-1] == 'h':
-        return int(str[0:-1]) * 1000 * 60 * 60
-    elif str[-1].isalpha():
-        raise RuntimeError, "unknown suffix for millisecond conversion: '%s'" % str[-1]
-    else:
-        return int(str)
-
 def microseconds(str):
     "convert input string to microsecond value"
     if str[-2:] == 'ms':
-        return int(str[0:-2] * 1000)
-    elif str[-1] == 's':
-        return int(str[0:-1] * 1000 * 1000)
-    elif str[-1].isalpha():
+        return (int(str[0:-2]) * 1000)
+    elif str[-2:] == 'us':
+        return int(str[0:-2])
+    elif str[-1:] == 's':
+        return (int(str[0:-1]) * 1000 * 1000)
+    elif str[-1:].isalpha():
         raise RuntimeError, "unknown suffix for microsecond conversion: '%s'" % str[-1]
     else:
         return int(str)
@@ -280,9 +291,6 @@ if __name__ == '__main__':
                       dest="quiet",
                       help="turn off all screen output")
 
-#    parser.add_option("--walk", action="store_true", default=False,
-#                      dest="walk")
-
     (o, a) = parser.parse_args()
 
     smi = SMI_Detector()
@@ -307,15 +315,17 @@ if __name__ == '__main__':
         debug("threshold defaulted to %dus" % default_threshold)
 
     if o.window:
-        i = microseconds(o.window)
-        smi.set_window(i)
-        debug("window for sampling set to %dus" % i)
+        w = microseconds(o.window)
+        debug("window parameter = %d" % w)
+        smi.set_window(w)
+        debug("window for sampling set to %dus" % w)
     else:
 	smi.set_window(default_window)
         debug("window defaulted to %dus" % default_window)
 
     if o.width:
         w = microseconds(o.width)
+        debug("width parameter = %d" % w)
         smi.set_width(w)
         debug("sample width set to %dus" % w)
     else:
