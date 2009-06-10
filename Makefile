@@ -33,7 +33,7 @@ clean:
 	for F in $(CLEANUP); do find -type f -name $$F | xargs rm -f; done
 
 distclean: clean
-	rm -rf BUILD RPMS SRPMS releases
+	rm -rf BUILD RPMS SRPMS releases *.tar.gz rt-tests.spec
 
 changelog:
 	git log >ChangeLog
