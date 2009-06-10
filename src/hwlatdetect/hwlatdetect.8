@@ -1,5 +1,5 @@
 .\"                                      Hey, EMACS: -*- nroff -*-
-.TH SMIDETECT 8 "May  12, 2009"
+.TH HWLATDETECT 8 "May  12, 2009"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -13,21 +13,21 @@
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
 .SH NAME
-smidetect \- program to control the kernel SMI detection module
+hwlatdetect \- program to control the kernel SMI detection module
 .SH SYNOPSIS
-.B smidetect
+.B hwlatdetect
 .RI "[ \-\-duration=<time> ] [\-\-threshold=<usecs> ] \
 [\-\-interval=<msecs> ] [\-\-sample_width=<msecs> ] [\-\-report=<path> ] \
 [\-\-cleanup ] [\-\-debug ] [\-\-quiet ]
 
 .\" .SH DESCRIPTION
 .\" This manual page documents briefly the
-.\" .B smidetect commands.
+.\" .B hwlatdetect commands.
 .\" .PP
 .\" \fI<whatever>\fP escape sequences to invode bold face and italics, respectively.
-.\" \fBsmidetect\fP is a program that...
+.\" \fBhwlatdetect\fP is a program that...
 .SH DESCRIPTION
-\fBsmidetect\fP is a program that controls the SMI detector kernel
+\fBhwlatdetect\fP is a program that controls the SMI detector kernel
 module (smi_detector.ko), provided with a realtime Linux kernel. The
 module is used to detect the presence of System Management Interrupts
 (SMI) which in some cases cause unexplained latencies. SMIs are generally
@@ -81,5 +81,5 @@ Turn off all information prints
 .\" .IR "The Rise and Fall of a Fooish Bar" ,
 .\" available via the Info system.
 .SH AUTHOR
-.B smidetect
+.B hwlatdetect
 .R was written by Clark Williams <williams@redhat.com>

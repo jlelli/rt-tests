@@ -88,13 +88,13 @@ class DebugFS(object):
 
 #
 # Class used to manage loading and unloading of the 
-# smi_detector kernel module. Like the debugfs class 
+# hwlat kernel module. Like the debugfs class 
 # above, if the module is already loaded, this class will
 # leave it alone when cleaning up.
 #
 class Kmod(object):
-    ''' class to manage loading and unloading smi_detector.ko'''
-    def __init__(self, module='smi_detector'):
+    ''' class to manage loading and unloading hwlat.ko'''
+    def __init__(self, module='hwlat'):
         self.modname = module
         self.preloaded = False
         f = open ('/proc/modules')
@@ -118,10 +118,10 @@ class Kmod(object):
         return (subprocess.call(cmd) == 0)
 
 #
-# Class to simplify running the smi_detector kernel module
+# Class to simplify running the hwlat kernel module
 #
-class SMI_Detector(object):
-    '''class to wrap access to smi_detector debugfs files'''
+class Hwlat(object):
+    '''class to wrap access to hwlat debugfs files'''
     def __init__(self):
         if os.getuid() != 0:
             raise RuntimeError, "Must be root"
@@ -132,7 +132,7 @@ class SMI_Detector(object):
         self.samples = []
 
     def force_cleanup(self):
-        debug("forcing unload of smi_detector module")
+        debug("forcing unload of hwlat module")
         self.kmod.preloaded = False
         debug("forcing unmount of debugfs")
         self.debugfs.premounted = False
@@ -144,63 +144,33 @@ class SMI_Detector(object):
         if not self.debugfs.mount():
             raise RuntimeError, "Failed to mount debugfs"
         if not self.kmod.load():
-            raise RuntimeError, "Failed to unload smi_detector"
+            raise RuntimeError, "Failed to unload hwlat"
 
     def cleanup(self):
         if not self.kmod.unload():
-            raise RuntimeError, "Failed to unload smi_detector"
+            raise RuntimeError, "Failed to unload hwlat"
         if not self.debugfs.umount():
             raise RuntimeError, "Failed to unmount debugfs"
 
-    def get_enable(self):
-        return int(self.debugfs.getval("smi_detector/enable"))
+    def get(self, field):
+        return int(self.debugfs.getval(os.path.join("hwlat", field)))
 
-    def set_enable(self, value):
-         if value: value = 1
-        self.debugfs.putval("smi_detector/enable", value)
-
-    def get_threshold(self):
-        return int(self.debugfs.getval("smi_detector/threshold"))
-
-    def set_threshold(self, value):
-        debug("setting smi_detector/threshold to %d" % value)
-        self.debugfs.putval("smi_detector/threshold", value)
-
-    def get_max(self):
-        return int(self.debugfs.getval("smi_detector/max"))
-
-    def set_max(self, value):
-        debug("setting smi_detector/max to %d" % value)
-        self.debugfs.putval("smi_detector/max", value)
-
-    def get_window(self):
-        return int(self.debugfs.getval("smi_detector/window"))
-
-    def set_window(self, value):
-        debug("setting smi_detector/window to %d" % value)
-        self.debugfs.putval("smi_detector/window", value)
-
-    def get_width(self):
-        return int(self.debugfs.getval("smi_detector/width"))
-
-    def set_width(self, value):
-        debug("setting smi_detector/width to %d" % value)
-        self.debugfs.putval("smi_detector/width", value)
+    def set(self, field, val):
+        if field == "enable" and val:
+            val = 1
+        self.debugfs.putval(os.path.join("hwlat", field), val)
 
     def get_sample(self):
-        return self.debugfs.getval("smi_detector/sample", nonblocking=True)
-
-    def get_count(self):
-        return int(self.debugfs.getval("smi_detector/count"))
+        return self.debugfs.getval("hwlat/sample", nonblocking=True)
 
     def start(self):
-        self.set_enable(1)
+        self.set("enable", 1)
 
     def stop(self):
-        self.set_enable(0)
-        while self.get_enable() == 1:
+        self.set("enable", 0)
+        while self.get("enable") == 1:
             time.sleep(0.1)
-            self.set_enable(0)
+            self.set("enable", 0)
 
     def detect(self):
         self.samples = []
@@ -213,6 +183,7 @@ class SMI_Detector(object):
                     val = self.get_sample()
                     if val:
                         self.samples.append(val)
+                        continue
                     time.sleep(0.1)
             except KeyboardInterrupt, e:
                 print "interrupted"
@@ -293,7 +264,7 @@ if __name__ == '__main__':
 
     (o, a) = parser.parse_args()
 
-    smi = SMI_Detector()
+    smi = Hwlat()
 
     if o.debug: 
         debugging = True
@@ -308,28 +279,28 @@ if __name__ == '__main__':
 
     if o.threshold:
         t = microseconds(o.threshold)
-        smi.set_threshold(t)
+        smi.set("threshold", t)
         debug("threshold set to %dus" % t)
     else:
-	smi.set_threshold(default_threshold)
+	smi.set("threshold", default_threshold)
         debug("threshold defaulted to %dus" % default_threshold)
 
     if o.window:
         w = microseconds(o.window)
         debug("window parameter = %d" % w)
-        smi.set_window(w)
+        smi.set("window", w)
         debug("window for sampling set to %dus" % w)
     else:
-	smi.set_window(default_window)
+	smi.set("window", default_window)
         debug("window defaulted to %dus" % default_window)
 
     if o.width:
         w = microseconds(o.width)
         debug("width parameter = %d" % w)
-        smi.set_width(w)
+        smi.set("width", w)
         debug("sample width set to %dus" % w)
     else:
-	smi.set_width(default_width)
+	smi.set("width", default_width)
         debug("sample width defaulted to %dus" % default_width)
 
     if o.duration:
@@ -342,10 +313,10 @@ if __name__ == '__main__':
 
     info("smidetect:  test duration %d seconds" % smi.testduration)
     info("   parameters:")
-    info("        Latency threshold: %dus" % smi.get_threshold())
-    info("        Sample window:     %dus" % smi.get_window())
-    info("        Sample width:      %dus" % smi.get_width())
-    info("     Non-sampling period:  %dus" % (smi.get_window() - smi.get_width()))
+    info("        Latency threshold: %dus" % smi.get("threshold")
+    info("        Sample window:     %dus" % smi.get("window")
+    info("        Sample width:      %dus" % smi.get("width")
+    info("     Non-sampling period:  %dus" % (smi.get("window") - smi.get("width")))
     info("        Output File:       %s" % reportfile)
     info("\nStarting test")
 
@@ -353,8 +324,8 @@ if __name__ == '__main__':
 
     info("test finished")
 
-    exceeding = smi.get_count()
-    info("Max Latency: %dus" % smi.get_max())
+    exceeding = smi.get("count")
+    info("Max Latency: %dus" % smi.get("max"))
     info("Samples recorded: %d" % len(smi.samples))
     info("Samples exceeding threshold: %d" % exceeding)
 
