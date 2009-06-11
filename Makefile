@@ -1,4 +1,4 @@
-VERSION_STRING = "0.41"
+VERSION_STRING = 0.41
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress hwlatdetect
 FLAGS	= -Wall -Wno-nonnull -O2
@@ -23,8 +23,8 @@ pi_stress:  src/pi_tests/pi_stress.c
 	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
 hwlatdetect:  src/hwlatdetect/hwlatdetect.py
-	cp src/hwlatdetect/hwlatdetect.py hwlatdetect
-	chmod +x hwlatdetect
+	chmod +x src/hwlatdetect/hwlatdetect.py
+	ln -s src/hwlatdetect/hwlatdetect.py hwlatdetect
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)

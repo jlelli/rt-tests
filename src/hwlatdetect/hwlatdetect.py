@@ -94,7 +94,7 @@ class DebugFS(object):
 #
 class Kmod(object):
     ''' class to manage loading and unloading hwlat.ko'''
-    def __init__(self, module='hwlat'):
+    def __init__(self, module='hwlat_detector'):
         self.modname = module
         self.preloaded = False
         f = open ('/proc/modules')
@@ -153,15 +153,15 @@ class Hwlat(object):
             raise RuntimeError, "Failed to unmount debugfs"
 
     def get(self, field):
-        return int(self.debugfs.getval(os.path.join("hwlat", field)))
+        return int(self.debugfs.getval(os.path.join("hwlat_detector", field)))
 
     def set(self, field, val):
         if field == "enable" and val:
             val = 1
-        self.debugfs.putval(os.path.join("hwlat", field), val)
+        self.debugfs.putval(os.path.join("hwlat_detector", field), str(val))
 
     def get_sample(self):
-        return self.debugfs.getval("hwlat/sample", nonblocking=True)
+        return self.debugfs.getval("hwlat_detector/sample", nonblocking=True)
 
     def start(self):
         self.set("enable", 1)
@@ -175,23 +175,25 @@ class Hwlat(object):
     def detect(self):
         self.samples = []
         testend = time.time() + self.testduration
-        debug("Starting SMI detection for %d seconds" % (self.testduration))
+        debug("Starting hardware latency detection for %d seconds" % (self.testduration))
         try:
+            pollcnt = 0
             self.start()
             try:
                 while time.time() < testend:
+                    pollcnt += 1
                     val = self.get_sample()
                     if val:
-                        self.samples.append(val)
+                        self.samples.append(val.strip())
                         continue
                     time.sleep(0.1)
             except KeyboardInterrupt, e:
                 print "interrupted"
                 sys.exit(1)
         finally:
-            debug("Stopping SMI detection")
+            debug("Stopping hardware latency detection (poll count: %d" % pollcnt)
             self.stop()
-        debug("SMI detection done (%d samples)" % len(self.samples))
+        debug("Hardware latency detection done (%d samples)" % len(self.samples))
 
 def seconds(str):
     "convert input string to value in seconds"
@@ -232,11 +234,11 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("--duration", default=None, type="string",
                       dest="duration",
-                      help="total time to test for SMIs (<n>{smdw})")
+                      help="total time to test for hardware latency (<n>{smdw})")
 
     parser.add_option("--threshold", default=None, type="string",
                       dest="threshold",
-                      help="value above which is considered an SMI")
+                      help="value above which is considered an hardware latency")
 
     parser.add_option("--window", default=None, type="string",
                       dest="window",
@@ -264,80 +266,84 @@ if __name__ == '__main__':
 
     (o, a) = parser.parse_args()
 
-    smi = Hwlat()
+    hwlat = Hwlat()
 
     if o.debug: 
         debugging = True
+        quiet = False
+        debug("debugging prints turned on")
 
     if o.quiet:
         quiet = True
+        debugging = False
 
     if o.cleanup:
-        debug("forcing cleanup of debugfs and SMI module")
-        smi.force_cleanup()
+        debug("forcing cleanup of debugfs and hardware latency module")
+        hwlat.force_cleanup()
         sys.exit(0)
 
     if o.threshold:
         t = microseconds(o.threshold)
-        smi.set("threshold", t)
+        hwlat.set("threshold", t)
         debug("threshold set to %dus" % t)
     else:
-	smi.set("threshold", default_threshold)
+	hwlat.set("threshold", default_threshold)
         debug("threshold defaulted to %dus" % default_threshold)
-
-    if o.window:
-        w = microseconds(o.window)
-        debug("window parameter = %d" % w)
-        smi.set("window", w)
-        debug("window for sampling set to %dus" % w)
-    else:
-	smi.set("window", default_window)
-        debug("window defaulted to %dus" % default_window)
 
     if o.width:
         w = microseconds(o.width)
         debug("width parameter = %d" % w)
-        smi.set("width", w)
+        hwlat.set("width", w)
         debug("sample width set to %dus" % w)
     else:
-	smi.set("width", default_width)
+	hwlat.set("width", default_width)
         debug("sample width defaulted to %dus" % default_width)
 
-    if o.duration:
-        smi.testduration = seconds(o.duration)
+    if o.window:
+        w = microseconds(o.window)
+        debug("window parameter = %d" % w)
+        hwlat.set("window", w)
+        debug("window for sampling set to %dus" % w)
     else:
-        smi.testduration = 120 # 2 minutes
-    debug("test duration is %ds" % smi.testduration)
+        debug("setting window to default %dus" % default_window)
+	hwlat.set("window", default_window)
+        debug("window defaulted to %dus" % default_window)
+
+    if o.duration:
+        hwlat.testduration = seconds(o.duration)
+    else:
+        hwlat.testduration = 120 # 2 minutes
+    debug("test duration is %ds" % hwlat.testduration)
 
     reportfile = o.report
 
-    info("smidetect:  test duration %d seconds" % smi.testduration)
+    info("hwlatdetect:  test duration %d seconds" % hwlat.testduration)
     info("   parameters:")
-    info("        Latency threshold: %dus" % smi.get("threshold")
-    info("        Sample window:     %dus" % smi.get("window")
-    info("        Sample width:      %dus" % smi.get("width")
-    info("     Non-sampling period:  %dus" % (smi.get("window") - smi.get("width")))
+    info("        Latency threshold: %dus" % hwlat.get("threshold"))
+    info("        Sample window:     %dus" % hwlat.get("window"))
+    info("        Sample width:      %dus" % hwlat.get("width"))
+    info("     Non-sampling period:  %dus" % (hwlat.get("window") - hwlat.get("width")))
     info("        Output File:       %s" % reportfile)
     info("\nStarting test")
 
-    smi.detect()
+    hwlat.detect()
 
     info("test finished")
 
-    exceeding = smi.get("count")
-    info("Max Latency: %dus" % smi.get("max"))
-    info("Samples recorded: %d" % len(smi.samples))
+    exceeding = hwlat.get("count")
+    info("Max Latency: %dus" % hwlat.get("max"))
+    info("Samples recorded: %d" % len(hwlat.samples))
     info("Samples exceeding threshold: %d" % exceeding)
 
     if reportfile:
         f = open(reportfile, "w")
-        for s in smi.samples:
+        for s in hwlat.samples:
             f.write("%d\n" % s)
         f.close()
         info("sample data written to %s" % reportfile)
     else:
-        for s in smi.samples:
-            print "%d" % s
+        for s in hwlat.samples:
+            print "%s" % s
 
-    smi.cleanup()
+    hwlat.cleanup()
     sys.exit(exceeding)
