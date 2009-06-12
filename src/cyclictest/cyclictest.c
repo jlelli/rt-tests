@@ -179,7 +179,7 @@ static char functiontracer[MAX_PATH];
 static char traceroptions[MAX_PATH];
 
 /*
- * Finds the path to the debugfs/tracing
+ * Finds the tracing directory in a mounted debugfs
  */
 static int set_debugfileprefix(void)
 {
