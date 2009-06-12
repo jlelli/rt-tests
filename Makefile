@@ -31,6 +31,7 @@ CLEANUP += $(if $(wildcard .git), ChangeLog)
 
 clean:
 	for F in $(CLEANUP); do find -type f -name $$F | xargs rm -f; done
+	rm -f hwlatdetect
 
 distclean: clean
 	rm -rf BUILD RPMS SRPMS releases *.tar.gz rt-tests.spec
