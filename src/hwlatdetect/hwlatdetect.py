@@ -10,11 +10,6 @@ version = "0.5"
 debugging = False
 quiet = False
 
-# defaults for parameters
-default_window    =  500000 # 500 milliseconds
-default_width     =  250000 # 250 milliseconds
-default_threshold =      10 #  10 microseconds
-
 def debug(str):
     if debugging: print(str)
 
@@ -45,17 +40,25 @@ class DebugFS(object):
 
     def mount(self, path='/sys/kernel/debug'):
         if self.premounted or self.mounted:
+            debug("not mounting debugfs")
             return True
+        debug("mounting debugfs at %s" % path)
         self.mountpoint = path
         cmd = ['/bin/mount', '-t', 'debugfs', 'none', path]
         self.mounted = (subprocess.call(cmd) == 0)
+        if not self.mounted:
+            raise RuntimeError, "Failed to mount debugfs"
         return self.mounted
 
     def umount(self):
         if self.premounted or not self.mounted:
+            debug("not umounting debugfs")
             return True
+        debug("umounting debugfs")
         cmd = ['/bin/umount', self.mountpoint]
         self.mounted = not (subprocess.call(cmd) == 0)
+        if self.mounted:
+            raise RuntimeError, "Failed to umount debugfs"
         return not self.mounted
 
     def getval(self, item, nonblocking=False):
@@ -107,12 +110,14 @@ class Kmod(object):
 
     def load(self):
         if self.preloaded:
+            debug("not loading %s (already loaded)" % self.modname)
             return True
         cmd = ['/sbin/modprobe', self.modname]
         return (subprocess.call(cmd) == 0)
 
     def unload(self):
         if self.preloaded:
+            debug("Not unloading %s" % self.modname)
             return True
         cmd = ['/sbin/modprobe', '-r', self.modname]
         return (subprocess.call(cmd) == 0)
@@ -164,11 +169,22 @@ class Hwlat(object):
         return self.debugfs.getval("hwlat_detector/sample", nonblocking=True)
 
     def start(self):
+        debug("enabling hwlat module")
+        count = 0
         self.set("enable", 1)
+        while self.get("enable") == 0:
+            count += 1
+            debug("setting enable to 1 (%d)" % count)
+            time.sleep(0.1)
+            self.set("enable", 1)
 
     def stop(self):
+        debug("disabling hwlat module")
+        count = 0
         self.set("enable", 0)
         while self.get("enable") == 1:
+            count += 1
+            debug("setting enable to zero(%d)" % count)
             time.sleep(0.1)
             self.set("enable", 0)
 
@@ -185,6 +201,7 @@ class Hwlat(object):
                     val = self.get_sample()
                     if val:
                         self.samples.append(val.strip())
+                        debug("got a latency sample: %s" % val.strip())
                         continue
                     time.sleep(0.1)
             except KeyboardInterrupt, e:
@@ -286,28 +303,18 @@ if __name__ == '__main__':
         t = microseconds(o.threshold)
         hwlat.set("threshold", t)
         debug("threshold set to %dus" % t)
-    else:
-	hwlat.set("threshold", default_threshold)
-        debug("threshold defaulted to %dus" % default_threshold)
-
-    if o.width:
-        w = microseconds(o.width)
-        debug("width parameter = %d" % w)
-        hwlat.set("width", w)
-        debug("sample width set to %dus" % w)
-    else:
-	hwlat.set("width", default_width)
-        debug("sample width defaulted to %dus" % default_width)
 
     if o.window:
         w = microseconds(o.window)
         debug("window parameter = %d" % w)
         hwlat.set("window", w)
         debug("window for sampling set to %dus" % w)
-    else:
-        debug("setting window to default %dus" % default_window)
-	hwlat.set("window", default_window)
-        debug("window defaulted to %dus" % default_window)
+
+    if o.width:
+        w = microseconds(o.width)
+        debug("width parameter = %d" % w)
+        hwlat.set("width", w)
+        debug("sample width set to %dus" % w)
 
     if o.duration:
         hwlat.testduration = seconds(o.duration)
