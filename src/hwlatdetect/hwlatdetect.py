@@ -1,5 +1,11 @@
 #!/usr/bin/python
 
+# (C) 2009 Clark Williams <williams@redhat.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License Version 2
+# as published by the Free Software Foundation.
+
 import sys
 import os
 import time
