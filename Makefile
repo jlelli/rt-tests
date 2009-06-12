@@ -1,4 +1,4 @@
-VERSION_STRING = 0.41
+VERSION_STRING = 0.42
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress hwlatdetect
 FLAGS	= -Wall -Wno-nonnull -O2
