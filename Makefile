@@ -1,6 +1,6 @@
-VERSION_STRING = "0.40"
+VERSION_STRING = 0.41
 
-TARGETS	= cyclictest signaltest classic_pi pi_stress smidetect
+TARGETS	= cyclictest signaltest classic_pi pi_stress hwlatdetect
 FLAGS	= -Wall -Wno-nonnull -O2
 LIBS 	= -lpthread -lrt
 DESTDIR	?=
@@ -22,18 +22,19 @@ classic_pi: src/pi_tests/classic_pi.c
 pi_stress:  src/pi_tests/pi_stress.c
 	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
-smidetect:  src/smidetect/smidetect.py
-	cp src/smidetect/smidetect.py smidetect
-	chmod +x smidetect
+hwlatdetect:  src/hwlatdetect/hwlatdetect.py
+	chmod +x src/hwlatdetect/hwlatdetect.py
+	ln -s src/hwlatdetect/hwlatdetect.py hwlatdetect
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)
 
 clean:
 	for F in $(CLEANUP); do find -type f -name $$F | xargs rm -f; done
+	rm -f hwlatdetect
 
 distclean: clean
-	rm -rf BUILD RPMS SRPMS releases
+	rm -rf BUILD RPMS SRPMS releases *.tar.gz rt-tests.spec
 
 changelog:
 	git log >ChangeLog
@@ -43,7 +44,7 @@ install: all
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
 	gzip src/cyclictest/cyclictest.8 -c >"$(DESTDIR)$(mandir)/cyclictest.8.gz"
 	gzip src/pi_tests/pi_stress.8 -c >"$(DESTDIR)$(mandir)/pi_stress.8.gz"
-	gzip src/smidetect/smidetect.8 -c >"$(DESTDIR)$(mandir)/smidetect.8.gz"
+	gzip src/hwlatdetect/hwlatdetect.8 -c >"$(DESTDIR)$(mandir)/hwlatdetect.8.gz"
 
 release: clean changelog
 	mkdir -p releases

@@ -1,7 +1,7 @@
 Introduction:
 -------------
 
-The module smi_detector is a special purpose kernel module that is
+The module hwlat is a special purpose kernel module that is
 used to detect if System Management Interrupts (SMIs) are causing event
 latencies in the Linux RT kernel.
 
@@ -27,17 +27,17 @@ hardware platform has a problem with long SMI service routines.
 Usage:
 ------
 
-Loading the module smi_detector passing the parameter "enabled=1" is the only
-step required to start the smi_detector. It is possible to define a threshold
+Loading the module hwlat passing the parameter "enabled=1" is the only
+step required to start the hwlat. It is possible to define a threshold
 in microseconds (us) above which latency spikes will be taken in account
 (parameter "threshold=").
 
 Example:
 
-	# insmod ./smi_detector.ko enabled=1 threshold=100
+	# insmod ./hwlat.ko enabled=1 threshold=100
 
-After the module is loaded, it creates a directory named "smi_detector" under
-the debugfs mountpoint, "/debugfs/smi_detector" for this text. It is necessary
+After the module is loaded, it creates a directory named "hwlat" under
+the debugfs mountpoint, "/debugfs/hwlat" for this text. It is necessary
 to have debugfs mounted.
 
 avg_smi_interval_us	- average interval (usecs) between SMI latency spikes
@@ -50,7 +50,7 @@ sample_us		- last sample (usecs). Continously updated, may be used
 smi_count		- how many latency spikes have been observed
 
 
-	# cd /debugfs/smi_detector
+	# cd /debugfs/hwlat
 
 	# cat *
 	0		(avg_smi_interval_us)
@@ -96,7 +96,7 @@ Python Script
 
 A python script is provided in in the kernel scripts directory named
 'smidetect'. This script handles mounting/unmounting the debugfs,
-loading/unloading the smi_detector module, setting various parameters
+loading/unloading the hwlat module, setting various parameters
 for the SMI detector and then starting and stopping the detection. The
 smidetect script handles the following arguments:
 
