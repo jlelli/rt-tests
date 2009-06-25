@@ -41,6 +41,12 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/smidetect.8.gz
 
 %changelog
+* Thu Jun 25 2009 Clark Williams <williams@redhat.com> - 0.43-1
+- manpage fixes from Uwe Kleine-Konig <u.kleine-koenig@pengutronix.de>
+
+* Fri Jun 12 2009 Clark Williams <williams@redhat.com> - 0.42-1
+- renamed smidetect -> hwlatdetect
+
 * Thu May 28 2009 Clark Williams <williams@redhat.com> - 0.41-1
 - added Stefan Agner's patch to fix calculating time difference
   when delta is bigger than 2147 seconds
