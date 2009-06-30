@@ -34,13 +34,17 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/cyclictest
 /usr/bin/pi_stress
 /usr/bin/signaltest
-/usr/bin/smidetect
+/usr/bin/hwlatdetect
 %doc
 /usr/share/man/man8/cyclictest.8.gz
 /usr/share/man/man8/pi_stress.8.gz
-/usr/share/man/man8/smidetect.8.gz
+/usr/share/man/man8/hwlatdetect.8.gz
 
 %changelog
+* Tue Jun 30 2009 Clark Williams <williams@redhat.com> - 0.44-1
+- fix to specfile (renamed smidetect to hwlatdetect)
+- added code to hwlatdetect allow setting window and width properly
+
 * Thu Jun 25 2009 Clark Williams <williams@redhat.com> - 0.43-1
 - manpage fixes from Uwe Kleine-Konig <u.kleine-koenig@pengutronix.de>
 
