@@ -41,6 +41,11 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hwlatdetect.8.gz
 
 %changelog
+* Thu Jul  2 2009 Clark Williams <williams@redhat.com> - 0.45-1
+- bugfix from Daniel Gollub <dgollub@suse.de> (fix cyclictest segfault)
+- cyclictest format change from Sven-Thorsten Dietrich <sdietrich@suse.de>
+- added help target to Makefile
+
 * Tue Jun 30 2009 Clark Williams <williams@redhat.com> - 0.44-1
 - fix to specfile (renamed smidetect to hwlatdetect)
 - added code to hwlatdetect allow setting window and width properly
