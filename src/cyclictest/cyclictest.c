@@ -72,6 +72,8 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 #define USEC_PER_SEC		1000000
 #define NSEC_PER_SEC		1000000000
 
+#define HIST_MAX		1000000
+
 #define MODE_CYCLIC		0
 #define MODE_CLOCK_NANOSLEEP	1
 #define MODE_SYS_ITIMER		2
@@ -97,8 +99,6 @@ enum {
 	WAKEUP,
 	WAKEUPRT,
 };
-
-#define HIST_MAX		1000000
 
 /* Struct to transfer parameters to the thread */
 struct thread_param {
@@ -141,6 +141,7 @@ static int oscope_reduction = 1;
 static int lockall = 0;
 static int tracetype = NOTRACE;
 static int histogram = 0;
+static int histogram_limit_exceeded = 0;
 static int duration = 0;
 static int use_nsecs = 0;
 
@@ -695,7 +696,16 @@ void *timerthread(void *param)
 		if (par->bufmsk)
 			stat->values[stat->cycles & par->bufmsk] = diff;
 
-		if (histogram && (diff < histogram))
+		/* When histogram limit got exceed, mark limit as exceeded,
+		 * and use last bucket to recored samples of, exceeding 
+		 * latency spikes.
+		 */
+		if (histogram && diff >= histogram) {
+			histogram_limit_exceeded = 1;
+			diff = histogram - 1;
+		}
+
+		if (histogram)
 			stat->hist_array[diff] += 1;
 
 		next.tv_sec += interval.tv_sec;
@@ -933,6 +943,9 @@ static void process_options (int argc, char *argv[])
 	if (histogram < 0)
 		error = 1;
 
+	if (histogram > HIST_MAX)
+		histogram = HIST_MAX;
+
 	if (priority < 0 || priority > 99)
 		error = 1;
 
@@ -1135,9 +1148,12 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < num_threads; i++) {
 		if (histogram) {
-			if (histogram > HIST_MAX)
-				histogram = HIST_MAX;
 			stat[i].hist_array = calloc(histogram, sizeof(long));
+			if (!stat[i].hist_array) {
+				fprintf(stderr, "Cannot allocate enough memory for histogram limit %d: %s",
+						histogram, strerror(errno));
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		if (verbose) {
@@ -1198,7 +1214,8 @@ int main(int argc, char **argv)
 		if (!verbose && !quiet)
 			printf("\033[%dA", num_threads + 2);
 	}
-	ret = 0;
+	ret = EXIT_SUCCESS;
+
  outall:
 	shutdown = 1;
 	usleep(50000);
@@ -1238,6 +1255,13 @@ int main(int argc, char **argv)
 	/* Be a nice program, cleanup */
 	if (kernelversion != KV_26_CURR)
 		restorekernvars();
+
+	if (histogram && histogram_limit_exceeded) {
+		ret = EXIT_FAILURE;
+		fprintf(stderr, "ERROR: Histogram limit got exceeded at least once!\n"
+				"Limit exceeding got sampled in last bucket.\n");
+
+	}
 
 	exit(ret);
 }
