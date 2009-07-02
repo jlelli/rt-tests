@@ -41,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hwlatdetect.8.gz
 
 %changelog
+* Thu Jul  2 2009 Clark Williams <williams@redhat.com> - 0.46-1
+- added fix from Daniel Gollub <dgollub@suse.de> (doomsday latency)
+
 * Thu Jul  2 2009 Clark Williams <williams@redhat.com> - 0.45-1
 - bugfix from Daniel Gollub <dgollub@suse.de> (fix cyclictest segfault)
 - cyclictest format change from Sven-Thorsten Dietrich <sdietrich@suse.de>
