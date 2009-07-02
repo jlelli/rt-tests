@@ -1,4 +1,4 @@
-VERSION_STRING = 0.44
+VERSION_STRING = 0.45
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress hwlatdetect
 FLAGS	= -Wall -Wno-nonnull -O2
@@ -69,3 +69,15 @@ rpmdirs:
 	@[ -d BUILD ]  || mkdir BUILD
 	@[ -d RPMS ]   || mkdir RPMS
 	@[ -d SRPMS ]  || mkdir SRPMS
+
+help:
+	@echo ""
+	@echo " rt-tests useful Makefile targets:"
+	@echo ""
+	@echo "    all       :  build all tests (default"
+	@echo "    install   :  install tests to local filesystem"
+	@echo "    release   :  build source tarfile"
+	@echo "    rpm       :  build RPM package"
+	@echo "    clean     :  remove object files"
+	@echo "    distclean :  remove all generated files"
+	@echo "    help      :  print this message"
