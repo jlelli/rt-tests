@@ -630,7 +630,7 @@ void *timerthread(void *param)
 	while (!shutdown) {
 
 		long diff;
-		int sigs;
+		int sigs, ret;
 
 		/* Wait for next period */
 		switch (par->mode) {
@@ -641,17 +641,24 @@ void *timerthread(void *param)
 			break;
 
 		case MODE_CLOCK_NANOSLEEP:
-			if (par->timermode == TIMER_ABSTIME)
-				clock_nanosleep(par->clock, TIMER_ABSTIME,
+			if (par->timermode == TIMER_ABSTIME) {
+				ret = clock_nanosleep(par->clock, TIMER_ABSTIME,
 						&next, NULL);
-			else {
+			} else {
 				clock_gettime(par->clock, &now);
-				clock_nanosleep(par->clock, TIMER_RELTIME,
+				ret = clock_nanosleep(par->clock, TIMER_RELTIME,
 						&interval, NULL);
 				next.tv_sec = now.tv_sec + interval.tv_sec;
 				next.tv_nsec = now.tv_nsec + interval.tv_nsec;
 				tsnorm(&next);
 			}
+
+			/* Avoid negative calcdiff result if clock_nanosleep() 
+			 * gets interrupted.
+			 */
+			if (ret == EINTR)
+				goto out;
+
 			break;
 
 		case MODE_SYS_NANOSLEEP:
