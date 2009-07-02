@@ -180,7 +180,7 @@ class Hwlat(object):
         self.set("enable", 1)
         while self.get("enable") == 0:
             count += 1
-            debug("setting enable to 1 (%d)" % count)
+            debug("retrying setting enable to 1 (%d)" % count)
             time.sleep(0.1)
             self.set("enable", 1)
 
@@ -190,7 +190,7 @@ class Hwlat(object):
         self.set("enable", 0)
         while self.get("enable") == 1:
             count += 1
-            debug("setting enable to zero(%d)" % count)
+            debug("retrying setting enable to zero(%d)" % count)
             time.sleep(0.1)
             self.set("enable", 0)
 
@@ -205,10 +205,10 @@ class Hwlat(object):
                 while time.time() < testend:
                     pollcnt += 1
                     val = self.get_sample()
-                    if val:
+                    while val:
                         self.samples.append(val.strip())
                         debug("got a latency sample: %s" % val.strip())
-                        continue
+                        val = self.get_sample()
                     time.sleep(0.1)
             except KeyboardInterrupt, e:
                 print "interrupted"
