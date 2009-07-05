@@ -18,7 +18,7 @@ cyclictest \- High resolution test program
 .B cyclictest
 .RI "[ \-hfmnqrsv ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] \
 [\-h " histogram " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] \
-[\-t " num " ] [\-D " time "] [\-w] [\-W]
+[\-t " num " ] [\-D " time "] [\-w] [\-W] [\-y " policy "]"
 
 .\" .SH DESCRIPTION
 .\" This manual page documents briefly the
@@ -153,8 +153,11 @@ task wakeup tracing (used with \-b)
 rt-task wakeup tracing (used with \-b)
 .TP
 .B \\-y, \-\-policy
-policy of realtime thread (1:FIFO, 2:RR)
-format: --policy=1(default) or --policy=2
+set the scheduler policy of the measurement threads 
+
+format: --policy=<name> 
+
+where name is one of: other,normal,batch,idle,fifo,rr
 .\" .SH SEE ALSO
 .\" .BR bar (1),
 .\" .BR baz (1).

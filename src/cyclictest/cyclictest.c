@@ -33,6 +33,13 @@
 #include <sys/utsname.h>
 #include <sys/mman.h>
 
+#ifndef SCHED_IDLE
+#define SCHED_IDLE 5
+#endif
+#ifndef SCHED_NORMAL
+#define SCHED_NORMAL SCHED_OTHER
+#endif
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 /* Ugly, but .... */
@@ -795,7 +802,7 @@ static void display_help(void)
                "-w       --wakeup          task wakeup tracing (used with -b)\n"
                "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n"
                "-y POLI  --policy=POLI     policy of realtime thread (1:FIFO, 2:RR)\n"
-               "                           format: --policy=1(default) or --policy=2\n",
+               "                           format: --policy=fifo(default) or --policy=rr\n",
 	       tracers
 		);
 	exit(0);
@@ -825,6 +832,52 @@ static int clocksources[] = {
 	CLOCK_MONOTONIC,
 	CLOCK_REALTIME,
 };
+
+static void handlepolicy(char *polname)
+{
+	if (strncasecmp(polname, "other", 5) == 0)
+		policy = SCHED_OTHER;
+	else if (strncasecmp(polname, "batch", 5) == 0)
+		policy = SCHED_BATCH;
+	else if (strncasecmp(polname, "idle", 4) == 0)
+		policy = SCHED_IDLE;
+	else if (strncasecmp(polname, "fifo", 4) == 0)
+		policy = SCHED_FIFO;
+	else if (strncasecmp(polname, "rr", 2) == 0)
+		policy = SCHED_RR;
+
+	if (policy == SCHED_FIFO || policy == SCHED_RR) {
+		if (policy == 0)
+			policy = 1;
+	}
+	else 
+		policy = 0;
+}
+
+static char *policyname(int policy)
+{
+	char *policystr = "";
+
+	switch(policy) {
+	case SCHED_OTHER:
+		policystr = "other";
+		break;
+	case SCHED_FIFO:
+		policystr = "fifo";
+		break;
+	case SCHED_RR:
+		policystr = "rr";
+		break;
+	case SCHED_BATCH:
+		policystr = "batch";
+		break;
+	case SCHED_IDLE:
+		policystr = "idle";
+		break;
+	}
+	return policystr;
+}
+
 
 /* Process commandline options */
 static void process_options (int argc, char *argv[])
@@ -899,7 +952,11 @@ static void process_options (int argc, char *argv[])
 		case 'N': use_nsecs = 1; break;
 		case 'o': oscope_reduction = atoi(optarg); break;
 		case 'O': traceopt(optarg); break;
-		case 'p': priority = atoi(optarg); break;
+		case 'p': 
+			priority = atoi(optarg); 
+			if (policy != SCHED_FIFO && policy != SCHED_RR)
+				policy = SCHED_FIFO;
+			break;
 		case 'P': tracetype = PREEMPTOFF; break;
 		case 'q': quiet = 1; break;
 		case 'r': timermode = TIMER_RELTIME; break;
@@ -919,7 +976,7 @@ static void process_options (int argc, char *argv[])
 			break;
                 case 'w': tracetype = WAKEUP; break;
                 case 'W': tracetype = WAKEUPRT; break;
-                case 'y': policy = atoi(optarg); break;
+                case 'y': handlepolicy(optarg); break;
 		case '?': error = 1; break;
 		}
 	}
@@ -954,11 +1011,21 @@ static void process_options (int argc, char *argv[])
 
 	if (priority < 0 || priority > 99)
 		error = 1;
-        if (policy < 0 || policy > 2) 
-                error = 1;
+
+	if (priority && (policy != SCHED_FIFO && policy != SCHED_RR)) {
+		fprintf(stderr, "policy and priority don't match: setting policy to SCHED_FIFO\n");
+		policy = SCHED_FIFO;
+	}
+
+	if ((policy == SCHED_FIFO || policy == SCHED_RR) && priority == 0) {
+		fprintf(stderr, "defaulting realtime priority to %d\n", 
+			num_threads+1);
+		priority = num_threads+1;
+	}
 
 	if (num_threads < 1)
 		error = 1;
+
 
 	if (error)
 		display_help ();
@@ -1050,12 +1117,12 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 		if (quiet != 1) {
 			char *fmt;
 			if (use_nsecs)
-                                fmt = "T:%2d (%5d) P:%2d Y:%1d I:%ld C:%7lu "
+                                fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
 					"Min:%7ld Act:%8ld Avg:%8ld Max:%8ld\n";
 			else
-                                fmt = "T:%2d (%5d) P:%2d Y:%1d I:%ld C:%7lu "
+                                fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
 					"Min:%7ld Act:%5ld Avg:%5ld Max:%8ld\n";
-                        printf(fmt, index, stat->tid, par->prio, par->policy, 
+                        printf(fmt, index, stat->tid, par->prio, 
                                par->interval, stat->cycles, stat->min, stat->act,
 			       stat->cycles ?
 			       (long)(stat->avg/stat->cycles) : 0, stat->max);
@@ -1203,13 +1270,18 @@ int main(int argc, char **argv)
 	while (!shutdown) {
 		char lavg[256];
 		int fd, len, allstopped = 0;
+		char *policystr = NULL;
+
+		if (!policystr)
+			policystr = policyname(policy);
 
 		if (!verbose && !quiet) {
 			fd = open("/proc/loadavg", O_RDONLY, 0666);
 			len = read(fd, &lavg, 255);
 			close(fd);
 			lavg[len-1] = 0x0;
-			printf("%s          \n\n", lavg);
+			printf("policy: %s: loadavg: %s          \n\n", 
+			       policystr, lavg);
 		}
 
 		for (i = 0; i < num_threads; i++) {
