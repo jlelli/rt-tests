@@ -14,4 +14,4 @@ pi_stress
 cyclictest
 signaltest
 rt-tests.spec
-smidetect
+hwlatdetect
