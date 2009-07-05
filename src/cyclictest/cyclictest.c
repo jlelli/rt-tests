@@ -790,6 +790,7 @@ static void display_help(void)
 	       "                           default is in seconds, but 'm', 'h', or 'd' maybe added\n"
 	       "                           to modify value to minutes, hours or days\n"
 	       "-h       --histogram=US    dump a latency histogram to stdout after the run\n"
+               "                           (with same priority about many threads)\n"
 	       "                           US is the max time to be be tracked in microseconds\n"
                "-w       --wakeup          task wakeup tracing (used with -b)\n"
                "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n",
