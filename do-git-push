@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# script to automate pushing rt-tests tarball and git branch to 
+# kernel.org.
+#
+
+branch=$(git status | awk '/^# On branch/ {print $4}')
+version=$(awk '/^VERSION_STRING/ {print $3}' Makefile)
+
+if [ $branch != 'master' ]; then
+   echo "must be on master branch to push!"
+   echo "(currently on branch: $branch)"
+   exit -1
+fi
+
+tag="v$version"
+if $(git tag -l | grep "$tag" >/dev/null 2>&1)
+then
+	echo "Version $version already exists as a tag!"
+else
+	echo "Generating annotated tag $tag"
+	git tag -a $tag
+	if [ $? != 0 ]; then
+	   echo "No tag message; aborting!"
+	   exit -1
+	fi
+fi
+
+tar=rt-tests-$version.tar.gz
+echo "Copying tarball $tar to kernel.org"
+scp $tar clrkwllms@master.kernel.org:/pub/linux/kernel/people/clrkwllms/rt-tests
+
+echo "Pushing master and tags to kernel.org"
+git push --tags origin master
