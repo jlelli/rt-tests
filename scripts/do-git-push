@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# script to automate pushing rt-tests tarball and git branch to 
+# kernel.org.
+#
+# This won't work if you aren't me :)
+#
+#   Copyright 2009 Clark Williams <williams@redhat.com>
+#
+
+if [ $# -lt 1 ]
+then
+    echo "usage: do-git-push <version>"
+    exit -1
+fi
+
+version=$1
+accnt=clrkwllms@master.kernel.org
+destpath=/pub/linux/kernel/people/clrkwllms/rt-tests
+branch=$(git status | awk '/^# On branch/ {print $4}')
+
+# sanity check
+if [ ! -d .git ]
+then
+    echo "No .git directory found!"
+    echo "cwd: $(pwd)"
+    exit -1
+fi
+
+# make sure we're on the master branch
+if [ $branch != 'master' ]; then
+   echo "must be on master branch to push!"
+   echo "(currently on branch: $branch)"
+   exit -1
+fi
+
+# double sanity check
+mkver=$(awk '/^VERSION_STRING/ {print $3}' Makefile)
+if [ $version != $mkver ]
+then
+    echo "parameter mismatch with Makefile!"
+    echo "input parameter:  $version"
+    echo "Makefile version: $mkver"
+    exit -1
+fi
+
+# check the git tag
+tag="v$version"
+if $(git tag -l | grep "$tag" >/dev/null 2>&1)
+then
+	echo "using existing tag $tag"
+else
+	echo "Generating annotated tag $tag"
+	git tag -a $tag
+	if [ $? != 0 ]; then
+	   echo "No tag message; aborting!"
+	   exit -1
+	fi
+fi
+
+# copy the tarball if it isn't already there
+tar=rt-tests-$version.tar.gz
+if [ ! -e $tar ];
+then
+    echo "Generating tarfile $tar"
+    make release
+fi
+
+if ssh $accnt ls $destpath | grep $tar >/dev/null 2>&1
+then
+    echo "Tarfile $tar already on kernel.org"
+else
+    echo "Copying tarball $tar to kernel.org"
+    scp $tar $accnt:$destpath
+fi
+
+echo "Pushing master and tags to kernel.org"
+git push --tags origin master
