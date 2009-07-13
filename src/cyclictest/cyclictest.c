@@ -1185,10 +1185,10 @@ int main(int argc, char **argv)
 	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
 	int i, ret = -1;
 
+	process_options(argc, argv);
+
 	if (check_privs())
 		exit(-1);
-
-	process_options(argc, argv);
 
 	/* lock all memory (prevent paging) */
 	if (lockall)
