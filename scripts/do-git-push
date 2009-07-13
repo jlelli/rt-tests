@@ -8,6 +8,18 @@
 #   Copyright 2009 Clark Williams <williams@redhat.com>
 #
 
+testing=0
+TEMP=$(getopt -o t -l test -n do-git-push -- "$@")
+if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+eval set -- "$TEMP"
+while true; do
+    case "$1" in
+	-t|--test) testing=1 ; shift ;;
+	--) shift ; break ;;
+	*) echo "Internal Error!"; exit 1 ;;
+    esac
+done
+
 if [ $# -lt 1 ]
 then
     echo "usage: do-git-push <version>"
@@ -19,6 +31,13 @@ accnt=clrkwllms@master.kernel.org
 destpath=/pub/linux/kernel/people/clrkwllms/rt-tests
 branch=$(git symbolic-ref -q HEAD)
 
+if [ $testing -eq 1 ]; then
+    echo "version:  $version"
+    echo "accnt:    $accnt"
+    echo "destpath: $destpath"
+    echo "branch:   $branch"
+fi
+
 # sanity check
 if [ ! -d .git ]
 then
@@ -28,7 +47,7 @@ then
 fi
 
 # make sure we're on the master branch
-if [ $branch != 'master' ]; then
+if [ $branch != 'refs/heads/master' ]; then
    echo "must be on master branch to push!"
    echo "(currently on branch: $branch)"
    exit -1
@@ -48,7 +67,7 @@ fi
 tag="v$version"
 if rev=$(git rev-parse --verify -q "$tag" >/dev/null)
 then
-	if [ "tag" = "$(git cat-file -t $rev)" ]; then
+	if [ "tag" = "$(git cat-file -t $tag)" ]; then
 		echo "using existing tag $tag"
 	else
 		echo "$tag is not a tag"
@@ -56,10 +75,14 @@ then
 	fi
 else
 	echo "Generating annotated tag $tag"
-	git tag -a $tag
-	if [ $? != 0 ]; then
-	   echo "No tag message; aborting!"
-	   exit -1
+	if [ $testing -eq 0 ]; then
+	    git tag -a $tag
+	    if [ $? != 0 ]; then
+		echo "No tag message; aborting!"
+		exit -1
+	    fi
+	else
+	    echo "testing: Generate Tag"
 	fi
 fi
 
@@ -70,14 +93,22 @@ then
     echo "Generating tarfile $tar"
     make release
 fi
-
 if ssh $accnt ls $destpath/$tar >/dev/null 2>&1
 then
     echo "Tarfile $tar already on kernel.org"
 else
     echo "Copying tarball $tar to kernel.org"
-    scp $tar $accnt:$destpath
+    if [ $testing -eq 0 ]; then
+	scp $tar $accnt:$destpath
+    else
+	echo "testing: copy tarball"
+    fi
 fi
 
-echo "Pushing master and tags to kernel.org"
-git push --tags origin master
+if [ $testing -eq 0 ]; then
+    echo "Pushing master and tags to kernel.org"
+    git push --tags origin master
+else
+    echo "testing: push git tree"
+fi
+
