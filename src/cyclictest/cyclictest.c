@@ -746,7 +746,7 @@ out:
 
 
 /* Print usage information */
-static void display_help(void)
+static void display_help(int error)
 {
 	char tracers[MAX_PATH];
 
@@ -805,6 +805,8 @@ static void display_help(void)
                "                           format: --policy=fifo(default) or --policy=rr\n",
 	       tracers
 		);
+	if (error)
+		exit(-1);
 	exit(0);
 }
 
@@ -977,7 +979,7 @@ static void process_options (int argc, char *argv[])
                 case 'w': tracetype = WAKEUP; break;
                 case 'W': tracetype = WAKEUPRT; break;
                 case 'y': handlepolicy(optarg); break;
-		case '?': error = 1; break;
+		case '?': display_help(0); break;
 		}
 	}
 
@@ -1028,7 +1030,7 @@ static void process_options (int argc, char *argv[])
 
 
 	if (error)
-		display_help ();
+		display_help(1);
 }
 
 static int check_kernel(void)
