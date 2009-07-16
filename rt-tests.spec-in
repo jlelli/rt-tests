@@ -41,6 +41,15 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hwlatdetect.8.gz
 
 %changelog
+* Thu Jul 16 2009 Clark Williams <williams@redhat.com> - 0.50-1
+- patch to cyclictest from Sebastian Andrzej Siewior <bigeasy@linutronix.de> 
+  to process options before checking for root user
+- patch to cyclictest from Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+  to exit with proper error code on exit
+- added scripts/do-git-push script
+- added push target to Makefile
+- rewrite of hwlatdetect script to handle old smi_detector module
+
 * Sun Jul  5 2009 Clark Williams <williams@redhat.com> - 0.47-1
 - patch from GeunSik Lim <leemgs1@gmail.com> to reorder options for readability
 - patch from GeunSik Lim <leemgs1@gmail.com> to add --policy option
