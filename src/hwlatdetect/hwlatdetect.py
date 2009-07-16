@@ -12,7 +12,7 @@ import time
 import subprocess
 import errno
 
-version = "0.5"
+version = "0.6"
 debugging = False
 quiet = False
 
@@ -103,16 +103,34 @@ class DebugFS(object):
 #
 class Kmod(object):
     ''' class to manage loading and unloading hwlat.ko'''
-    def __init__(self, module='hwlat_detector'):
-        self.modname = module
+
+    names = ("hwlat_detector", "smi_detector")
+    def __find_modname(self):
+        debug("looking for modules")
+        path = os.path.join("/lib/modules", 
+                            os.uname()[2],
+                            "kernel/drivers/misc")
+        debug("module path: %s" % path)
+        for m in Kmod.names:
+            mpath = os.path.join(path, m) + ".ko"
+            debug("checking %s" % mpath)
+            if os.path.exists(mpath):
+                return m
+        raise RuntimeError, "no detector module found!"
+            
+    def __init__(self):
         self.preloaded = False
         f = open ('/proc/modules')
         for l in f:
             field = l.split()
-            if field[0] == self.modname:
+            if field[0] in Kmod.names:
                 self.preloaded = True
+                self.modname = field[0]
+                debug("using already loaded %s" % self.modname)
+                f.close()
                 break
-        f.close
+        f.close()
+        self.modname = self.__find_modname()
 
     def load(self):
         if self.preloaded:
@@ -129,18 +147,22 @@ class Kmod(object):
         return (subprocess.call(cmd) == 0)
 
 #
-# Class to simplify running the hwlat kernel module
+# wrapper class for detection modules
 #
-class Hwlat(object):
-    '''class to wrap access to hwlat debugfs files'''
+class Detector(object):
+    '''wrapper class for managing detector modules'''
     def __init__(self):
         if os.getuid() != 0:
             raise RuntimeError, "Must be root"
         self.debugfs = DebugFS()
         self.kmod = Kmod()
         self.setup()
-        self.testduration = 10 # ten seconds
+        if self.kmod.modname == "hwlat_detector":
+            self.detector = Hwlat(self.debugfs)
+        elif self.kmod.modname == "smi_detector":
+            self.detector = Smi(self.debugfs)
         self.samples = []
+        self.testduration = 10 # ten seconds
 
     def force_cleanup(self):
         debug("forcing unload of hwlat module")
@@ -164,6 +186,54 @@ class Hwlat(object):
             raise RuntimeError, "Failed to unmount debugfs"
 
     def get(self, field):
+        return self.detector.get(field)
+
+    def set(self, field, val):
+        return self.detector.set(field, val)
+
+    def start(self):
+        count = 0
+        debug("enabling detector module")
+        self.detector.set("enable", 1)
+        debug("first attempt at enable")
+        while self.detector.get("enable") == 0:
+            debug("still disabled, retrying in a bit")
+            count += 1
+            time.sleep(0.1)
+            debug("retrying enable of detector module (%d)" % count)
+            self.detector.set("enable", 1)
+        debug("detector module enabled")
+
+    def stop(self):
+        count = 0
+        debug("disabling detector module")
+        self.detector.set("enable", 0)
+        debug("first attempt at disable");
+        while self.detector.get("enable") == 1:
+            debug("still enabled, retrying in a bit")
+            count += 1
+            time.sleep(0.1)
+            debug("retrying disable of detector module(%d)" % count)
+            self.detector.set("enable", 0)
+        debug("detector module disabled")
+
+    def detect(self):
+        debug("Starting hardware latency detection for %d seconds" % self.testduration)
+        self.start()
+        try:
+            self.samples = self.detector.detect(self.testduration)
+        finally:
+            self.stop()
+        debug("Hardware latency detection done (%d samples)" % len(self.samples))
+#
+# Class to simplify running the hwlat kernel module
+#
+class Hwlat(object):
+    '''class to wrap access to hwlat debugfs files'''
+    def __init__(self, debugfs):
+        self.debugfs = debugfs
+
+    def get(self, field):
         return int(self.debugfs.getval(os.path.join("hwlat_detector", field)))
 
     def set(self, field, val):
@@ -174,49 +244,116 @@ class Hwlat(object):
     def get_sample(self):
         return self.debugfs.getval("hwlat_detector/sample", nonblocking=True)
 
-    def start(self):
-        debug("enabling hwlat module")
-        count = 0
-        self.set("enable", 1)
-        while self.get("enable") == 0:
-            count += 1
-            debug("retrying setting enable to 1 (%d)" % count)
-            time.sleep(0.1)
-            self.set("enable", 1)
-
-    def stop(self):
-        debug("disabling hwlat module")
-        count = 0
-        self.set("enable", 0)
-        while self.get("enable") == 1:
-            count += 1
-            debug("retrying setting enable to zero(%d)" % count)
-            time.sleep(0.1)
-            self.set("enable", 0)
-
-    def detect(self):
+    def detect(self, duration):
         self.samples = []
-        testend = time.time() + self.testduration
-        debug("Starting hardware latency detection for %d seconds" % (self.testduration))
+        testend = time.time() + duration
+        pollcnt = 0
         try:
-            pollcnt = 0
-            self.start()
-            try:
-                while time.time() < testend:
-                    pollcnt += 1
+            while time.time() < testend:
+                pollcnt += 1
+                val = self.get_sample()
+                while val:
+                    self.samples.append(val.strip())
+                    debug("got a latency sample: %s" % val.strip())
                     val = self.get_sample()
-                    while val:
-                        self.samples.append(val.strip())
-                        debug("got a latency sample: %s" % val.strip())
-                        val = self.get_sample()
-                    time.sleep(0.1)
-            except KeyboardInterrupt, e:
-                print "interrupted"
-                sys.exit(1)
-        finally:
-            debug("Stopping hardware latency detection (poll count: %d" % pollcnt)
-            self.stop()
-        debug("Hardware latency detection done (%d samples)" % len(self.samples))
+                time.sleep(0.1)
+        except KeyboardInterrupt, e:
+            print "interrupted"
+            sys.exit(1)
+        return self.samples
+#
+# the old smi_detector.ko module has different debugfs entries than the modern 
+# hwlat_detector.ko module; this object translates the current entries into the
+# old style ones. The only real issue is that the smi_detector module doesn't
+# have the notion of width/window, it has the sample time and the interval
+# between samples. Of course window == sample time + interval, but you have to
+# have them both to calculate the window. 
+#
+
+class Smi(object):
+    '''class to wrap access to smi_detector debugfs files'''
+    field_translate = {
+        "count" : "smi_count",
+        "enable" : "enable",
+        "max" : "max_sample_us",
+        "sample" : "sample_us",
+        "threshold" : "latency_threshold_us",
+        "width" : "ms_per_sample",
+        "window" : "ms_between_sample",
+        }
+        
+    def __init__(self, debugfs):
+        self.width = 0
+        self.window = 0
+        self.debugfs = debugfs
+
+    def __get(self, field):
+        return int(self.debugfs.getval(os.path.join("smi_detector", field)))
+
+    def __set(self, field, value):
+        self.debugfs.putval(os.path.join("smi_detector", field), str(value))
+
+    def get(self, field):
+        name = Smi.field_translate[field]
+        if field == "window":
+            return self.get_window()
+        elif field == "width":
+            return ms2us(self.__get(name))
+        else:
+            return self.__get(name)
+
+    def get_window(self):
+        sample = ms2us(self.__get('ms_per_sample'))
+        interval = ms2us(self.__get('ms_between_samples'))
+        return sample + interval
+
+
+    def set_window(self, window):
+        width = ms2us(int(self.__get('ms_per_sample')))
+        interval = window - width
+        if interval <= 0:
+            raise RuntimeError, "Smi: invalid width/interval values (%d/%d (%d))" % (width, interval, window)
+        self.__set('ms_between_samples', us2ms(interval))
+
+    def set(self, field, val):
+        name = Smi.field_translate[field]
+        if field == "enable" and val:
+            val = 1
+        if field == "window":
+            self.set_window(val)
+        else:
+            if field == "width":
+                val = us2ms(val)
+            self.__set(name, val)
+
+    def get_sample(self):
+        name = Smi.field_translate["sample"]
+        return self.debugfs.getval(os.path.join('smi_detector', name), nonblocking=True)
+
+    def detect(self, duration):
+        self.samples = []
+        testend = time.time() + duration
+        threshold = self.get("threshold")
+        pollcnt = 0
+        try:
+            while time.time() < testend:
+                pollcnt += 1
+                val = self.get_sample()
+                if int(val) >= threshold:
+                    self.samples.append(val.strip())
+                    debug("got a latency sample: %s" % val.strip())
+                time.sleep(0.1)
+        except KeyboardInterrupt, e:
+            print "interrupted"
+            sys.exit(1)
+        return self.samples
+
+
+def ms2us(val):
+    return val * 1000
+
+def us2ms(val):
+    return val / 1000
 
 def seconds(str):
     "convert input string to value in seconds"
@@ -235,21 +372,36 @@ def seconds(str):
     elif str[-1:] == 'w':
         return int(str[0:-1]) * 86400 * 7
     else:
-        raise RuntimeError, "unknown suffix for second conversion: '%s'" % str[-1]
+        raise RuntimeError, "invalid input for seconds: '%s'" % str
+
+def milliseconds(str):
+    "convert input string to millsecond value"
+    if str.isdigit():
+        return int(str)
+    elif str[-2:] == 'ms':
+        return int(str[0:-2])
+    elif str[-1] == 's':
+        return int(str[0:-2]) * 1000
+    elif str[-1] == 'm':
+        return int(str[0:-1]) * 1000 * 60
+    elif str[-1] == 'h':
+        return int(str[0:-1]) * 1000 * 60 * 60
+    else:
+        raise RuntimeError, "invalid input for milliseconds: %s" % str
 
 
 def microseconds(str):
     "convert input string to microsecond value"
-    if str[-2:] == 'ms':
+    if str.isdigit():
+        return int(str)
+    elif str[-2:] == 'ms':
         return (int(str[0:-2]) * 1000)
     elif str[-2:] == 'us':
         return int(str[0:-2])
     elif str[-1:] == 's':
         return (int(str[0:-1]) * 1000 * 1000)
-    elif str[-1:].isalpha():
-        raise RuntimeError, "unknown suffix for microsecond conversion: '%s'" % str[-1]
     else:
-        return int(str)
+        raise RuntimeError, "invalid input for microseconds: '%s'" % str
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -289,8 +441,7 @@ if __name__ == '__main__':
 
     (o, a) = parser.parse_args()
 
-    hwlat = Hwlat()
-
+    # need these before creating detector instance
     if o.debug: 
         debugging = True
         quiet = False
@@ -300,69 +451,71 @@ if __name__ == '__main__':
         quiet = True
         debugging = False
 
+    detect = Detector()
+
     if o.cleanup:
         debug("forcing cleanup of debugfs and hardware latency module")
-        hwlat.force_cleanup()
+        detect.force_cleanup()
         sys.exit(0)
 
     if o.threshold:
         t = microseconds(o.threshold)
-        hwlat.set("threshold", t)
+        detect.set("threshold", t)
         debug("threshold set to %dus" % t)
 
     if o.window:
         w = microseconds(o.window)
-        if w < hwlat.get("width"):
+        if w < detect.get("width"):
             debug("shrinking width to %d for new window of %d" % (w/2, w))
-            hwlat.set("width", w/2)
+            detect.set("width", w/2)
         debug("window parameter = %d" % w)
-        hwlat.set("window", w)
+        detect.set("window", w)
         debug("window for sampling set to %dus" % w)
 
     if o.width:
         w = microseconds(o.width)
-        if w > hwlat.get("window"):
+        if w > detect.get("window"):
             debug("widening window to %d for new width of %d" % (w*2, w))
-            hwlat.set("window", w*2)
+            detect.set("window", w*2)
         debug("width parameter = %d" % w)
-        hwlat.set("width", w)
+        detect.set("width", w)
         debug("sample width set to %dus" % w)
 
     if o.duration:
-        hwlat.testduration = seconds(o.duration)
+        detect.testduration = seconds(o.duration)
     else:
-        hwlat.testduration = 120 # 2 minutes
-    debug("test duration is %ds" % hwlat.testduration)
+        detect.testduration = 120 # 2 minutes
+    debug("test duration is %ds" % detect.testduration)
 
     reportfile = o.report
 
-    info("hwlatdetect:  test duration %d seconds" % hwlat.testduration)
+    info("hwlatdetect:  test duration %d seconds" % detect.testduration)
     info("   parameters:")
-    info("        Latency threshold: %dus" % hwlat.get("threshold"))
-    info("        Sample window:     %dus" % hwlat.get("window"))
-    info("        Sample width:      %dus" % hwlat.get("width"))
-    info("     Non-sampling period:  %dus" % (hwlat.get("window") - hwlat.get("width")))
+    info("        Latency threshold: %dus" % detect.get("threshold"))
+    info("        Sample window:     %dus" % detect.get("window"))
+    info("        Sample width:      %dus" % detect.get("width"))
+    info("     Non-sampling period:  %dus" % (detect.get("window") - detect.get("width")))
     info("        Output File:       %s" % reportfile)
     info("\nStarting test")
 
-    hwlat.detect()
+    detect.detect()
 
     info("test finished")
 
-    exceeding = hwlat.get("count")
-    info("Max Latency: %dus" % hwlat.get("max"))
-    info("Samples recorded: %d" % len(hwlat.samples))
+    exceeding = detect.get("count")
+    info("Max Latency: %dus" % detect.get("max"))
+    info("Samples recorded: %d" % len(detect.samples))
     info("Samples exceeding threshold: %d" % exceeding)
 
     if reportfile:
         f = open(reportfile, "w")
-        for s in hwlat.samples:
+        for s in detect.samples:
             f.write("%d\n" % s)
         f.close()
         info("sample data written to %s" % reportfile)
     else:
-        for s in hwlat.samples:
+        for s in detect.samples:
             print "%s" % s
 
-    hwlat.cleanup()
+    detect.cleanup()
     sys.exit(exceeding)
