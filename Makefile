@@ -57,6 +57,9 @@ release: clean changelog
 push:	release
 	scripts/do-git-push $(VERSION_STRING)
 
+pushtest: release
+	scripts/do-git-push --test $(VERSION_STRING)
+
 rt-tests.spec: Makefile rt-tests.spec-in
 	sed s/__VERSION__/$(VERSION_STRING)/ <$@-in >$@
 

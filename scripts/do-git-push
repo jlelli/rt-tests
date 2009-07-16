@@ -92,7 +92,10 @@ if [ ! -e $tar ];
 then
     echo "Generating tarfile $tar"
     make release
+else
+    echo "Using existing tarfile $tar"
 fi
+
 if ssh $accnt ls $destpath/$tar >/dev/null 2>&1
 then
     echo "Tarfile $tar already on kernel.org"
@@ -105,7 +108,7 @@ else
     fi
 fi
 
-[ $testing -eq 1 ] && dryrun=--dryrun
+[ $testing -eq 1 ] && dryrun=--dry-run
 echo "Pushing master and tags to kernel.org"
 git push $dryrun --tags origin master
 
