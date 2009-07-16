@@ -65,9 +65,9 @@ fi
 
 # check the git tag
 tag="v$version"
-if rev=$(git rev-parse --verify -q "$tag" >/dev/null)
+if rev=$(git rev-parse --verify -q "$tag")
 then
-	if [ "tag" = "$(git cat-file -t $tag)" ]; then
+	if [ "tag" = "$(git cat-file -t $rev)" ]; then
 		echo "using existing tag $tag"
 	else
 		echo "$tag is not a tag"
@@ -105,10 +105,8 @@ else
     fi
 fi
 
-if [ $testing -eq 0 ]; then
-    echo "Pushing master and tags to kernel.org"
-    git push --tags origin master
-else
-    echo "testing: push git tree"
-fi
+[ $testing -eq 1 ] && dryrun=--dryrun
+echo "Pushing master and tags to kernel.org"
+git push $dryrun --tags origin master
+
 
