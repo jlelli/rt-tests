@@ -16,7 +16,7 @@
 cyclictest \- High resolution test program
 .SH SYNOPSIS
 .B cyclictest
-.RI "[ \-hfmnqrsv ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] \
+.RI "[ \-hfmnqrsvM ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] \
 [\-h " histogram " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] \
 [\-t " num " ] [\-D " time "] [\-w] [\-W] [\-y " policy "]"
 
@@ -154,8 +154,11 @@ rt-task wakeup tracing (used with \-b)
 .TP
 .B \\-y, \-\-policy=NAME
 set the scheduler policy of the measurement threads 
-
 where NAME is one of: other, normal, batch, idle, fifo, rr
+.TP
+.B \\-M, \-\-refresh_on_max
+delay updating the screen until a new max latency is hit (useful for
+running cyclictest on low-bandwidth connections)
 .\" .SH SEE ALSO
 .\" .BR bar (1),
 .\" .BR baz (1).
