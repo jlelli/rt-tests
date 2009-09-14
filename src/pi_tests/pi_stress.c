@@ -196,6 +196,11 @@ struct group_parameters {
 	pthread_barrier_t elevate_barrier;
 	pthread_barrier_t finish_barrier;
 
+	/* Either everyone goes through the loop, or else no-ones does */
+	pthread_barrier_t loop_barr;
+	pthread_mutex_t loop_mtx;	/* Protect access to int loop */
+	int loop;	/* boolean, loop or not, connected to shutdown */
+
 	// state variables
 	volatile int high_has_run;
 	volatile int low_unlocked;
@@ -230,13 +235,15 @@ void process_command_line(int argc, char **argv);
 void usage(void);
 int block_signals(void);
 int allow_sigterm(void);
-void cleanup(void);
+void set_shutdown_flag(void);
 int initialize_group(struct group_parameters *group);
 int create_group(struct group_parameters *group);
 unsigned long total_inversions(void);
 void banner(void);
 void summary(void);
 void wait_for_termination(void);
+int barrier_init(pthread_barrier_t *b, const pthread_barrierattr_t *attr,
+		unsigned count, const char *name);
 
 int
 main (int argc, char **argv)
@@ -246,6 +253,7 @@ main (int argc, char **argv)
 	int i;
 	int retval = FAILURE;
 	int core;
+	int nthreads;
 
 	/* Make sure we see all message, even those on stdout.  */
 	setvbuf (stdout, NULL, _IONBF, 0);
@@ -289,21 +297,16 @@ main (int argc, char **argv)
 	if (set_cpu_affinity(&test_cpu_mask, &admin_cpu_mask))
 		return FAILURE;
 		
-	// set up our ready barrier
-	status = pthread_barrier_init(&all_threads_ready, NULL, 
-				      (ngroups * NUM_TEST_THREADS) + NUM_ADMIN_THREADS);
-	if (status) {
-		error("initialize_barriers: failed to initialize all_threads_ready\n");
-		return FAILURE;
-	}
+	nthreads = ngroups * NUM_TEST_THREADS + NUM_ADMIN_THREADS;
 
-	// set up our done barrier
-	status = pthread_barrier_init(&all_threads_done, NULL, 
-				      (ngroups * NUM_TEST_THREADS) + NUM_ADMIN_THREADS);
-	if (status) {
-		error("initialize_barriers: failed to initialize all_threads_done\n");
+	/* set up our ready barrier */
+	if (barrier_init(&all_threads_ready, NULL, nthreads,
+				"all_threads_ready"))
 		return FAILURE;
-	}
+
+	/* set up our done barrier */
+	if (barrier_init(&all_threads_done, NULL, nthreads, "all_threads_done"))
+		return FAILURE;
 
 	// create the groups
 	info("Creating %d test groups\n", ngroups);
@@ -334,7 +337,7 @@ main (int argc, char **argv)
 	status = pthread_barrier_wait(&all_threads_ready);
 	if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 		error("main: pthread_barrier_wait(all_threads_ready): 0x%x\n", status);
-		cleanup();
+		set_shutdown_flag();
 		return FAILURE;
 	}
 
@@ -344,7 +347,7 @@ main (int argc, char **argv)
 		fputs(DOWN_ONE, stdout);
 		printf("Stopping test\n");
 	}
-	cleanup();
+	set_shutdown_flag();
 
 	// wait for all threads to notice the shutdown flag
 	if (have_errors == 0 && interrupted == 0) {
@@ -414,8 +417,7 @@ set_cpu_affinity(cpu_set_t *test_mask, cpu_set_t *admin_mask)
 		CPU_ZERO(test_mask);
 		CPU_SET(0, admin_mask);
 		CPU_SET(0, test_mask);
-		if (!quiet)
-			printf("admin and test threads running on one processor\n");
+		info("admin and test threads running on one processor\n");
 		return SUCCESS;
 	}
 
@@ -442,21 +444,20 @@ set_cpu_affinity(cpu_set_t *test_mask, cpu_set_t *admin_mask)
 		error("set_cpu_affinity: setting CPU affinity mask: 0x%x\n", status);
 		return FAILURE;
 	}
-	if (!quiet)
-		printf("Admin thread running on processor: %d\n", i);
+	info("Admin thread running on processor: %d\n", i);
 
 	/* Set test affinity so that tests run on the non-admin processors */
 	CPU_ZERO(test_mask);
 	for (i = admin_proc+1; i < num_processors; i++)
 		CPU_SET(i, test_mask);
 	
-	if (!quiet) {
-		if (admin_proc+1 == num_processors -1)
-			printf("Test threads running on processor: %ld\n", num_processors-1);
-		else
-			printf("Test threads running on processors:  %d-%d\n", 
-			       admin_proc+1, (int)num_processors-1);
-	}
+	if (admin_proc+1 == num_processors -1)
+		info("Test threads running on processor: %ld\n",
+				num_processors-1);
+	else
+		info("Test threads running on processors:  %d-%d\n", 
+				admin_proc+1, (int)num_processors-1);
+
 	return SUCCESS;
 }
 
@@ -543,9 +544,7 @@ reporter(void *arg)
 	}
 
 	debug("reporter: starting report loop\n");
-
-	if (!quiet)
-		printf("Press Control-C to stop test\nCurrent Inversions: \n");
+	info("Press Control-C to stop test\nCurrent Inversions: \n");
 
 	while (shutdown == 0) {
 		// wait for our reporting interval
@@ -565,23 +564,21 @@ reporter(void *arg)
 
 		// if we specified a duration, see if it has expired
 		if (end && time(NULL) > end) {
-			if (!quiet)
-				printf("duration reached (%d seconds)\n", duration);
-			cleanup();
+			info("duration reached (%d seconds)\n", duration);
+			set_shutdown_flag();
 			continue;
 		}
 
 		// check for a pending SIGINT
 		if (pending_interrupt()) {
-			if (!quiet)
-				printf("Keyboard Interrupt!\n");
+			info("Keyboard Interrupt!\n");
 			break;
 		}
 
 		// check watchdog stuff
 		if ((watchdog_check())) {
 			error("reporter stopping due to watchdog event\n");
-			cleanup();
+			set_shutdown_flag();
 			break;
 		}
 			
@@ -590,7 +587,7 @@ reporter(void *arg)
 		
 	}
 	debug("reporter: finished\n");
-	cleanup();
+	set_shutdown_flag();
 	return NULL;
 }
 
@@ -614,6 +611,9 @@ low_priority(void *arg)
 	int unbounded;
 	unsigned long count = 0;
 	struct group_parameters *p = (struct group_parameters *)arg;
+	pthread_barrier_t *loop_barr = &p->loop_barr;
+	pthread_mutex_t *loop_mtx = &p->loop_mtx;
+	int *loop = &p->loop;
 
 	allow_sigterm();
 
@@ -634,7 +634,38 @@ low_priority(void *arg)
 
 	debug("low_priority[%d]: starting inversion loop\n", p->id);
 
-	while (!shutdown && (unbounded || (p->total < p->inversions))) {
+	for(;;) {
+		/* We can't set the 'loop' boolean here, because some flags
+		 * may have already reached the loop_barr
+		 */
+		if (!unbounded && (p->total >= p->inversions)) {
+			set_shutdown_flag();
+		}
+
+		/* Either all threads go through the loop_barr, or none do */
+		pthread_mutex_lock(loop_mtx);
+		if (*loop == 0) {
+			pthread_mutex_unlock(loop_mtx);
+			break;
+		}
+		pthread_mutex_unlock(loop_mtx);
+
+		status = pthread_barrier_wait(loop_barr);
+		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
+			error("%s[%d]: pthread_barrier_wait(loop): %x\n",
+					__func__, p->id, status);
+			return NULL;
+		}
+
+		/* Only one Thread needs to check the shutdown status */
+		if (status == PTHREAD_BARRIER_SERIAL_THREAD) {
+			if (shutdown) {
+				pthread_mutex_lock(loop_mtx);
+				*loop = 0;
+				pthread_mutex_unlock(loop_mtx);
+			}
+		}
+
 		/* initial state */
 		debug("low_priority[%d]: entering start wait (%d)\n", p->id, count++);
 		status = pthread_barrier_wait(&p->start_barrier);
@@ -642,12 +673,11 @@ low_priority(void *arg)
 			error("low_priority[%d]: pthread_barrier_wait(start): %x\n", p->id, status);
 			return NULL;
 		}
-		if (shutdown) continue;
+
 		debug("low_priority[%d]: claiming mutex\n", p->id);
 		pthread_mutex_lock(&p->mutex);
 		debug("low_priority[%d]: mutex locked\n", p->id);
 
-		if (shutdown) continue;
 		debug("low_priority[%d]: entering locked wait\n", p->id);
 		status = pthread_barrier_wait(&p->locked_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -655,7 +685,6 @@ low_priority(void *arg)
 			return NULL;
 		}
 
-		if (shutdown) continue;
 		// wait for priority boost
 		debug("low_priority[%d]: entering elevated wait\n", p->id);
 		p->low_unlocked = 0; /* prevent race with med_priority */
@@ -671,7 +700,6 @@ low_priority(void *arg)
 		pthread_mutex_unlock(&p->mutex);
 
 		// finish state 
-		if (shutdown) continue;
 		debug("low_priority[%d]: entering finish wait\n", p->id);
 		status = pthread_barrier_wait(&p->finish_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -679,7 +707,7 @@ low_priority(void *arg)
 			return NULL;
 		}
 	}
-	cleanup();
+	set_shutdown_flag();
 	debug("low_priority[%d]: entering done barrier\n", p->id);
 	/* wait for all threads to finish */
 	status = pthread_barrier_wait(&all_threads_done);
@@ -698,6 +726,9 @@ med_priority(void *arg)
 	int unbounded;
 	unsigned long count = 0;
 	struct group_parameters *p = (struct group_parameters *)arg;
+	pthread_barrier_t *loop_barr = &p->loop_barr;
+	pthread_mutex_t *loop_mtx = &p->loop_mtx;
+	int *loop = &p->loop;
 
 	allow_sigterm();
 
@@ -717,7 +748,34 @@ med_priority(void *arg)
 	unbounded = (p->inversions < 0);
 
 	debug("med_priority[%d]: starting inversion loop\n", p->id);
-	while (!shutdown && (unbounded || (p->total < p->inversions))) {
+	for(;;) {
+		if (!unbounded && (p->total >= p->inversions)) {
+			set_shutdown_flag();
+		}
+				/* Either all threads go through the loop_barr, or none do */
+		pthread_mutex_lock(loop_mtx);
+		if (*loop == 0) {
+			pthread_mutex_unlock(loop_mtx);
+			break;
+		}
+		pthread_mutex_unlock(loop_mtx);
+
+		status = pthread_barrier_wait(loop_barr);
+		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
+			error("%s[%d]: pthread_barrier_wait(loop): %x\n",
+					__func__, p->id, status);
+			return NULL;
+		}
+
+		/* Only one Thread needs to check the shutdown status */
+		if (status == PTHREAD_BARRIER_SERIAL_THREAD) {
+			if (shutdown) {
+				pthread_mutex_lock(loop_mtx);
+				*loop = 0;
+				pthread_mutex_unlock(loop_mtx);
+			}
+		}
+
 		/* start state */
 		debug("med_priority[%d]: entering start state (%d)\n", p->id, count++);
 		status = pthread_barrier_wait(&p->start_barrier);
@@ -727,14 +785,12 @@ med_priority(void *arg)
 		}
 		debug("med_priority[%d]: entering elevate state\n", p->id);
 		do {
-			if (shutdown) break;
 			status = pthread_barrier_wait(&p->elevate_barrier);
 			if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 				error("med_priority[%d]: pthread_barrier_wait(elevate): %x", p->id, status);
 				return NULL;
 			}
 		} while (!p->high_has_run && !p->low_unlocked);
-		if (shutdown) continue;
 		debug("med_priority[%d]: entering finish state\n", p->id);
 		status = pthread_barrier_wait(&p->finish_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -742,7 +798,7 @@ med_priority(void *arg)
 			return NULL;
 		}
 	}
-	cleanup();
+	set_shutdown_flag();
 
 	debug("med_priority[%d]: entering done barrier\n", p->id);
 	/* wait for all threads to finish */
@@ -766,6 +822,9 @@ high_priority(void *arg)
 	int unbounded;
 	unsigned long count = 0;
 	struct group_parameters *p = (struct group_parameters *)arg;
+	pthread_barrier_t *loop_barr = &p->loop_barr;
+	pthread_mutex_t *loop_mtx = &p->loop_mtx;
+	int *loop = &p->loop;
 
 	allow_sigterm();
 	if (verify_cpu(p->cpu) != SUCCESS) {
@@ -778,13 +837,39 @@ high_priority(void *arg)
 	/* wait for all threads to be ready */
 	status = pthread_barrier_wait(&all_threads_ready);
 	if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
-		error("high_priority[%d]: pthread_barrier_wait(all_threads_ready): %x", 
-		      p->id, status);
+		error("high_priority[%d]: pthread_barrier_wait(all_threads_ready): %x", p->id, status);
 		return NULL;
 	}
 	unbounded = (p->inversions < 0);
 	debug("high_priority[%d]: starting inversion loop\n", p->id);
-	while (!shutdown && (unbounded || (p->total < p->inversions))) {
+	for(;;) {
+		if (!unbounded && (p->total >= p->inversions)) {
+			set_shutdown_flag();
+		}
+
+		/* Either all threads go through the loop_barr, or none do */
+		pthread_mutex_lock(loop_mtx);
+		if (*loop == 0) {
+			pthread_mutex_unlock(loop_mtx);
+			break;
+		}
+		pthread_mutex_unlock(loop_mtx);
+
+		status = pthread_barrier_wait(loop_barr);
+		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
+			error("%s[%d]: pthread_barrier_wait(loop): %x\n",
+					__func__, p->id, status);
+			return NULL;
+		}
+
+		/* Only one Thread needs to check the shutdown status */
+		if (status == PTHREAD_BARRIER_SERIAL_THREAD) {
+			if (shutdown) {
+				pthread_mutex_lock(loop_mtx);
+				*loop = 0;
+				pthread_mutex_unlock(loop_mtx);
+			}
+		}
 		p->high_has_run = 0;
 		debug("high_priority[%d]: entering start state (%d)\n", p->id, count++);
 		status = pthread_barrier_wait(&p->start_barrier);
@@ -792,7 +877,7 @@ high_priority(void *arg)
 			error("high_priority[%d]: pthread_barrier_wait(start): %x", p->id, status);
 			return NULL;
 		}
-		if (shutdown) continue;
+
 		debug("high_priority[%d]: entering running state\n", p->id);
 		status = pthread_barrier_wait(&p->locked_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -806,7 +891,7 @@ high_priority(void *arg)
 		debug("high_priority[%d]: unlocking mutex\n", p->id);
 		pthread_mutex_unlock(&p->mutex);
 		debug("high_priority[%d]: entering finish state\n", p->id);
-		if (shutdown) continue;
+
 		status = pthread_barrier_wait(&p->finish_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 			error("high_priority[%d]: pthread_barrier_wait(finish): %x", status);
@@ -820,7 +905,7 @@ high_priority(void *arg)
 		p->watchdog++;
 
 	}
-	cleanup();
+	set_shutdown_flag();
 
 	debug("high_priority[%d]: entering done barrier\n", p->id);
 
@@ -937,9 +1022,8 @@ allow_sigterm(void)
 	return SUCCESS;
 }
 
-// clean up before exiting
-void
-cleanup(void)
+/* clean up before exiting */
+void set_shutdown_flag(void)
 {
 	if (shutdown == 0) {
 		// tell anyone that's looking that we're done
@@ -980,27 +1064,42 @@ initialize_group(struct group_parameters *group)
 		return FAILURE;
 	}
 
-	// initialize the group barriers
-	status = pthread_barrier_init(&group->start_barrier, NULL, NUM_TEST_THREADS);
-	if (status) {
-		error("failed to initialize start_barrier\n");
+	/* initialize the group barriers */
+	if (barrier_init(&group->start_barrier, NULL, NUM_TEST_THREADS,
+				"start_barrier"))
+			return FAILURE;
+
+	if (barrier_init(&group->locked_barrier, NULL, 2, "locked_barrier"))
+		return FAILURE;
+
+
+	if (barrier_init(&group->elevate_barrier, NULL, 2, "elevate_barrier"))
+		return FAILURE;
+
+	if (barrier_init(&group->finish_barrier, NULL, NUM_TEST_THREADS, "finish_barrier"))
+		return FAILURE;
+
+	if (barrier_init(&group->loop_barr, NULL, NUM_TEST_THREADS,
+				"loop_barrier"))
+		return FAILURE;
+
+	if ((status = pthread_mutex_init(&group->loop_mtx, NULL)) != 0) {
+		error("pthread_mutex_init, status = %d\n", status);
 		return FAILURE;
 	}
-	status = pthread_barrier_init(&group->locked_barrier, NULL, 2);
-	if (status) {
-		error("failed to intialize locked_barrier: %s\n", strerror(status));
+
+	if ((status = pthread_mutex_lock(&group->loop_mtx)) != 0) {
+		error("pthread_mutex_lock, status = %d\n", status);
 		return FAILURE;
 	}
-	status = pthread_barrier_init(&group->elevate_barrier, NULL, 2);
-	if (status) {
-		error("failed to initialize elevate_barrier: %s\n", strerror(status));
+
+	group->loop = 1;
+
+	if ((status = pthread_mutex_unlock(&group->loop_mtx)) != 0) {
+		error("pthread_mutex_unlock, status = %d\n", status);
 		return FAILURE;
 	}
-	status = pthread_barrier_init(&group->finish_barrier, NULL, NUM_TEST_THREADS);
-	if (status) {
-		error("failed to initialize finish_barrier: %s\n", strerror(status));
-		return FAILURE;
-	}
+
 	return SUCCESS;
 }	
 // setup and create a groups threads
@@ -1059,7 +1158,7 @@ create_group(struct group_parameters *group)
 				group);
 	if (status != 0) {
 		error("creating high_priority thread: %s\n", strerror(status));
-		cleanup();
+		set_shutdown_flag();
 		return FAILURE;
 	}
 	return SUCCESS;
@@ -1162,3 +1261,19 @@ void summary(void)
 	printf("Test Duration: %d days, %d hours, %d minutes, %d seconds\n",
 		   t->tm_yday, t->tm_hour, t->tm_min, t->tm_sec);
 }
+
+int
+barrier_init(pthread_barrier_t *b, const pthread_barrierattr_t *attr,
+		unsigned count, const char *name)
+{
+	int status;
+
+	if ((status = pthread_barrier_init(b, attr, count)) != 0) {
+		error("barrier_init: failed to initialize: %s\n", name);
+		error("status = %d\n", status);
+		return FAILURE;
+	}
+
+	return SUCCESS;
+}
+
