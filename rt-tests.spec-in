@@ -35,12 +35,17 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/pi_stress
 /usr/bin/signaltest
 /usr/bin/hwlatdetect
+/usr/bin/rt-migrate-test
 %doc
 /usr/share/man/man8/cyclictest.8.gz
 /usr/share/man/man8/pi_stress.8.gz
 /usr/share/man/man8/hwlatdetect.8.gz
 
 %changelog
+* Mon Sep 21 2009 Clark Williams <williams@redhat.com> - 0.52-1
+- fixes and cleanups to pi_stress from jkacur
+- added rostedt's rt-migrate-test
+
 * Thu Sep  3 2009 Clark Williams <williams@redhat.com> - 0.51-1
 - two manpage fixes from Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
 - added -M option from Arnaldo Carvahlo de Melo <acme@redhat.com> 
