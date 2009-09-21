@@ -1,6 +1,7 @@
 VERSION_STRING = 0.51
 
-TARGETS	= cyclictest signaltest classic_pi pi_stress hwlatdetect
+TARGETS	= cyclictest signaltest classic_pi pi_stress \
+	  hwlatdetect rt-migrate-test
 FLAGS	= -Wall -Wno-nonnull -O2
 LIBS 	= -lpthread -lrt
 DESTDIR	?=
@@ -25,6 +26,9 @@ pi_stress:  src/pi_tests/pi_stress.c
 hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 	chmod +x src/hwlatdetect/hwlatdetect.py
 	ln -s src/hwlatdetect/hwlatdetect.py hwlatdetect
+
+rt-migrate-test: src/rt-migrate-test/rt-migrate-test.c
+	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)

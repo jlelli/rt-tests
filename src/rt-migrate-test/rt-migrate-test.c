@@ -20,7 +20,9 @@
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <stdio.h>
 #ifndef __USE_XOPEN2K
 # define __USE_XOPEN2K
@@ -69,7 +71,9 @@ static lgprint(int fd, const char *fmt, ...)
 
 #define gettid() syscall(__NR_gettid)
 
+#ifndef VERSION_STRING
 #define VERSION_STRING "V 0.3"
+#endif
 
 int nr_tasks;
 int lfd;
