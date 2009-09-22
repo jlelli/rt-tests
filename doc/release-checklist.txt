@@ -1,0 +1,8 @@
+1. make sure everything builds and runs
+2. update VERSION_STRING in Makefile
+3. update %changelog section in rt-tests.spec-in
+4. run 'make rpm' and fix any issues
+5. test install of rpm
+6. checkin any changed files using "version bump to X.Y" as comment
+7. generate annotated tag with git tag -a vX.Y
+8. run: "sh scripts/do-git-push X.Y"
