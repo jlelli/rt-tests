@@ -42,6 +42,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hwlatdetect.8.gz
 
 %changelog
+* Tue Oct  6 2009 Clark Williams <williams@redhat.com> - 0.53-1
+- fixed incorrect format string in hwlatdetect.py
+- added docs/release-checklist.txt
+
 * Mon Sep 21 2009 Clark Williams <williams@redhat.com> - 0.52-1
 - fixes and cleanups to pi_stress from jkacur
 - added rostedt's rt-migrate-test
