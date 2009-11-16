@@ -2,12 +2,18 @@ VERSION_STRING = 0.53
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress \
 	  hwlatdetect rt-migrate-test
-CFLAGS	= -Wall -Wno-nonnull -O2
 LIBS 	= -lpthread -lrt
 DESTDIR	?=
 prefix  ?= /usr/local
 bindir  ?= $(prefix)/bin
 mandir	?= $(prefix)/share/man/man8
+
+CFLAGS = -Wall -Wno-nonnull
+ifndef DEBUG
+	CFLAGS	+= -O2
+else
+	CFLAGS	+= -O0 -g
+endif
 
 .PHONY: all
 all: $(TARGETS)
