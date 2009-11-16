@@ -9,6 +9,7 @@ prefix  ?= /usr/local
 bindir  ?= $(prefix)/bin
 mandir	?= $(prefix)/share/man/man8
 
+.PHONY: all
 all: $(TARGETS)
 
 cyclictest: src/cyclictest/cyclictest.c
@@ -33,16 +34,20 @@ rt-migrate-test: src/rt-migrate-test/rt-migrate-test.c
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)
 
+.PHONY: clean
 clean:
 	for F in $(CLEANUP); do find -type f -name $$F | xargs rm -f; done
 	rm -f hwlatdetect
 
+.PHONY: distclean
 distclean: clean
 	rm -rf BUILD RPMS SRPMS releases *.tar.gz rt-tests.spec
 
+.PHONY: changelog
 changelog:
 	git log >ChangeLog
 
+.PHONY: all
 install: all
 	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)"
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
@@ -50,6 +55,7 @@ install: all
 	gzip src/pi_tests/pi_stress.8 -c >"$(DESTDIR)$(mandir)/pi_stress.8.gz"
 	gzip src/hwlatdetect/hwlatdetect.8 -c >"$(DESTDIR)$(mandir)/hwlatdetect.8.gz"
 
+.PHONY: release
 release: clean changelog
 	mkdir -p releases
 	rm -rf tmp && mkdir -p tmp/rt-tests
@@ -58,12 +64,16 @@ release: clean changelog
 	rm -f ChangeLog
 	cp rt-tests-$(VERSION_STRING).tar.gz releases
 
+.PHONY: push
 push:	release
 	scripts/do-git-push $(VERSION_STRING)
 
+.PHONY: pushtest
 pushtest: release
 	scripts/do-git-push --test $(VERSION_STRING)
 
+# Note although rt-tests.spec is a file, it is okay to remake it every time.
+.PHONY: rt-tests.spec
 rt-tests.spec: Makefile rt-tests.spec-in
 	sed s/__VERSION__/$(VERSION_STRING)/ <$@-in >$@
 
@@ -72,14 +82,17 @@ RPMARGS	:=	--define "_topdir $(HERE)" 	\
 		--define "_sourcedir $(HERE)/releases" 	\
 		--define "_builddir $(HERE)/BUILD" 	\
 
+.PHONY: rpm
 rpm:	rpmdirs release rt-tests.spec
 	rpmbuild -ba $(RPMARGS) rt-tests.spec
 
+.PHONY: rpmdirs
 rpmdirs:
 	@[ -d BUILD ]  || mkdir BUILD
 	@[ -d RPMS ]   || mkdir RPMS
 	@[ -d SRPMS ]  || mkdir SRPMS
 
+.PHONY: help
 help:
 	@echo ""
 	@echo " rt-tests useful Makefile targets:"
