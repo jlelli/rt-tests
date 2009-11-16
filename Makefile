@@ -78,8 +78,6 @@ push:	release
 pushtest: release
 	scripts/do-git-push --test $(VERSION_STRING)
 
-# Note although rt-tests.spec is a file, it is okay to remake it every time.
-.PHONY: rt-tests.spec
 rt-tests.spec: Makefile rt-tests.spec-in
 	sed s/__VERSION__/$(VERSION_STRING)/ <$@-in >$@
 
