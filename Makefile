@@ -2,7 +2,7 @@ VERSION_STRING = 0.53
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress \
 	  hwlatdetect rt-migrate-test
-FLAGS	= -Wall -Wno-nonnull -O2
+CFLAGS	= -Wall -Wno-nonnull -O2
 LIBS 	= -lpthread -lrt
 DESTDIR	?=
 prefix  ?= /usr/local
@@ -12,23 +12,23 @@ mandir	?= $(prefix)/share/man/man8
 all: $(TARGETS)
 
 cyclictest: src/cyclictest/cyclictest.c
-	$(CC) $(FLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
 
 signaltest: src/signaltest/signaltest.c
-	$(CC) $(FLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
 
 classic_pi: src/pi_tests/classic_pi.c
-	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
+	$(CC) $(CFLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
 pi_stress:  src/pi_tests/pi_stress.c
-	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
+	$(CC) $(CFLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
 hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 	chmod +x src/hwlatdetect/hwlatdetect.py
 	ln -s src/hwlatdetect/hwlatdetect.py hwlatdetect
 
 rt-migrate-test: src/rt-migrate-test/rt-migrate-test.c
-	$(CC) $(FLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
+	$(CC) $(CFLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)
