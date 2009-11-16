@@ -1,8 +1,8 @@
 /*
    pi_stress - Priority Inheritance stress test
-  
+
    Copyright (C) 2006, 2007 Clark Williams <williams@redhat.com>
-  
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -19,25 +19,25 @@
    USA */
 
 /* This program stress tests pthreads priority inheritance mutexes
-  
+
    The logic is built upon the state machine that performs the "classic_pi"
    deadlock scenario. A state machine or "inversion group" is a group of three
    threads as described below.
 
    The basic premise here is to set up a deadlock scenario and confirm that PI
    mutexes resolve the situation. Three worker threads will be created from the
-   main thread: low, medium and high priority threads that use SCHED_FIFO as 
+   main thread: low, medium and high priority threads that use SCHED_FIFO as
    their scheduling policy. The low priority thread claims a mutex and then
-   starts "working". The medium priority thread starts and preempts the low 
+   starts "working". The medium priority thread starts and preempts the low
    priority thread. Then the high priority thread runs and attempts to claim
-   the mutex owned by the low priority thread. Without priority inheritance, 
-   this will deadlock the program. With priority inheritance, the low priority 
+   the mutex owned by the low priority thread. Without priority inheritance,
+   this will deadlock the program. With priority inheritance, the low priority
    thread receives a priority boost, finishes it's "work" and releases the mutex,
    which allows the high priority thread to run and finish and then the medium
-   priority thread finishes. 
+   priority thread finishes.
 
-   That's the theory, anyway... 
-   
+   That's the theory, anyway...
+
    CW - 2006  */
 
 #include <stdio.h>
@@ -99,7 +99,7 @@ time_t start, finish;
 // the number of groups to create
 int ngroups = 0;
 
-// the number of times a group causes a priority inversion situation 
+// the number of times a group causes a priority inversion situation
 // default to infinite
 int inversions = -1;
 
@@ -705,7 +705,7 @@ void *low_priority(void *arg)
 		debug("low_priority[%d]: unlocking mutex\n", p->id);
 		pthread_mutex_unlock(&p->mutex);
 
-		// finish state 
+		// finish state
 		debug("low_priority[%d]: entering finish wait\n", p->id);
 		status = pthread_barrier_wait(&p->finish_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
