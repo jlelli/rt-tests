@@ -1,7 +1,7 @@
 Summary: Programs that test various rt-features
 Name: rt-tests
 Version: __VERSION__
-Release: 1
+Release: 1%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: git://git.kernel.org/pub/scm/linux/kernel/git/tglx/rt-tests.git
@@ -42,6 +42,17 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hwlatdetect.8.gz
 
 %changelog
+* Tue Nov 17 2009 Clark Williams <williams@redhat.com> - 0.54-1
+- patches from John Kacur <jkacur@redhat.com>
+  - fix source style issues in pi_stress
+  - add a DEBUG option to the Makefile
+  - use CFLAGS for C compiler options
+  - label targets as PHONY if not generating actual file
+- patch to remove rt-tests.spec from .PHONY in Makefile
+
+* Mon Nov 16 2009 Clark Williams <williams@redhat.com> - 0.53-2
+- added back missing dist tag for release
+
 * Tue Oct  6 2009 Clark Williams <williams@redhat.com> - 0.53-1
 - fixed incorrect format string in hwlatdetect.py
 - added docs/release-checklist.txt

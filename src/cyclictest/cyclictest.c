@@ -789,7 +789,7 @@ static void display_help(int error)
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 	       "-m       --mlockall        lock current and future memory allocations\n"
 	       "-n       --nanosleep       use clock_nanosleep\n"
-	       "-N       --nsecs           print results in ns instead of ms (default ms)\n"
+	       "-N       --nsecs           print results in ns instead of us (default us)\n"
 	       "-o RED   --oscope=RED      oscilloscope mode, reduce verbose output by RED\n"
 	       "-O TOPT  --traceopt=TOPT   trace option\n"
 	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"

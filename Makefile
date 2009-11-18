@@ -1,4 +1,4 @@
-VERSION_STRING = 0.53
+VERSION_STRING = 0.54
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress \
 	  hwlatdetect rt-migrate-test
