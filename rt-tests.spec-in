@@ -42,6 +42,13 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hwlatdetect.8.gz
 
 %changelog
+* Thu Nov 19 2009 Clark Williams <williams@redhat.com> - 0.55-1
+- pi_stress: cosmetic newline added
+- fixes from John Kacur <jkacur@redhat.com>
+  - pi_stress: Remove racy state variables that cause watchdog to trigger
+  - pi_stress: Check whether quiet is set, before taking shutdown_mtx
+  - pi_stress: Use a pthread_mutex_t for the global variable shutdown
+
 * Tue Nov 17 2009 Clark Williams <williams@redhat.com> - 0.54-1
 - patches from John Kacur <jkacur@redhat.com>
   - fix source style issues in pi_stress

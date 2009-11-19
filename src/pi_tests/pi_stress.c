@@ -1274,7 +1274,7 @@ void banner(void)
 	printf("%d groups of 3 threads will be created\n", ngroups);
 	printf("    High thread priority:   %d\n", HIGH_PRIO());
 	printf("    Med  thread priority:   %d\n", MED_PRIO());
-	printf("    Low thread priority:    %d\n", LOW_PRIO());
+	printf("    Low thread priority:    %d\n\n", LOW_PRIO());
 }
 
 void summary(void)
