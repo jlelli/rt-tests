@@ -109,8 +109,7 @@ int verbose = 0;
 /* turn on debugging prints */
 int debugging = 0;
 
-/* turn off all prints */
-int quiet = 0;
+int quiet = 0;	/* turn off all prints, default = 0 (off) */
 
 /* prompt to start test */
 int prompt = 0;
@@ -141,7 +140,6 @@ struct option options[] = {
 	{"groups", required_argument, NULL, 'g'},
 	{"inversions", required_argument, NULL, 'i'},
 	{"rr", no_argument, NULL, 'r'},
-	{"signal", no_argument, NULL, 's'},
 	{"uniprocessor", no_argument, NULL, 'u'},
 	{"prompt", no_argument, NULL, 'p'},
 	{"debug", no_argument, NULL, 'd'},
@@ -566,12 +564,12 @@ void *reporter(void *arg)
 		}
 
 		/* check for signaled shutdown */
-		pthread_mutex_lock(&shutdown_mtx);
-		if (shutdown == 0) {
-			if (!quiet) {
+		if (!quiet) {
+			pthread_mutex_lock(&shutdown_mtx);
+			if (shutdown == 0) {
 				fputs(UP_ONE, stdout);
 				printf("Current Inversions: %lu\n",
-				       total_inversions());
+						total_inversions());
 			}
 		}
 		pthread_mutex_unlock(&shutdown_mtx);
@@ -1004,6 +1002,7 @@ void usage(void)
 	printf("usage: pi_stress <options>\n");
 	printf("    options:\n");
 	printf("\t--verbose\t- lots of output\n");
+	printf("\t--quiet\t\t- surpress running output\n");
 	printf
 	    ("\t--duration=<n>- length of the test run in seconds [infinite]\n");
 	printf("\t--groups=<n>\t- set the number of inversion groups [%d]\n",
