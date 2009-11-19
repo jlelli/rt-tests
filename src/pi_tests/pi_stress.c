@@ -201,8 +201,6 @@ struct group_parameters {
 	int loop;	/* boolean, loop or not, connected to shutdown */
 
 	/* state variables */
-	volatile int high_has_run;
-	volatile int low_unlocked;
 	volatile int watchdog;
 
 	/* total number of inversions performed */
@@ -703,7 +701,6 @@ void *low_priority(void *arg)
 		}
 		/* wait for priority boost */
 		debug("low_priority[%d]: entering elevated wait\n", p->id);
-		p->low_unlocked = 0;	/* prevent race with med_priority */
 		status = pthread_barrier_wait(&p->elevate_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 			error
@@ -711,7 +708,6 @@ void *low_priority(void *arg)
 			     p->id, status);
 			return NULL;
 		}
-		p->low_unlocked = 1;
 
 		/* release the mutex */
 		debug("low_priority[%d]: unlocking mutex\n", p->id);
@@ -812,15 +808,12 @@ void *med_priority(void *arg)
 			return NULL;
 		}
 		debug("med_priority[%d]: entering elevate state\n", p->id);
-		do {
-			status = pthread_barrier_wait(&p->elevate_barrier);
-			if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
-				error
-				    ("med_priority[%d]: pthread_barrier_wait(elevate): %x",
-				     p->id, status);
-				return NULL;
-			}
-		} while (!p->high_has_run && !p->low_unlocked);
+		status = pthread_barrier_wait(&p->elevate_barrier);
+		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
+			error ("med_priority[%d]: pthread_barrier_wait(elevate): %x", p->id, status);
+			return NULL;
+		}
+
 		debug("med_priority[%d]: entering finish state\n", p->id);
 		status = pthread_barrier_wait(&p->finish_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -906,7 +899,6 @@ void *high_priority(void *arg)
 			}
 			pthread_mutex_unlock(&shutdown_mtx);
 		}
-		p->high_has_run = 0;
 		debug("high_priority[%d]: entering start state (%d)\n", p->id,
 		      count++);
 		status = pthread_barrier_wait(&p->start_barrier);
@@ -928,7 +920,7 @@ void *high_priority(void *arg)
 		debug("high_priority[%d]: locking mutex\n", p->id);
 		pthread_mutex_lock(&p->mutex);
 		debug("high_priority[%d]: got mutex\n", p->id);
-		p->high_has_run = 1;
+
 		debug("high_priority[%d]: unlocking mutex\n", p->id);
 		pthread_mutex_unlock(&p->mutex);
 		debug("high_priority[%d]: entering finish state\n", p->id);
