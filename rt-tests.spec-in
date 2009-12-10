@@ -42,6 +42,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hwlatdetect.8.gz
 
 %changelog
+* Thu Dec 10 2009 Clark Williams <williams@redhat.com> - 0.56-1
+- cyclictest: added code to print break thread id with -b
+
 * Thu Nov 19 2009 Clark Williams <williams@redhat.com> - 0.55-1
 - pi_stress: cosmetic newline added
 - fixes from John Kacur <jkacur@redhat.com>
