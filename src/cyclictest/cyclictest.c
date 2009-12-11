@@ -138,6 +138,7 @@ struct thread_stat {
 	long reduce;
 	long redmax;
 	long cycleofmax;
+	long hist_overflow;
 };
 
 static int shutdown;
@@ -149,13 +150,15 @@ static int oscope_reduction = 1;
 static int lockall = 0;
 static int tracetype = NOTRACE;
 static int histogram = 0;
-static int histogram_limit_exceeded = 0;
 static int duration = 0;
 static int use_nsecs = 0;
 static int refresh_on_max;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static pthread_mutex_t break_thread_id_lock = PTHREAD_MUTEX_INITIALIZER;
+static pid_t break_thread_id = 0;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -702,6 +705,10 @@ void *timerthread(void *param)
 			stopped++;
 			tracing(0);
 			shutdown++;
+			pthread_mutex_lock(&break_thread_id_lock);
+			if (break_thread_id == 0)
+				break_thread_id = stat->tid;
+			pthread_mutex_unlock(&break_thread_id_lock);
 		}
 		stat->act = diff;
 		stat->cycles++;
@@ -709,17 +716,13 @@ void *timerthread(void *param)
 		if (par->bufmsk)
 			stat->values[stat->cycles & par->bufmsk] = diff;
 
-		/* When histogram limit got exceed, mark limit as exceeded,
-		 * and use last bucket to recored samples of, exceeding 
-		 * latency spikes.
-		 */
-		if (histogram && diff >= histogram) {
-			histogram_limit_exceeded = 1;
-			diff = histogram - 1;
+		/* Update the histogram */
+		if (histogram) {
+			if (diff >= histogram)
+				stat->hist_overflow++;
+			else
+				stat->hist_array[diff]++;
 		}
-
-		if (histogram)
-			stat->hist_array[diff] += 1;
 
 		next.tv_sec += interval.tv_sec;
 		next.tv_nsec += interval.tv_nsec;
@@ -1092,11 +1095,20 @@ static void sighand(int sig)
 		tracing(0);
 }
 
+static void print_tids(struct thread_param *par, int nthreads)
+{
+	int i;
+
+	printf("# Thread Ids:");
+	for (i = 0; i < nthreads; i++)
+		printf(" %05d", par[i].stats->tid);
+	printf("\n");
+}
+
 static void print_hist(struct thread_param *par, int nthreads)
 {
 	int i, j;
 	unsigned long long log_entries[nthreads];
-	unsigned long max_latency = 0;
 
 	bzero(log_entries, sizeof(log_entries));
 
@@ -1109,8 +1121,6 @@ static void print_hist(struct thread_param *par, int nthreads)
 			unsigned long curr_latency=par[j].stats->hist_array[i];
 			printf("%06lu\t", curr_latency);
 			log_entries[j] += curr_latency;
-			if (curr_latency && max_latency < i)
-				max_latency = i;
 		}
 		printf("\n");
 	}
@@ -1118,7 +1128,14 @@ static void print_hist(struct thread_param *par, int nthreads)
 	for (j = 0; j < nthreads; j++)
 		printf(" %09llu", log_entries[j]);
 	printf("\n");
-	printf("# Max Latency: %lu / %d\n", max_latency, histogram);
+	printf("# Max Latencys:");
+	for (j = 0; j < nthreads; j++)
+		printf(" %05lu", par[j].stats->max);
+	printf("\n");
+	printf("# Histogram Overflows:");
+	for (j = 0; j < nthreads; j++)
+		printf(" %05lu", par[j].stats->hist_overflow);
+	printf("\n");
 }
 
 static void print_stat(struct thread_param *par, int index, int verbose)
@@ -1342,6 +1359,13 @@ int main(int argc, char **argv)
 			free (stat[i].hist_array);
 	}
 
+	if (tracelimit) {
+		print_tids(par, num_threads);
+		if (break_thread_id)
+			printf("# Break thread: %d\n", break_thread_id);
+	}
+	
+
 	free(stat);
  outpar:
 	free(par);
@@ -1357,13 +1381,6 @@ int main(int argc, char **argv)
 	/* Be a nice program, cleanup */
 	if (kernelversion != KV_26_CURR)
 		restorekernvars();
-
-	if (histogram && histogram_limit_exceeded) {
-		ret = EXIT_FAILURE;
-		fprintf(stderr, "ERROR: Histogram limit got exceeded at least once!\n"
-				"Limit exceeding got sampled in last bucket.\n");
-
-	}
 
 	exit(ret);
 }
