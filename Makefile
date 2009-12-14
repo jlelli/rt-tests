@@ -8,17 +8,19 @@ prefix  ?= /usr/local
 bindir  ?= $(prefix)/bin
 mandir	?= $(prefix)/share/man/man8
 
-CFLAGS = -Wall -Wno-nonnull
+CFLAGS = -Wall -Wno-nonnull -Isrc/lib
 ifndef DEBUG
 	CFLAGS	+= -O2
 else
 	CFLAGS	+= -O0 -g
 endif
 
+UTILS	= src/lib/rt-utils.o
+
 .PHONY: all
 all: $(TARGETS)
 
-cyclictest: src/cyclictest/cyclictest.c
+cyclictest: src/cyclictest/cyclictest.c $(UTILS)
 	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
 
 signaltest: src/signaltest/signaltest.c
