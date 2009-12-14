@@ -1,12 +1,14 @@
 VERSION_STRING = 0.56
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress \
-	  hwlatdetect rt-migrate-test
+	  hwlatdetect rt-migrate-test ptsematest sigwaittest svsematest \
+	  sendme
 LIBS 	= -lpthread -lrt
 DESTDIR	?=
 prefix  ?= /usr/local
 bindir  ?= $(prefix)/bin
-mandir	?= $(prefix)/share/man/man8
+mandir	?= $(prefix)/share/man
+srcdir	?= $(prefix)/src
 
 CFLAGS = -Wall -Wno-nonnull -Isrc/lib
 ifndef DEBUG
@@ -39,6 +41,18 @@ hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 rt-migrate-test: src/rt-migrate-test/rt-migrate-test.c
 	$(CC) $(CFLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
 
+ptsematest: src/ptsematest/ptsematest.c $(UTILS)
+	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+
+sigwaittest: src/sigwaittest/sigwaittest.c $(UTILS)
+	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+
+svsematest: src/svsematest/svsematest.c $(UTILS)
+	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+
+sendme: src/backfire/sendme.c $(UTILS)
+	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)
 
@@ -57,11 +71,20 @@ changelog:
 
 .PHONY: all
 install: all
-	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)"
+	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man4"
+	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man8"
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
-	gzip src/cyclictest/cyclictest.8 -c >"$(DESTDIR)$(mandir)/cyclictest.8.gz"
-	gzip src/pi_tests/pi_stress.8 -c >"$(DESTDIR)$(mandir)/pi_stress.8.gz"
-	gzip src/hwlatdetect/hwlatdetect.8 -c >"$(DESTDIR)$(mandir)/hwlatdetect.8.gz"
+	mkdir -p "$(DESTDIR)$(srcdir)/backfire"
+	sed s/__VERSION_STRING__/$(VERSION_STRING)/ <src/backfire/backfire.c >"$(DESTDIR)$(srcdir)/backfire/backfire.c"
+	cp src/backfire/Makefile "$(DESTDIR)$(srcdir)/backfire"
+	gzip src/backfire/backfire.4 -c >"$(DESTDIR)$(mandir)/man4/backfire.4.gz
+	gzip src/cyclictest/cyclictest.8 -c >"$(DESTDIR)$(mandir)/man8/cyclictest.8.gz"
+	gzip src/pi_tests/pi_stress.8 -c >"$(DESTDIR)$(mandir)/man8/pi_stress.8.gz"
+	gzip src/hwlatdetect/hwlatdetect.8 -c >"$(DESTDIR)$(mandir)/man8/hwlatdetect.8.gz"
+	gzip src/ptsematest/ptsematest.8 -c >"$(DESTDIR)$(mandir)/man8/ptsematest.8.gz"
+	gzip src/sigwaittest/sigwaittest.8 -c >"$(DESTDIR)$(mandir)/man8/sigwaittest.8.gz"
+	gzip src/svsematest/svsematest.8 -c >"$(DESTDIR)$(mandir)/man8/svsematest.8.gz"
+	gzip src/backfire/sendme.8 -c >"$(DESTDIR)$(mandir)/man8/sendme.8.gz"
 
 .PHONY: release
 release: clean changelog
