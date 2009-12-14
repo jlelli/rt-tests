@@ -33,17 +33,13 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <linux/unistd.h>
+#include <utmpx.h>
 #include "rt-utils.h"
 
 #define __USE_GNU
 #include <pthread.h>
 
-#undef HAS_SCHED_GETCPU
-
 #define gettid() syscall(__NR_gettid)
-#ifndef HAS_SCHED_GETCPU
-#define getcpu(cpu, node, cache) syscall(__NR_getcpu, cpu, node, cache)
-#endif
 
 #define USEC_PER_SEC 1000000
 
@@ -112,13 +108,7 @@ void *semathread(void *param)
 			if(par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
 			if (mustgetcpu) {
-#ifdef HAS_SCHED_GETCPU
 				par->cpu = sched_getcpu();
-#else
-				int c, s;
-	                        s = getcpu(&c, NULL, NULL);
-			        par->cpu = (s == -1) ? s : c;
-#endif
 			}
 		} else {
 			/* Receiver */
@@ -160,13 +150,7 @@ void *semathread(void *param)
 			if (par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
 			if (mustgetcpu) {
-#ifdef HAS_SCHED_GETCPU
 				par->cpu = sched_getcpu();
-#else
-				int c, s;
-	                        s = getcpu(&c, NULL, NULL);
-			        par->cpu = (s == -1) ? s : c;
-#endif
 		        }
 			nanosleep(&par->delay, NULL);
 			pthread_mutex_unlock(&syncmutex[par->num]);

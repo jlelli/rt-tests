@@ -35,17 +35,13 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <linux/unistd.h>
+#include <utmpx.h>
 #include "rt-utils.h"
 
 #define __USE_GNU
 #include <pthread.h>
 
-#undef HAS_SCHED_GETCPU
-
 #define gettid() syscall(__NR_gettid)
-#ifndef HAS_SCHED_GETCPU
-#define getcpu(cpu, node, cache) syscall(__NR_getcpu, cpu, node, cache)
-#endif
 
 #define USEC_PER_SEC 1000000
 
@@ -143,13 +139,7 @@ void *semathread(void *param)
 				par->shutdown = 1;
 
 			if (mustgetcpu) {
-#ifdef HAS_SCHED_GETCPU
 				par->cpu = sched_getcpu();
-#else
-				int c, s;
-	                        s = getcpu(&c, NULL, NULL);
-			        par->cpu = (s == -1) ? s : c;
-#endif
 			}
 			sigwait(&sigset, &sig);
 		} else {
@@ -173,13 +163,7 @@ void *semathread(void *param)
 				par->shutdown = 1;
 
 			if (mustgetcpu) {
-#ifdef HAS_SCHED_GETCPU
 				par->cpu = sched_getcpu();
-#else
-				int c, s;
-	                        s = getcpu(&c, NULL, NULL);
-			        par->cpu = (s == -1) ? s : c;
-#endif
 		        }
 			/*
 			 * Latency is the time spent between sending and
