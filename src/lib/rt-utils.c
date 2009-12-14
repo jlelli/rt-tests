@@ -60,6 +60,7 @@ int check_privs(void)
 	}
 
 	/* we're good; change back and return success */
+	param.sched_priority = 0;
 	sched_setscheduler(0, policy, NULL);
 	return 0;
 }
