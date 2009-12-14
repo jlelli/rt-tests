@@ -18,3 +18,8 @@ hwlatdetect
 tags
 TAGS
 rt-migrate-test
+ptsematest
+sendme
+sigwaittest
+svsematest
+
