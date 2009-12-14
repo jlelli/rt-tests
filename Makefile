@@ -23,7 +23,7 @@ all: $(TARGETS)
 cyclictest: src/cyclictest/cyclictest.c $(UTILS)
 	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
 
-signaltest: src/signaltest/signaltest.c
+signaltest: src/signaltest/signaltest.c $(UTILS)
 	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
 
 classic_pi: src/pi_tests/classic_pi.c
