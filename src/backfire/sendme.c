@@ -208,7 +208,12 @@ int main(int argc, char *argv[])
 	path = open("/dev/backfire", O_RDWR);
 	if (path < 0) {
 		fprintf(stderr, "ERROR: Could not access backfire device, "
-				"try 'modprobe backfire'\n");
+				"try 'modprobe backfire'\n"
+				"If the module backfire can't be loaded, "
+				"it may need to be built first.\n"
+				"Execute 'cd src/backfire; make' in the "
+				"rt-tests directory (requires rt-tests\n"
+				"sources and kernel-devel package).\n");
 		return 1;
 	}
 	fl.l_type = F_WRLCK;
