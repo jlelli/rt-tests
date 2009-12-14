@@ -75,9 +75,7 @@ install: all
 	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man8"
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
 	mkdir -p "$(DESTDIR)$(srcdir)/backfire"
-	sed s/__VERSION_STRING__/$(VERSION_STRING)/ <src/backfire/backfire.c >"$(DESTDIR)$(srcdir)/backfire/backfire.c"
-	cp src/backfire/Makefile "$(DESTDIR)$(srcdir)/backfire"
-	gzip src/backfire/backfire.4 -c >"$(DESTDIR)$(mandir)/man4/backfire.4.gz
+	gzip src/backfire/backfire.4 -c >"$(DESTDIR)$(mandir)/man4/backfire.4.gz"
 	gzip src/cyclictest/cyclictest.8 -c >"$(DESTDIR)$(mandir)/man8/cyclictest.8.gz"
 	gzip src/pi_tests/pi_stress.8 -c >"$(DESTDIR)$(mandir)/man8/pi_stress.8.gz"
 	gzip src/hwlatdetect/hwlatdetect.8 -c >"$(DESTDIR)$(mandir)/man8/hwlatdetect.8.gz"
