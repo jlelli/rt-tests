@@ -69,7 +69,7 @@ distclean: clean
 changelog:
 	git log >ChangeLog
 
-.PHONY: all
+.PHONY: install
 install: all
 	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man4"
 	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man8"
