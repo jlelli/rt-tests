@@ -36,10 +36,20 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/signaltest
 /usr/bin/hwlatdetect
 /usr/bin/rt-migrate-test
+/usr/bin/ptsematest
+/usr/bin/sendme
+/usr/bin/sigwaittest
+/usr/bin/svsematest
+
 %doc
 /usr/share/man/man8/cyclictest.8.gz
 /usr/share/man/man8/pi_stress.8.gz
 /usr/share/man/man8/hwlatdetect.8.gz
+/usr/share/man/man4/backfire.4.gz
+/usr/share/man/man8/ptsematest.8.gz
+/usr/share/man/man8/sendme.8.gz
+/usr/share/man/man8/sigwaittest.8.gz
+/usr/share/man/man8/svsematest.8.gz
 
 %changelog
 * Thu Dec 10 2009 Clark Williams <williams@redhat.com> - 0.56-1
