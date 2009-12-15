@@ -1,4 +1,4 @@
-VERSION_STRING = 0.56
+VERSION_STRING = 0.57
 
 TARGETS	= cyclictest signaltest classic_pi pi_stress \
 	  hwlatdetect rt-migrate-test ptsematest sigwaittest svsematest \
