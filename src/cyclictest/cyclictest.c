@@ -399,7 +399,7 @@ static void setup_tracer(void)
 			setkernvar("ftrace_enabled", "1");
 		else
 			setkernvar("ftrace_enabled", "0");
-		fileprefix = get_debugfileprefix;
+		fileprefix = get_debugfileprefix();
 
 		switch (tracetype) {
 		case NOTRACE:
