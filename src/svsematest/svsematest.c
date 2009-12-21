@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
-#define __USE_GNU
 #include <fcntl.h>
 #include <getopt.h>
 #include <pthread.h>

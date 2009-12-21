@@ -162,7 +162,7 @@ static void usage(char **argv)
 		p--;
 	p++;
 
-	printf("%s %s\n", p, VERSION_STRING);
+	printf("%s %1.2f\n", p, VERSION_STRING);
 	printf("Usage:\n"
 	       "%s <options> nr_tasks\n\n"
 	       "-p prio --prio  prio        base priority to start RT tasks with (2) \n"

@@ -36,7 +36,6 @@
 #include <utmpx.h>
 #include "rt-utils.h"
 
-#define __USE_GNU
 #include <pthread.h>
 
 #define gettid() syscall(__NR_gettid)

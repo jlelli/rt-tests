@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
-#define __USE_GNU
 #include <fcntl.h>
 #include <getopt.h>
 #include <signal.h>
@@ -31,7 +30,6 @@
 #include <time.h>
 #include "rt-utils.h"
 
-#define _GNU_SOURCE
 #include <utmpx.h>
 #include <sys/types.h>
 #include <sys/stat.h>

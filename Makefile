@@ -10,48 +10,60 @@ bindir  ?= $(prefix)/bin
 mandir	?= $(prefix)/share/man
 srcdir	?= $(prefix)/src
 
-CFLAGS = -Wall -Wno-nonnull -Isrc/lib
+CFLAGS = -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/lib
+
 ifndef DEBUG
 	CFLAGS	+= -O2
 else
 	CFLAGS	+= -O0 -g
 endif
 
-UTILS	= src/lib/rt-utils.o
+VPATH	= src/cyclictest:
+VPATH	+= src/signaltest:
+VPATH	+= src/pi_tests:
+VPATH	+= src/rt-migrate-test:
+VPATH	+= src/ptsematest:
+VPATH	+= src/sigwaittest:
+VPATH	+= src/svsematest:
+VPATH	+= src/backfire:
+VPATH	+= src/lib
+
+%.o: %.c
+	$(CC) -D VERSION_STRING=$(VERSION_STRING) -c $< $(CFLAGS)
 
 .PHONY: all
 all: $(TARGETS)
 
-cyclictest: src/cyclictest/cyclictest.c $(UTILS)
-	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+cyclictest: cyclictest.o rt-utils.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-signaltest: src/signaltest/signaltest.c $(UTILS)
-	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+signaltest: signaltest.o rt-utils.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-classic_pi: src/pi_tests/classic_pi.c
-	$(CC) $(CFLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
+classic_pi: classic_pi.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-pi_stress:  src/pi_tests/pi_stress.c
-	$(CC) $(CFLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
+pi_stress: pi_stress.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 	chmod +x src/hwlatdetect/hwlatdetect.py
 	ln -s src/hwlatdetect/hwlatdetect.py hwlatdetect
 
-rt-migrate-test: src/rt-migrate-test/rt-migrate-test.c
-	$(CC) $(CFLAGS) -D_GNU_SOURCE -D VERSION_STRING=\"$(VERSION_STRING)\" $^ -o $@ $(LIBS)
+rt-migrate-test: rt-migrate-test.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-ptsematest: src/ptsematest/ptsematest.c $(UTILS)
-	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+ptsematest: ptsematest.o rt-utils.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-sigwaittest: src/sigwaittest/sigwaittest.c $(UTILS)
-	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+sigwaittest: sigwaittest.o rt-utils.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-svsematest: src/svsematest/svsematest.c $(UTILS)
-	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+svsematest: svsematest.o rt-utils.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-sendme: src/backfire/sendme.c $(UTILS)
-	$(CC) $(CFLAGS) -D VERSION_STRING=$(VERSION_STRING) $^ -o $@ $(LIBS)
+sendme: sendme.o rt-utils.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)

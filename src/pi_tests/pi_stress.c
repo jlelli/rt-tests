@@ -55,10 +55,6 @@
 #include <sys/wait.h>
 #include <termios.h>
 
-/* version */
-const char *version =
-    "pi_stress v" VERSION_STRING " (" __DATE__ " " __TIME__ ")";
-
 /* conversions */
 #define USEC_PER_SEC 	1000000
 #define NSEC_PER_SEC 	1000000000
@@ -1230,7 +1226,8 @@ void process_command_line(int argc, char **argv)
 			debugging = 1;
 			break;
 		case 'V':
-			puts(version);
+			printf("pi_stress v%1.2f ", VERSION_STRING);
+			printf("(%s %s)\n", __DATE__, __TIME__);
 			exit(0);
 		case 'u':
 			uniprocessor = 1;
