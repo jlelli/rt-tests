@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/svsematest.8.gz
 
 %changelog
+* Mon Dec 21 2009 Clark Williams <williams@redhat.com> - 0.58-1
+- merged jkacur's portable getcpu() code
+- fixed inadvertent conversion of some source to DOS text files
+
 * Mon Dec 14 2009 Clark Williams <williams@redhat.com> - 0.57-1
 - John Kacur <jkacur@redhat.com> folded in Carsten Emde's tests
     - ptsematest
