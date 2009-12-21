@@ -42,5 +42,5 @@ static inline int getcpu_vdso(void)
 
 #endif
 
-#endif	/* RT_GET_CPU_H */
+#endif	/* __RT_GET_CPU_H */
 

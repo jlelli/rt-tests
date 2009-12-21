@@ -8,4 +8,4 @@
 int check_privs(void);
 char *get_debugfileprefix(void);
 
-#endif	/* RT_UTILS.H */
+#endif	/* __RT_UTILS.H */
