@@ -29,6 +29,7 @@
 #include <string.h>
 #include <time.h>
 #include "rt-utils.h"
+#include "rt-get_cpu.h"
 
 #include <utmpx.h>
 #include <sys/types.h>
@@ -195,8 +196,10 @@ int main(int argc, char *argv[])
 
 	if (setaffinity != AFFINITY_UNSPECIFIED) {
 		CPU_ZERO(&mask);
-		if (setaffinity == AFFINITY_USECURRENT)
-			affinity = sched_getcpu();
+		if (setaffinity == AFFINITY_USECURRENT) {
+			get_cpu_setup();
+			affinity = get_cpu();
+		}
 		CPU_SET(affinity, &mask);
 		if (sched_setaffinity(0, sizeof(mask), &mask) == -1)
 			fprintf(stderr,	"WARNING: Could not set CPU affinity "

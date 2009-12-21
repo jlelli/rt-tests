@@ -4,6 +4,7 @@ TARGETS	= cyclictest signaltest classic_pi pi_stress \
 	  hwlatdetect rt-migrate-test ptsematest sigwaittest svsematest \
 	  sendme
 LIBS 	= -lpthread -lrt
+EXTRA_LIBS ?= -ldl	# for get_cpu
 DESTDIR	?=
 prefix  ?= /usr/local
 bindir  ?= $(prefix)/bin
@@ -53,17 +54,17 @@ hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 rt-migrate-test: rt-migrate-test.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-ptsematest: ptsematest.o rt-utils.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+ptsematest: ptsematest.o rt-utils.o rt-get_cpu.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
-sigwaittest: sigwaittest.o rt-utils.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+sigwaittest: sigwaittest.o rt-utils.o rt-get_cpu.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
-svsematest: svsematest.o rt-utils.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+svsematest: svsematest.o rt-utils.o rt-get_cpu.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
-sendme: sendme.o rt-utils.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+sendme: sendme.o rt-utils.o rt-get_cpu.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)

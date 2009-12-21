@@ -41,13 +41,9 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include "rt-utils.h"
-
-#define HAS_SCHED_GETCPU
+#include "rt-get_cpu.h"
 
 #define gettid() syscall(__NR_gettid)
-#ifndef HAS_SCHED_GETCPU
-#define getcpu(cpu, node, cache) syscall(__NR_getcpu, cpu, node, cache)
-#endif
 
 #define USEC_PER_SEC 1000000
 
@@ -143,15 +139,8 @@ void *semathread(void *param)
 			if(par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
 
-			if (mustgetcpu) {
-#ifdef HAS_SCHED_GETCPU
-				par->cpu = sched_getcpu();
-#else
-				int c, s;
-	                        s = getcpu(&c, NULL, NULL);
-			        par->cpu = (s == -1) ? s : c;
-#endif
-			}
+			if (mustgetcpu)
+				par->cpu = get_cpu();
 
  			sb.sem_num = SEM_WAIT_FOR_RECEIVER;
  			sb.sem_op = SEM_LOCK;
@@ -182,15 +171,8 @@ void *semathread(void *param)
 			if (par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
 
-			if (mustgetcpu) {
-#ifdef HAS_SCHED_GETCPU
-				par->cpu = sched_getcpu();
-#else
-				int c, s;
-	                        s = getcpu(&c, NULL, NULL);
-			        par->cpu = (s == -1) ? s : c;
-#endif
-			}
+			if (mustgetcpu)
+				par->cpu = get_cpu();
 
 			timersub(&par->received, &neighbor->unblocked,
 			    &par->diff);
@@ -407,6 +389,8 @@ int main(int argc, char *argv[])
 		perror("mlockall");
 		return 1;
 	}
+
+	get_cpu_setup();
 
 	if (mustfork) {
 		int shmem;

@@ -37,6 +37,7 @@
 #include <linux/unistd.h>
 #include <utmpx.h>
 #include "rt-utils.h"
+#include "rt-get_cpu.h"
 
 #include <pthread.h>
 
@@ -138,7 +139,7 @@ void *semathread(void *param)
 				par->shutdown = 1;
 
 			if (mustgetcpu) {
-				par->cpu = sched_getcpu();
+				par->cpu = get_cpu();
 			}
 			sigwait(&sigset, &sig);
 		} else {
@@ -162,7 +163,7 @@ void *semathread(void *param)
 				par->shutdown = 1;
 
 			if (mustgetcpu) {
-				par->cpu = sched_getcpu();
+				par->cpu = get_cpu();
 		        }
 			/*
 			 * Latency is the time spent between sending and
@@ -357,6 +358,8 @@ int main(int argc, char *argv[])
 		perror("mlockall");
 		return 1;
 	}
+
+	get_cpu_setup();	/* init get_cpu() */
 
 	if (mustfork) {
 		int shmem;

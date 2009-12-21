@@ -35,6 +35,7 @@
 #include <linux/unistd.h>
 #include <utmpx.h>
 #include "rt-utils.h"
+#include "rt-get_cpu.h"
 
 #include <pthread.h>
 
@@ -106,9 +107,8 @@ void *semathread(void *param)
 			par->samples++;
 			if(par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
-			if (mustgetcpu) {
-				par->cpu = sched_getcpu();
-			}
+			if (mustgetcpu)
+				par->cpu = get_cpu();
 		} else {
 			/* Receiver */
 			if (!first) {
@@ -148,9 +148,8 @@ void *semathread(void *param)
 
 			if (par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
-			if (mustgetcpu) {
-				par->cpu = sched_getcpu();
-		        }
+			if (mustgetcpu)
+				par->cpu = get_cpu();
 			nanosleep(&par->delay, NULL);
 			pthread_mutex_unlock(&syncmutex[par->num]);
 		}
