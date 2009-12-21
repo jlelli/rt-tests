@@ -1,5 +1,5 @@
-#ifndef RT_UTILS.H
-#define RT_UTILS.H
+#ifndef __RT_UTILS_H
+#define __RT_UTILS_H
 
 #define _STR(x) #x
 #define STR(x) _STR(x)

@@ -1,5 +1,5 @@
-#ifndef RT_GET_CPU_H
-#define RT_GET_CPU_H
+#ifndef __RT_GET_CPU_H
+#define __RT_GET_CPU_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
