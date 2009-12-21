@@ -132,7 +132,7 @@ static int __init backfire_init(void)
 	if (ret)
 		printk(KERN_ERR "backfire: can't register dynamic misc device\n");
 	else
-		printk(KERN_INFO "backfire driver v__VERSION_STRING__ misc device %d\n",
+		printk(KERN_INFO "backfire driver misc device %d\n",
 			backfire_dev.minor);
 	return ret;
 }
