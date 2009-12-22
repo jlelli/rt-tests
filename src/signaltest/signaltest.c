@@ -237,6 +237,7 @@ static void process_options (int argc, char *argv[])
 			{"quiet", no_argument, NULL, 'q'},
 			{"threads", required_argument, NULL, 't'},
 			{"verbose", no_argument, NULL, 'v'},
+			{"mlockall", no_argument, NULL, 'm'},
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
