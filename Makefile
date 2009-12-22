@@ -1,6 +1,6 @@
 VERSION_STRING = 0.58
 
-TARGETS	= cyclictest signaltest classic_pi pi_stress \
+TARGETS	= cyclictest signaltest pi_stress \
 	  hwlatdetect rt-migrate-test ptsematest sigwaittest svsematest \
 	  sendme
 LIBS 	= -lpthread -lrt
@@ -39,9 +39,6 @@ cyclictest: cyclictest.o rt-utils.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 signaltest: signaltest.o rt-utils.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
-
-classic_pi: classic_pi.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 pi_stress: pi_stress.o

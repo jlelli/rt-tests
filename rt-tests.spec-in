@@ -30,7 +30,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-/usr/bin/classic_pi
 /usr/bin/cyclictest
 /usr/bin/pi_stress
 /usr/bin/signaltest
