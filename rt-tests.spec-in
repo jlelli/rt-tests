@@ -50,6 +50,16 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/svsematest.8.gz
 
 %changelog
+* Mon Dec 21 2009 Clark Williams <williams@redhat.com> - 0.59-1
+- deleted classic_pi
+- David Sommerseth <davids@redhat.com>:
+  - added help text for -M (refresh-on-max) option for cyclictest
+  - fixed parsing of --mlockall in signaltest
+- Carsten Emde <C.Emde@osadl.org> provided a better explaination 
+  for using the kernel module with the backfire program
+- John Kacur <jkacur@redhat.com> cleaned up the trailing comments
+  on the guard macros in src/lib/rt-utils.h
+
 * Mon Dec 21 2009 Clark Williams <williams@redhat.com> - 0.58-1
 - merged jkacur's portable getcpu() code
 - fixed inadvertent conversion of some source to DOS text files
