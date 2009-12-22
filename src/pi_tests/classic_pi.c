@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 	setvbuf (stdout, NULL, _IONBF, 0);
 
 	/* process command line arguments */
-	while ((opt = getopt_long(argc, argv, "+", options, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "+vqni:", options, NULL)) != -1) {
 		switch (opt) {
 		case '?':
 			usage();
