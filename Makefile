@@ -73,6 +73,7 @@ CLEANUP += $(if $(wildcard .git), ChangeLog)
 clean:
 	for F in $(CLEANUP); do find -type f -name $$F | xargs rm -f; done
 	rm -f hwlatdetect
+	rm -f tags
 
 .PHONY: distclean
 distclean: clean
@@ -144,3 +145,7 @@ help:
 	@echo "    clean     :  remove object files"
 	@echo "    distclean :  remove all generated files"
 	@echo "    help      :  print this message"
+
+.PHONY: tags
+tags:
+	ctags -R --extra=+f --c-kinds=+p *
