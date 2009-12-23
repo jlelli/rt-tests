@@ -35,6 +35,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/signaltest
 /usr/bin/hwlatdetect
 /usr/bin/rt-migrate-test
+/usr/bin/pip
 /usr/bin/ptsematest
 /usr/bin/sendme
 /usr/bin/sigwaittest
