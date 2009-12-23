@@ -11,7 +11,7 @@ bindir  ?= $(prefix)/bin
 mandir	?= $(prefix)/share/man
 srcdir	?= $(prefix)/src
 
-CFLAGS = -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/lib -Isrc/include
+CFLAGS = -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/include
 
 ifndef DEBUG
 	CFLAGS	+= -O2
