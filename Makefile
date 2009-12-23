@@ -2,7 +2,7 @@ VERSION_STRING = 0.59
 
 TARGETS	= cyclictest signaltest pi_stress \
 	  hwlatdetect rt-migrate-test ptsematest sigwaittest svsematest \
-	  sendme
+	  sendme pip
 LIBS 	= -lpthread -lrt
 EXTRA_LIBS ?= -ldl	# for get_cpu
 DESTDIR	?=
@@ -11,7 +11,7 @@ bindir  ?= $(prefix)/bin
 mandir	?= $(prefix)/share/man
 srcdir	?= $(prefix)/src
 
-CFLAGS = -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/lib
+CFLAGS = -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/lib -Isrc/include
 
 ifndef DEBUG
 	CFLAGS	+= -O2
@@ -62,6 +62,9 @@ svsematest: svsematest.o rt-utils.o rt-get_cpu.o
 
 sendme: sendme.o rt-utils.o rt-get_cpu.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
+
+pip: pip.o error.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
 CLEANUP += $(if $(wildcard .git), ChangeLog)

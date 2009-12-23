@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 
 void err_exit(int err, char *fmt, ...);
 void err_msg(char *fmt, ...);
