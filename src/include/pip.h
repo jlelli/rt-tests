@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <sched.h>
+#include <rt-utils.h>
 #include "error.h"
 
 void low(pid_t pid);	/* low priority process */

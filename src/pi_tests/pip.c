@@ -83,6 +83,9 @@ int main(void)
 
 	*minimum_priority = sched_get_priority_min(policy);
 
+	if (check_privs())
+		exit(-1);
+
 	mptr = mmap_page();	/* Get a page of shared memory */
 	resource = (pthread_mutex_t*)mptr;	/* point our lock to it */
 	mptr += sizeof(pthread_mutex_t);	/* advance the memory pointer */
