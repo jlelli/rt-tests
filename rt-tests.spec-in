@@ -51,6 +51,14 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/svsematest.8.gz
 
 %changelog
+* Tue Dec 29 2009 Clark Williams <williams@redhat.com> - 0.60-1
+- John Kacur <jkacur@redhat.com>:
+  - added pip test (process based priority inheritance)
+  - refactored some error routines into the common library
+  - added 'make tags' option to Makefile
+- Michael Olbrich <m.olbrich@pengutronix.de> added an unbuffered
+  output option to cyclictest (-u/--unbuffered)
+
 * Mon Dec 21 2009 Clark Williams <williams@redhat.com> - 0.59-1
 - deleted classic_pi
 - David Sommerseth <davids@redhat.com>:
