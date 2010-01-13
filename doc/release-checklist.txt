@@ -1,3 +1,4 @@
+0. merge changes to master branch
 1. make sure everything builds and runs
 2. update VERSION_STRING in Makefile
 3. update %changelog section in rt-tests.spec-in
