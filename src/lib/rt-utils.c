@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sched.h>
+#include <stdarg.h>
 #include "rt-utils.h"
 
 static char debugfileprefix[MAX_PATH];
@@ -64,3 +66,25 @@ int check_privs(void)
 	sched_setscheduler(0, policy, NULL);
 	return 0;
 }
+
+void warn(char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	fputs("WARNING: ", stderr);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+}
+
+void fatal(char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	fputs("FATAL: ", stderr);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	exit(EXIT_FAILURE);
+}
+
