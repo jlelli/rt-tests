@@ -16,7 +16,7 @@
 cyclictest \- High resolution test program
 .SH SYNOPSIS
 .B cyclictest
-.RI "[ \-hfmnqrsvM ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] \
+.RI "[ \-hfmnqrsvMS ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] \
 [\-h " histogram " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] \
 [\-t " num " ] [\-D " time "] [\-w] [\-W] [\-y " policy "]"
 
@@ -159,6 +159,11 @@ where NAME is one of: other, normal, batch, idle, fifo, rr
 .B \\-M, \-\-refresh_on_max
 delay updating the screen until a new max latency is hit (useful for
 running cyclictest on low-bandwidth connections)
+.TP
+.B \\-S, \-\-smp
+Set options for standard testing on SMP systems. Equivalent to using
+the options: "\-t \-a \-n" as well keeping any specified priority
+equal across all threads 
 .\" .SH SEE ALSO
 .\" .BR bar (1),
 .\" .BR baz (1).

@@ -289,17 +289,13 @@ void traceopt(char *option)
 		traceopt_size += 16;
 		printf("expanding traceopt buffer to %d entries\n", traceopt_size);
 		traceptr = realloc(traceptr, sizeof(char*) * traceopt_size);
-		if (traceptr == NULL) {
-			fprintf(stderr, "Error allocating space for %d trace options\n",
-				traceopt_count+1);
-			exit(EXIT_FAILURE);
-		}
+		if (traceptr == NULL)
+			fatal ("Error allocating space for %d trace options\n",
+			       traceopt_count+1);
 	}
 	ptr = malloc(strlen(option)+1);
-	if (ptr == NULL) {
-		fprintf(stderr, "error allocating space for trace option %s\n", option);
-		exit(EXIT_FAILURE);
-	}
+	if (ptr == NULL)
+		fatal("error allocating space for trace option %s\n", option);
 	printf("adding traceopt %s\n", option);
 	strcpy(ptr, option);
 	traceptr[traceopt_count++] = ptr;
@@ -378,11 +374,10 @@ static void setup_tracer(void)
 		fileprefix = get_debugfileprefix();
 		strcpy(testname, fileprefix);
 		strcat(testname, "tracing_enabled");
-		if (access(testname, R_OK)) {
-			fprintf(stderr, "ERROR: %s not found\n"
+		if (access(testname, R_OK))
+			warn("%s not found\n"
 			    "debug fs not mounted, "
 			    "TRACERs not configured?\n", testname);
-		}
 	} else
 		fileprefix = procfileprefix;
 
@@ -548,8 +543,7 @@ void *timerthread(void *param)
 		CPU_ZERO(&mask);
 		CPU_SET(par->cpu, &mask);
 		if(sched_setaffinity(0, sizeof(mask), &mask) == -1)
-			fprintf(stderr,	"WARNING: Could not set CPU affinity "
-				"to CPU #%d\n", par->cpu);
+			warn("Could not set CPU affinity to CPU #%d\n", par->cpu);
 	}
 
 	interval.tv_sec = par->interval / USEC_PER_SEC;
@@ -778,12 +772,14 @@ static void display_help(int error)
                "-w       --wakeup          task wakeup tracing (used with -b)\n"
                "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n"
                "-y POLI  --policy=POLI     policy of realtime thread (1:FIFO, 2:RR)\n"
-               "                           format: --policy=fifo(default) or --policy=rr\n",
+               "                           format: --policy=fifo(default) or --policy=rr\n"
+	       "-S       --smp             Standard SMP testing (equals -a -t -n -m -d0)\n"
+               "                           same priority on all threads.\n",
 	       tracers
 		);
 	if (error)
-		exit(-1);
-	exit(0);
+		exit(EXIT_FAILURE);
+	exit(EXIT_SUCCESS);
 }
 
 static int use_nanosleep;
@@ -798,6 +794,7 @@ static int quiet;
 static int interval = 1000;
 static int distance = 500;
 static int affinity = 0;
+static int smp = 0;
 
 enum {
 	AFFINITY_UNSPECIFIED,
@@ -899,6 +896,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{"tracer", required_argument, NULL, 'T'},
 			{"traceopt", required_argument, NULL, 'O'},
+			{"smp", no_argument, NULL, 'S'},
 			{NULL, 0, NULL, 0}
 		};
 		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:i:Il:MnNo:O:p:Pmqrst::uvD:wWTy:",
@@ -907,6 +905,10 @@ static void process_options (int argc, char *argv[])
 			break;
 		switch (c) {
 		case 'a':
+			if (smp) {
+				warn("-a ignored due to --smp\n");
+				break;
+			}
 			if (optarg != NULL) {
 				affinity = atoi(optarg);
 				setaffinity = AFFINITY_SPECIFIED;
@@ -942,6 +944,10 @@ static void process_options (int argc, char *argv[])
 		case 'r': timermode = TIMER_RELTIME; break;
 		case 's': use_system = MODE_SYS_OFFSET; break;
 		case 't':
+			if (smp) {
+				warn("-t ignored due to --smp\n");
+				break;
+			}
 			if (optarg != NULL)
 				num_threads = atoi(optarg);
 			else if (optind<argc && atoi(argv[optind]))
@@ -959,6 +965,12 @@ static void process_options (int argc, char *argv[])
                 case 'w': tracetype = WAKEUP; break;
                 case 'W': tracetype = WAKEUPRT; break;
                 case 'y': handlepolicy(optarg); break;
+		case 'S':  /* SMP testing */
+			smp = 1;
+			num_threads = max_cpus;
+			setaffinity = AFFINITY_USEALL;
+			use_nanosleep = MODE_CLOCK_NANOSLEEP;
+			break;
 		case '?': display_help(0); break;
 		}
 	}
@@ -967,7 +979,7 @@ static void process_options (int argc, char *argv[])
 		if (affinity < 0)
 			error = 1;
 		if (affinity >= max_cpus) {
-			fprintf(stderr, "ERROR: CPU #%d not found, only %d CPUs available\n",
+			warn("CPU #%d not found, only %d CPUs available\n",
 			    affinity, max_cpus);
 			error = 1;
 		}
@@ -981,7 +993,7 @@ static void process_options (int argc, char *argv[])
 		error = 1;
 
 	if (oscope_reduction > 1 && !verbose) {
-		fprintf(stderr, "ERROR: -o option only meaningful, if verbose\n");
+		warn("-o option only meaningful, if verbose\n");
 		error = 1;
 	}
 
@@ -1158,7 +1170,7 @@ int main(int argc, char **argv)
 	process_options(argc, argv);
 
 	if (check_privs())
-		exit(-1);
+		exit(EXIT_FAILURE);
 
 	/* lock all memory (prevent paging) */
 	if (lockall)
@@ -1170,12 +1182,12 @@ int main(int argc, char **argv)
 	kernelversion = check_kernel();
 
 	if (kernelversion == KV_NOT_26)
-		fprintf(stderr, "WARNING: Most functions require kernel 2.6\n");
+		warn("Most functions require kernel 2.6\n");
 
 	setup_tracer();
 
 	if (check_timer())
-		fprintf(stderr, "WARNING: High resolution timers not available\n");
+		warn("High resolution timers not available\n");
 
 	mode = use_nanosleep + use_system;
 
@@ -1196,11 +1208,9 @@ int main(int argc, char **argv)
 	for (i = 0; i < num_threads; i++) {
 		if (histogram) {
 			stat[i].hist_array = calloc(histogram, sizeof(long));
-			if (!stat[i].hist_array) {
-				fprintf(stderr, "Cannot allocate enough memory for histogram limit %d: %s",
-						histogram, strerror(errno));
-				exit(EXIT_FAILURE);
-			}
+			if (!stat[i].hist_array)
+				fatal("Cannot allocate enough memory for histogram limit %d: %s",
+				      histogram, strerror(errno));
 		}
 
 		if (verbose) {
@@ -1211,7 +1221,7 @@ int main(int argc, char **argv)
 		}
 
 		par[i].prio = priority;
-		if (priority && !histogram)
+		if (priority && !histogram && !smp)
 			priority--;
                 if      (priority && policy <= 1) par[i].policy = SCHED_FIFO;
                 else if (priority && policy == 2) par[i].policy = SCHED_RR;
@@ -1221,7 +1231,7 @@ int main(int argc, char **argv)
 		par[i].timermode = timermode;
 		par[i].signal = signum;
 		par[i].interval = interval;
-		if (!histogram) /* histogram requires same interval on CPUs*/
+		if (!histogram) /* same interval on CPUs */
 			interval += distance;
 		if (verbose)
 			printf("Thread %d Interval: %d\n", i, interval);
