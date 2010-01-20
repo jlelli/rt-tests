@@ -1178,6 +1178,24 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 	}
 }
 
+void *
+threadalloc(size_t size, int node)
+{
+	if (node == -1)
+		return malloc(size);
+	return numa_alloc_onnode(size, node);
+}
+
+void
+threadfree(void *ptr, size_t size, int node)
+{
+	if (node == -1)
+		free(ptr);
+	else
+		numa_free(ptr, size);
+}			
+
+
 int main(int argc, char **argv)
 {
 	sigset_t sigset;
@@ -1247,74 +1265,55 @@ int main(int argc, char **argv)
 			void *currstk;
 			size_t stksize;
 
-			/* create a stack on the appropriate node for the thread */
+			/* find the memory node associated with the cpu i */
 			if ((node = numa_node_of_cpu(i)) == -1)
 				fatal("invalid cpu passed to numa_node_of_cpu(%d)\n");
 
+			/* get the stack size set for for this thread */
 			if (pthread_attr_getstack(&attr, &currstk, &stksize))
 				fatal("failed to get stack size for thread %d\n", i);
 
+			/* if the stack size is zero, set a default */
 			if (stksize == 0)
 				stksize = PTHREAD_STACK_MIN * 2;
 
+			/*  allocate memory for a stack on the appropriate node */
 			if ((stack = numa_alloc_onnode(stksize, node)) == NULL)
 				fatal("failed to allocate %d bytes on node %d for thread %d\n",
 				      stksize, node, i);
+
+			/* set the thread's stack */
 			if (pthread_attr_setstack(&attr, stack, stksize))
 				fatal("failed to set stack addr for thread %d to 0x%x\n",
 				      i, stack+stksize);
-			/* allocate parameter and statistics structures */
-			par = numa_alloc_onnode(sizeof(struct thread_param), node);
-			if (!par)
-				fatal("error allocating thread param block from node %d for thread %d\n",
-				      node, i);
-			memset(par, 0, sizeof(struct thread_param));
-
-			stat = numa_alloc_onnode(sizeof(struct thread_stat), node);
-			if (!stat)
-				fatal("error allocating thread stat block from node %d for thread %d\n",
-				      node, i);
-			memset(stat, 0, sizeof(struct thread_stat));
-
 		}
 
-		else {
-			par = calloc(1, sizeof(struct thread_param));
-			if (!par)
-				fatal("error allocating thread_param struct for thread %d\n", i);
-			stat = calloc(1, sizeof(struct thread_stat));
-			if (!stat)
-				fatal("error allocating thread status struct for thread %d\n", i);
-		}		
-		parameters[i] = par;
-		statistics[i] = stat;
+		/* allocate the thread's parameter block  */
+		parameters[i] = par = threadalloc(sizeof(struct thread_param), node);
+		if (par == NULL)
+			fatal("error allocating thread_param struct for thread %d\n", i);
+		memset(par, 0, sizeof(struct thread_param));
+
+		/* allocate the thread's statistics block */
+		statistics[i] = stat = threadalloc(sizeof(struct thread_stat), node);
+		if (stat == NULL)
+			fatal("error allocating thread status struct for thread %d\n", i);
+		memset(stat, 0, sizeof(struct thread_stat));
 
 		/* allocate the histogram if requested */
 		if (histogram) {
 			int bufsize = histogram * sizeof(long);
 
-			/* if we're doing numa, then do a node specific allocation */
-			if (numa) {
-				stat->hist_array = numa_alloc_onnode(bufsize, node);
-				if (!stat->hist_array)
-					fatal("failed to allocate histogram of size %d on node %d\n",
-					      histogram, i);
-			}
-			else {
-				stat->hist_array = malloc(bufsize);
-				if (!stat->hist_array)
-					fatal("Cannot allocate enough memory for histogram limit %d: %s",
-					      histogram, strerror(errno));
-			}
+			stat->hist_array = threadalloc(bufsize, node);
+			if (stat->hist_array == NULL)
+				fatal("failed to allocate histogram of size %d on node %d\n",
+				      histogram, i);
 			memset(stat->hist_array, 0, bufsize);
 		}
 
 		if (verbose) {
 			int bufsize = VALBUF_SIZE * sizeof(long);
-			if (numa)
-				stat->values = numa_alloc_onnode(bufsize, node);
-			else
-				stat->values = malloc(bufsize);
+			stat->values = threadalloc(bufsize, node);
 			if (!stat->values)
 				goto outall;
 			memset(stat->values, 0, bufsize);
@@ -1348,7 +1347,6 @@ int main(int argc, char **argv)
 		stat->max = -1000000;
 		stat->avg = 0.0;
 		stat->threadstarted = 1;
-		fprintf(stderr, "creating thread %d\n", i);
 		status = pthread_create(&stat->thread, &attr, timerthread, par);
 		if (status)
 			fatal("failed to create thread %d: %s\n", i, strerror(status));
@@ -1408,21 +1406,14 @@ int main(int argc, char **argv)
 			if (quiet && !histogram)
 				print_stat(parameters[i], i, 0);
 		}
-		if (statistics[i]->values) {
-			if (numa)
-				numa_free(statistics[i]->values, VALBUF_SIZE*sizeof(long));
-		        else
-				free(statistics[i]->values);
-		}
+		if (statistics[i]->values)
+			threadfree(statistics[i]->values, VALBUF_SIZE*sizeof(long), parameters[i]->node);
 	}
 
 	if (histogram) {
 		print_hist(parameters, num_threads);
 		for (i = 0; i < num_threads; i++)
-			if (numa)
-				numa_free(statistics[i]->hist_array, histogram*sizeof(long));
-		        else
-				free (statistics[i]->hist_array);
+			threadfree(statistics[i]->hist_array, histogram*sizeof(long), parameters[i]->node);
 	}
 
 	if (tracelimit) {
@@ -1435,20 +1426,14 @@ int main(int argc, char **argv)
 	for (i=0; i < num_threads; i++) {
 		if (!statistics[i])
 			continue;
-		if (numa)
-			numa_free(statistics[i], sizeof(struct thread_stat));
-		else
-			free(statistics[i]);
+		threadfree(statistics[i], sizeof(struct thread_stat), parameters[i]->node);
 	}
 
  outpar:
 	for (i = 0; i < num_threads; i++) {
 		if (!parameters[i])
 			continue;
-		if (numa)
-			numa_free(parameters[i], sizeof(struct thread_param));
-		else
-			free(parameters[i]);
+		threadfree(parameters[i], sizeof(struct thread_param), parameters[i]->node);
 	}
  out:
 	/* ensure that the tracer is stopped */
