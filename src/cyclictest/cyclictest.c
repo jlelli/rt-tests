@@ -1247,7 +1247,7 @@ int main(int argc, char **argv)
 		goto out;
 	statistics = calloc(num_threads, sizeof(struct thread_stat *));
 	if (!statistics)
-		goto out;
+		goto outpar;
 
 	for (i = 0; i < num_threads; i++) {
 		pthread_attr_t attr;
