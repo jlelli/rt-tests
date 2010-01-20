@@ -31,7 +31,7 @@
 #include <sys/time.h>
 #include <sys/utsname.h>
 #include <sys/mman.h>
-#include <numa.h>
+#include "rt_numa.h"
 
 #include "rt-utils.h"
 
@@ -540,11 +540,8 @@ void *timerthread(void *param)
 	cpu_set_t mask;
 
 	/* if we're running in numa mode, set our memory node */
-	if (par->node != -1) {
-		if (numa_run_on_node(par->node))
-			warn ("Could not set NUMA node %d for thread %d: %s\n", 
-			      par->node, par->cpu, strerror(errno));
-	}
+	if (par->node != -1)
+		rt_numa_set_numa_run_on_node(par->node, par->cpu);
 
 	if (par->cpu != -1) {
 		CPU_ZERO(&mask);
@@ -802,7 +799,6 @@ static int interval = 1000;
 static int distance = 500;
 static int affinity = 0;
 static int smp = 0;
-static int numa = 0;
 
 enum {
 	AFFINITY_UNSPECIFIED,
@@ -985,10 +981,15 @@ static void process_options (int argc, char *argv[])
 		case 'U':  /* NUMA testing */
 			if (smp)
 				fatal("numa and smp options are mutually exclusive\n");
+#ifdef NUMA
 			numa = 1;
 			num_threads = max_cpus;
 			setaffinity = AFFINITY_USEALL;
 			use_nanosleep = MODE_CLOCK_NANOSLEEP;
+#else
+			warn("cyclicteset was not built with the numa option\n");
+			warn("ignoring --numa or -U\n");
+#endif
 			break;
 		case '?': display_help(0); break;
 		}
@@ -1176,24 +1177,6 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 	}
 }
 
-void *
-threadalloc(size_t size, int node)
-{
-	if (node == -1)
-		return malloc(size);
-	return numa_alloc_onnode(size, node);
-}
-
-void
-threadfree(void *ptr, size_t size, int node)
-{
-	if (node == -1)
-		free(ptr);
-	else
-		numa_free(ptr, size);
-}			
-
-
 int main(int argc, char **argv)
 {
 	sigset_t sigset;
@@ -1210,8 +1193,8 @@ int main(int argc, char **argv)
 	if (check_privs())
 		exit(EXIT_FAILURE);
 
-	if (numa && numa_available() == -1)
-		fatal("--numa specified and numa functions not available\n");
+	/* Checks if numa is on, program exits if numa on but not available */
+	numa_on_and_available();
 
 	/* lock all memory (prevent paging) */
 	if (lockall)
@@ -1264,8 +1247,7 @@ int main(int argc, char **argv)
 			size_t stksize;
 
 			/* find the memory node associated with the cpu i */
-			if ((node = numa_node_of_cpu(i)) == -1)
-				fatal("invalid cpu passed to numa_node_of_cpu(%d)\n");
+			node = rt_numa_numa_node_of_cpu(i);
 
 			/* get the stack size set for for this thread */
 			if (pthread_attr_getstack(&attr, &currstk, &stksize))
@@ -1275,10 +1257,8 @@ int main(int argc, char **argv)
 			if (stksize == 0)
 				stksize = PTHREAD_STACK_MIN * 2;
 
-			/*  allocate memory for a stack on the appropriate node */
-			if ((stack = numa_alloc_onnode(stksize, node)) == NULL)
-				fatal("failed to allocate %d bytes on node %d for thread %d\n",
-				      stksize, node, i);
+			/*  allocate memory for a stack on appropriate node */
+			stack = rt_numa_numa_alloc_onnode(stksize, node, i);
 
 			/* set the thread's stack */
 			if (pthread_attr_setstack(&attr, stack, stksize))
