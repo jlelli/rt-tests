@@ -3,7 +3,7 @@ VERSION_STRING = 0.61
 TARGETS	= cyclictest signaltest pi_stress \
 	  hwlatdetect rt-migrate-test ptsematest sigwaittest svsematest \
 	  sendme pip
-LIBS 	= -lpthread -lrt -lnuma
+LIBS 	= -lpthread -lrt
 EXTRA_LIBS ?= -ldl	# for get_cpu
 DESTDIR	?=
 prefix  ?= /usr/local
@@ -17,6 +17,11 @@ ifndef DEBUG
 	CFLAGS	+= -O2
 else
 	CFLAGS	+= -O0 -g
+endif
+
+ifdef NUMA
+	CFLAGS += -DNUMA
+	NUMA_LIBS = -lnuma
 endif
 
 VPATH	= src/cyclictest:
@@ -36,7 +41,7 @@ VPATH	+= src/lib
 all: $(TARGETS)
 
 cyclictest: cyclictest.o rt-utils.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(NUMA_LIBS)
 
 signaltest: signaltest.o rt-utils.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
