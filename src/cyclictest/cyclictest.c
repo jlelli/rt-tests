@@ -523,8 +523,6 @@ parse_time_string(char *val)
  * Clock:
  * - CLOCK_MONOTONIC
  * - CLOCK_REALTIME
- * - CLOCK_MONOTONIC_HR
- * - CLOCK_REALTIME_HR
  *
  */
 void *timerthread(void *param)
@@ -1321,7 +1319,7 @@ int main(int argc, char **argv)
 		}
 
 		par->prio = priority;
-		if (priority && !histogram && !smp)
+		if (priority && !histogram && !smp && !numa)
 			priority--;
                 if      (priority && policy <= 1) par->policy = SCHED_FIFO;
                 else if (priority && policy == 2) par->policy = SCHED_RR;
