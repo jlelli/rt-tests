@@ -3,7 +3,7 @@ VERSION_STRING = 0.61
 TARGETS	= cyclictest signaltest pi_stress \
 	  hwlatdetect rt-migrate-test ptsematest sigwaittest svsematest \
 	  sendme pip
-LIBS 	= -lpthread -lrt
+LIBS 	= -lrt -lpthread
 EXTRA_LIBS ?= -ldl	# for get_cpu
 DESTDIR	?=
 prefix  ?= /usr/local
