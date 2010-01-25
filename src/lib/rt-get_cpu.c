@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2009 John Kacur <jkacur@redhat.com>
+ */
 #include "rt-get_cpu.h"
 #ifdef __NR_getcpu
 #elif defined(__GLIBC__) && defined(__GLIBC_MINOR__)	\
@@ -22,4 +25,3 @@ int get_cpu_setup(void)
 }
 
 #endif
-

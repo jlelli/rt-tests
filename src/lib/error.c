@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2009 John Kacur <jkacur@redhat.com>
+ *
+ * error routines, similar to those found in
+ * Advanced Programming in the UNIX Environment 2nd ed.
+ */
 #include "error.h"
 
 /* Print an error message, plus a message for err and exit with error err */

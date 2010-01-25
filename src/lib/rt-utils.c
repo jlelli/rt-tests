@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2009 Carsten Emde <carsten.emde@osadl.org>
+ * Copyright (C) 2010 Clark Williams <williams@redhat.com>
+ *
+ * based on functions from cyclictest that has
+ * (C) 2008-2009 Clark Williams <williams@redhat.com>
+ * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
