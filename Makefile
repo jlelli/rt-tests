@@ -1,7 +1,7 @@
 VERSION_STRING = 0.61
 
 TARGETS	= cyclictest signaltest pi_stress \
-	  hwlatdetect rt-migrate-test ptsematest sigwaittest svsematest \
+	  rt-migrate-test ptsematest sigwaittest svsematest \
 	  sendme pip
 LIBS 	= -lrt -lpthread
 EXTRA_LIBS ?= -ldl	# for get_cpu
@@ -12,6 +12,8 @@ mandir	?= $(prefix)/share/man
 srcdir	?= $(prefix)/src
 
 CFLAGS = -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/include
+
+PYLIB  := $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 
 ifndef DEBUG
 	CFLAGS	+= -O2
@@ -38,7 +40,7 @@ VPATH	+= src/lib
 	$(CC) -D VERSION_STRING=$(VERSION_STRING) -c $< $(CFLAGS)
 
 .PHONY: all
-all: $(TARGETS)
+all: $(TARGETS) hwlatdetect
 
 cyclictest: cyclictest.o rt-utils.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(NUMA_LIBS)
@@ -93,6 +95,8 @@ install: all
 	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man4"
 	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man8"
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
+	install -m 755 src/hwlatdetect/hwlatdetect.py $(DESTDIR)$(PYLIB)/hwlatdetect.py
+	ln -s $(PYLIB)/hwlatdetect.py "$(DESTDIR)$(bindir)/hwlatdetect"
 	mkdir -p "$(DESTDIR)$(srcdir)/backfire"
 	gzip src/backfire/backfire.4 -c >"$(DESTDIR)$(mandir)/man4/backfire.4.gz"
 	gzip src/cyclictest/cyclictest.8 -c >"$(DESTDIR)$(mandir)/man8/cyclictest.8.gz"
