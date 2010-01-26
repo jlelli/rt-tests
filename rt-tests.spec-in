@@ -20,7 +20,7 @@ of priority-inheritance mutexes.
 %setup -qn rt-tests
 
 %build
-make
+make NUMA=1
 
 %install
 rm -rf $RPM_BUILD_ROOT
