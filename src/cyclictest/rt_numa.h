@@ -8,6 +8,10 @@ static int numa = 0;
 #ifdef NUMA
 #include <numa.h>
 
+#ifndef LIBNUMA_API_VERSION
+#define LIBNUMA_API_VERSION 1
+#endif
+
 static void *
 threadalloc(size_t size, int node)
 {
@@ -43,11 +47,44 @@ static void numa_on_and_available()
 
 static int rt_numa_numa_node_of_cpu(int cpu)
 {
+#if LIBNUMA_API_VERSION >= 2
 	int node;
 	node = numa_node_of_cpu(cpu);
 	if (node == -1)
 		fatal("invalid cpu passed to numa_node_of_cpu(%d)\n", cpu);
 	return node;
+#else
+	unsigned char cpumask[16];
+        int node, ret, idx, bit;
+	int max_node, max_cpus;
+
+	max_node = numa_max_node();
+	max_cpus = sysconf(_SC_NPROCESSORS_CONF);
+
+        if (cpu > max_cpus) {
+                errno = EINVAL;
+                return -1;
+        }
+
+	/* calculate bitmask index and relative bit position of cpu */
+	idx = cpu / 8;
+	bit = cpu % 8;
+
+        for (node = 0; node <= max_node; node++){
+		if (numa_node_to_cpus(node, (void *) cpumask, sizeof(cpumask)))
+			return -1;
+
+		if (cpumask[idx] & (1<<bit)) {
+			ret = node;
+			goto end;
+		}
+        }
+        ret = -1;
+        errno = EINVAL;
+end:
+        return ret;
+
+#endif
 }
 
 static void *rt_numa_numa_alloc_onnode(size_t size, int node, int cpu)
