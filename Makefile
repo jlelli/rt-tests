@@ -1,8 +1,10 @@
 VERSION_STRING = 0.63
 
-TARGETS	= cyclictest signaltest pi_stress \
-	  rt-migrate-test ptsematest sigwaittest svsematest \
-	  sendme pip
+sources = cyclictest.c signaltest.c pi_stress.c rt-migrate-test.c	\
+	  ptsematest.c sigwaittest.c svsematest.c sendme.c pip.c
+
+TARGETS = $(sources:.c=)
+
 LIBS 	= -lrt -lpthread
 EXTRA_LIBS ?= -ldl	# for get_cpu
 DESTDIR	?=
@@ -39,8 +41,18 @@ VPATH	+= src/lib
 %.o: %.c
 	$(CC) -D VERSION_STRING=$(VERSION_STRING) -c $< $(CFLAGS)
 
+# Pattern rule to generate dependency files from .c files
+%.d: %.c
+	@set -e; rm -f $@; \
+	$(CC) -MM $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
 .PHONY: all
 all: $(TARGETS) hwlatdetect
+
+# Include dependency files, automatically generate them if needed.
+-include $(sources:.c=.d)
 
 cyclictest: cyclictest.o rt-utils.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(NUMA_LIBS)
@@ -73,7 +85,7 @@ sendme: sendme.o rt-utils.o rt-get_cpu.o
 pip: pip.o error.o rt-utils.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec
+CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec *.d
 CLEANUP += $(if $(wildcard .git), ChangeLog)
 
 .PHONY: clean
