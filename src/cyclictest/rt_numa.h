@@ -1,3 +1,16 @@
+/*
+ * A numa library for cyclictest.
+ * The functions here are designed to work whether cyclictest has been
+ * compiled with numa support or not, and whether the user uses the --numa
+ * option or not.
+ * They should also work correctly with older versions of the numactl lib
+ * such as the one found on RHEL5, or with the newer version 2 and above.
+ *
+ * (C) 2010 John Kacur <jkacur@redhat.com>
+ * (C) 2010 Clark Williams <williams@redhat.com>
+ *
+ */
+
 #ifndef _RT_NUMA_H
 #define _RT_NUMA_H
 
