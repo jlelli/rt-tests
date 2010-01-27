@@ -40,7 +40,7 @@ threadfree(void *ptr, size_t size, int node)
 		free(ptr);
 	else
 		numa_free(ptr, size);
-}			
+}
 
 static void rt_numa_set_numa_run_on_node(int node, int cpu)
 {
@@ -73,29 +73,29 @@ static int rt_numa_numa_node_of_cpu(int cpu)
 static int rt_numa_numa_node_of_cpu(int cpu)
 {
 	unsigned char cpumask[16];
-        int node, idx, bit;
+	int node, idx, bit;
 	int max_node, max_cpus;
 
 	max_node = numa_max_node();
 	max_cpus = sysconf(_SC_NPROCESSORS_CONF);
 
-        if (cpu > max_cpus) {
-                errno = EINVAL;
-                return -1;
-        }
+	if (cpu > max_cpus) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	/* calculate bitmask index and relative bit position of cpu */
 	idx = cpu / 8;
 	bit = cpu % 8;
 
-        for (node = 0; node <= max_node; node++) {
+	for (node = 0; node <= max_node; node++) {
 		if (numa_node_to_cpus(node, (void *) cpumask, sizeof(cpumask)))
 			return -1;
 
 		if (cpumask[idx] & (1<<bit))
 			return node;
-        }
-        errno = EINVAL;
+	}
+	errno = EINVAL;
 	return -1;
 }
 
@@ -114,10 +114,10 @@ static void *rt_numa_numa_alloc_onnode(size_t size, int node, int cpu)
 #else
 
 static inline void *threadalloc(size_t size, int n) { return malloc(size); }
-static inline void threadfree(void *ptr, size_t s, int n) { free(ptr); } 
+static inline void threadfree(void *ptr, size_t s, int n) { free(ptr); }
 static inline void rt_numa_set_numa_run_on_node(int n, int c) { }
 static inline void numa_on_and_available() { };
-static inline int rt_numa_numa_node_of_cpu(int cpu) { return -1;}
+static inline int rt_numa_numa_node_of_cpu(int cpu) { return -1; }
 static void *rt_numa_numa_alloc_onnode(size_t s, int n, int c) { return NULL; }
 
 #endif	/* NUMA */
