@@ -73,7 +73,7 @@ static int rt_numa_numa_node_of_cpu(int cpu)
 static int rt_numa_numa_node_of_cpu(int cpu)
 {
 	unsigned char cpumask[16];
-        int node, ret, idx, bit;
+        int node, idx, bit;
 	int max_node, max_cpus;
 
 	max_node = numa_max_node();
@@ -88,19 +88,15 @@ static int rt_numa_numa_node_of_cpu(int cpu)
 	idx = cpu / 8;
 	bit = cpu % 8;
 
-        for (node = 0; node <= max_node; node++){
+        for (node = 0; node <= max_node; node++) {
 		if (numa_node_to_cpus(node, (void *) cpumask, sizeof(cpumask)))
 			return -1;
 
-		if (cpumask[idx] & (1<<bit)) {
-			ret = node;
-			goto end;
-		}
+		if (cpumask[idx] & (1<<bit))
+			return node;
         }
-        ret = -1;
         errno = EINVAL;
-end:
-        return ret;
+	return -1;
 }
 
 #endif	/* LIBNUMA_API_VERSION */
