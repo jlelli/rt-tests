@@ -58,15 +58,20 @@ static void numa_on_and_available()
 		fatal("--numa specified and numa functions not available.\n");
 }
 
+#if LIBNUMA_API_VERSION >= 2
 static int rt_numa_numa_node_of_cpu(int cpu)
 {
-#if LIBNUMA_API_VERSION >= 2
 	int node;
 	node = numa_node_of_cpu(cpu);
 	if (node == -1)
 		fatal("invalid cpu passed to numa_node_of_cpu(%d)\n", cpu);
 	return node;
-#else
+}
+
+#else	/* LIBNUMA_API_VERSION == 1 */
+
+static int rt_numa_numa_node_of_cpu(int cpu)
+{
 	unsigned char cpumask[16];
         int node, ret, idx, bit;
 	int max_node, max_cpus;
@@ -96,9 +101,9 @@ static int rt_numa_numa_node_of_cpu(int cpu)
         errno = EINVAL;
 end:
         return ret;
-
-#endif
 }
+
+#endif	/* LIBNUMA_API_VERSION */
 
 static void *rt_numa_numa_alloc_onnode(size_t size, int node, int cpu)
 {
