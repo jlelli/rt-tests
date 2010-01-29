@@ -56,6 +56,13 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/svsematest.8.gz
 
 %changelog
+* Fri Jan 29 2010 Clark Williams <williams@redhat.com> - 0.64-1
+- from John Kacur <jkacur@redhat.com>
+  - automatic dependency generation
+  - style cleanups
+  - libnuma code cleanups
+  - add copyright to rt_numa.h
+
 * Wed Jan 27 2010 Clark Williams <williams@redhat.com> - 0.63-1
 - added support for libnuma V1 API
 
