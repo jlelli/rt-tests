@@ -193,7 +193,8 @@ class Detector(object):
 
     def start(self):
         count = 0
-        debug("enabling detector module")
+        threshold = self.get("threshold")
+        debug("enabling detector module (threshold: %d)" % threshold)
         self.detector.set("enable", 1)
         debug("first attempt at enable")
         while self.detector.get("enable") == 0:
@@ -202,7 +203,10 @@ class Detector(object):
             time.sleep(0.1)
             debug("retrying enable of detector module (%d)" % count)
             self.detector.set("enable", 1)
-        debug("detector module enabled")
+        if self.get("threshold") != threshold:
+            debug("start: threshold reset by start, fixing")
+            self.set("threshold", threshold)
+        debug("detector module enabled (threshold: %d)" % self.get("threshold"))
 
     def stop(self):
         count = 0
@@ -291,10 +295,15 @@ class Smi(object):
         return int(self.debugfs.getval(os.path.join("smi_detector", field)))
 
     def __set(self, field, value):
+        debug("__set: %s <-- %d" % (field, value))
         self.debugfs.putval(os.path.join("smi_detector", field), str(value))
+        if self.__get(field) != value:
+            raise RuntimeError, "Error setting %s to %d (%d)" % (field, value, self.__get(field))
 
     def get(self, field):
         name = Smi.field_translate[field]
+        if name != field:
+            debug("get: %s translated to %s" % (field, name))
         if field == "window":
             return self.get_window()
         elif field == "width":
@@ -307,7 +316,6 @@ class Smi(object):
         interval = ms2us(self.__get('ms_between_samples'))
         return sample + interval
 
-
     def set_window(self, window):
         width = ms2us(int(self.__get('ms_per_sample')))
         interval = window - width
@@ -317,6 +325,8 @@ class Smi(object):
 
     def set(self, field, val):
         name = Smi.field_translate[field]
+        if name != field:
+            debug ("set: %s translated to %s" % (field, name))
         if field == "enable" and val:
             val = 1
         if field == "window":
@@ -334,6 +344,7 @@ class Smi(object):
         self.samples = []
         testend = time.time() + duration
         threshold = self.get("threshold")
+        debug("detect: threshold %d" % threshold)
         pollcnt = 0
         try:
             while time.time() < testend:
@@ -341,7 +352,7 @@ class Smi(object):
                 val = self.get_sample()
                 if int(val) >= threshold:
                     self.samples.append(val.strip())
-                    debug("got a latency sample: %s" % val.strip())
+                    debug("got a latency sample: %s (threshold: %d)" % (val.strip(), self.get("threshold")))
                 time.sleep(0.1)
         except KeyboardInterrupt, e:
             print "interrupted"
