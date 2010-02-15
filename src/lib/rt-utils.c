@@ -53,13 +53,20 @@ char *get_debugfileprefix(void)
 int check_privs(void)
 {
 	int policy = sched_getscheduler(0);
-	struct sched_param param;
+	struct sched_param param, old_param;
 
 	/* if we're already running a realtime scheduler
 	 * then we *should* be able to change things later
 	 */
 	if (policy == SCHED_FIFO || policy == SCHED_RR)
 		return 0;
+
+	/* first get the current parameters */
+	if (sched_getparam(0, &old_param)) {
+		fprintf(stderr, "unable to get scheduler parameters\n");
+		return 1;
+	}
+	param = old_param;
 
 	/* try to change to SCHED_FIFO */
 	param.sched_priority = 1;
@@ -70,9 +77,7 @@ int check_privs(void)
 	}
 
 	/* we're good; change back and return success */
-	param.sched_priority = 0;
-	sched_setscheduler(0, policy, NULL);
-	return 0;
+	return sched_setscheduler(0, policy, &old_param);
 }
 
 void warn(char *fmt, ...)
