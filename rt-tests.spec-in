@@ -56,6 +56,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/svsematest.8.gz
 
 %changelog
+* Mon Feb 15 2010 Clark Williams <williams@redhat.com> - 0.66-1
+- fix incorrect usage of sched_setscheduler in check_privs()
+
 * Mon Feb  8 2010 Clark Williams <williams@redhat.com> - 0.65-1
 - add workaround to hwlatdetect for incorrect initializer in
   smi_detector.ko
