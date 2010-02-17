@@ -1,5 +1,6 @@
 /* Test groups of 20 processes spraying to 20 receivers */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -11,6 +12,11 @@
 #define DATASIZE 100
 static unsigned int loops = 100;
 static int use_pipes = 0;
+
+struct children_pairs {
+        pid_t  sender;
+        pid_t  receiver;
+};
 
 static void barf(const char *msg)
 {
@@ -101,38 +107,43 @@ static void receiver(unsigned int num_packets,
 /* One group of senders and receivers */
 static unsigned int group(unsigned int num_fds,
                           int ready_out,
-                          int wakefd)
+                          int wakefd,
+                          struct children_pairs *childp)
 {
         unsigned int i;
         unsigned int out_fds[num_fds];
 
         for (i = 0; i < num_fds; i++) {
                 int fds[2];
+                pid_t pid = -1;
 
                 /* Create the pipe between client and server */
                 fdpair(fds);
 
                 /* Fork the receiver. */
-                switch (fork()) {
+                switch ((pid = fork())) {
                 case -1: barf("fork()");
                 case 0:
                         close(fds[1]);
                         receiver(num_fds*loops, fds[0], ready_out, wakefd);
                         exit(0);
                 }
-
+                childp->receiver = pid;
                 out_fds[i] = fds[1];
                 close(fds[0]);
         }
 
         /* Now we have all the fds, fork the senders */
         for (i = 0; i < num_fds; i++) {
-                switch (fork()) {
+                pid_t pid = -1;
+
+                switch ((pid = fork())) {
                 case -1: barf("fork()");
                 case 0:
                         sender(num_fds, out_fds, ready_out, wakefd);
                         exit(0);
                 }
+                childp->sender = pid;
         }
 
         /* Close the fds we have left */
@@ -150,6 +161,7 @@ int main(int argc, char *argv[])
         unsigned int num_fds = 20;
         int readyfds[2], wakefds[2];
         char dummy;
+        struct children_pairs *children = NULL;
 
         if (argv[1] && strcmp(argv[1], "-pipe") == 0) {
                 use_pipes = 1;
@@ -163,9 +175,13 @@ int main(int argc, char *argv[])
         fdpair(readyfds);
         fdpair(wakefds);
 
+        children = calloc(num_groups, sizeof(struct children_pairs)+1);
+        if( !children )
+                barf("calloc() for children array");
+
         total_children = 0;
         for (i = 0; i < num_groups; i++)
-                total_children += group(num_fds, readyfds[1], wakefds[0]);
+                total_children += group(num_fds, readyfds[1], wakefds[0], &children[i]);
 
         /* Wait for everyone to be ready */
         for (i = 0; i < total_children; i++)
@@ -179,9 +195,13 @@ int main(int argc, char *argv[])
                 barf("Writing to start them");
 
         /* Reap them all */
-        for (i = 0; i < total_children; i++) {
+        for (i = 0; i < num_groups; i++) {
                 int status;
-                wait(&status);
+                waitpid(children[i].sender, &status, 0);
+                if (!WIFEXITED(status))
+                        exit(1);
+
+                waitpid(children[i].receiver, &status, 0);
                 if (!WIFEXITED(status))
                         exit(1);
         }
@@ -191,5 +211,7 @@ int main(int argc, char *argv[])
         /* Print time... */
         timersub(&stop, &start, &diff);
         printf("Time: %lu.%03lu\n", diff.tv_sec, diff.tv_usec/1000);
+
+        free(children);
         exit(0);
 }
