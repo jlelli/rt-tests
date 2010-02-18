@@ -156,8 +156,8 @@ static unsigned int group(unsigned int num_fds,
         return num_fds * 2;
 }
 
-void reap_children(pid_t *children, unsigned int num_childs, unsigned int dokill) {
-        unsigned int i;
+static unsigned int reap_children(pid_t *children, unsigned int num_childs, unsigned int dokill) {
+        unsigned int i, rc = 0;
 
         for (i = 0; i < num_childs; i++) {
                 int status;
@@ -165,12 +165,15 @@ void reap_children(pid_t *children, unsigned int num_childs, unsigned int dokill
                         kill(children[i], SIGTERM);
                 }
                 waitpid(children[i], &status, 0);
+		if (!WIFEXITED(status))
+			rc++; /* count how many children not exiting "correctly" */
         }
+	return rc;
 }
 
 int main(int argc, char *argv[])
 {
-        unsigned int i, num_groups, total_children;
+        unsigned int i, num_groups, total_children, rc;
         struct timeval start, stop, diff;
         unsigned int num_fds = 20;
         int readyfds[2], wakefds[2];
@@ -217,7 +220,9 @@ int main(int argc, char *argv[])
                 barf("Writing to start them");
 
         /* Reap them all */
-        reap_children(children, total_children, 0);
+        if ((rc = reap_children(children, total_children, 0)) != 0) {
+		printf("%i children did not exit correctly", rc);
+	}
 
         gettimeofday(&stop, NULL);
 
@@ -226,5 +231,5 @@ int main(int argc, char *argv[])
         printf("Time: %lu.%03lu\n", diff.tv_sec, diff.tv_usec/1000);
 
         free(children);
-        exit(0);
+        exit(rc > 0 ? 1 : 0);
 }
