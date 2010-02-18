@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -12,11 +13,6 @@
 #define DATASIZE 100
 static unsigned int loops = 100;
 static int use_pipes = 0;
-
-struct children_pairs {
-        pid_t  sender;
-        pid_t  receiver;
-};
 
 static void barf(const char *msg)
 {
@@ -108,12 +104,14 @@ static void receiver(unsigned int num_packets,
 static unsigned int group(unsigned int num_fds,
                           int ready_out,
                           int wakefd,
-                          struct children_pairs *childp)
+                          pid_t *childpids,
+                          unsigned int childp_offset)
 {
         unsigned int i;
         unsigned int out_fds[num_fds];
+        unsigned int children_started = 0;
 
-        for (i = 0; i < num_fds; i++) {
+        for (i = 0; i < num_fds ; i++) {
                 int fds[2];
                 pid_t pid = -1;
 
@@ -122,13 +120,15 @@ static unsigned int group(unsigned int num_fds,
 
                 /* Fork the receiver. */
                 switch ((pid = fork())) {
-                case -1: barf("fork()");
+                case -1:
+                        return children_started;
                 case 0:
                         close(fds[1]);
                         receiver(num_fds*loops, fds[0], ready_out, wakefd);
                         exit(0);
                 }
-                childp->receiver = pid;
+                childpids[childp_offset + children_started] = pid;
+                children_started++;
                 out_fds[i] = fds[1];
                 close(fds[0]);
         }
@@ -138,12 +138,14 @@ static unsigned int group(unsigned int num_fds,
                 pid_t pid = -1;
 
                 switch ((pid = fork())) {
-                case -1: barf("fork()");
+                case -1:
+                        return children_started;
                 case 0:
                         sender(num_fds, out_fds, ready_out, wakefd);
                         exit(0);
                 }
-                childp->sender = pid;
+                childpids[childp_offset + children_started] = pid;
+                children_started++;
         }
 
         /* Close the fds we have left */
@@ -154,6 +156,18 @@ static unsigned int group(unsigned int num_fds,
         return num_fds * 2;
 }
 
+void reap_children(pid_t *children, unsigned int num_childs, unsigned int dokill) {
+        unsigned int i;
+
+        for (i = 0; i < num_childs; i++) {
+                int status;
+                if( dokill ) {
+                        kill(children[i], SIGTERM);
+                }
+                waitpid(children[i], &status, 0);
+        }
+}
+
 int main(int argc, char *argv[])
 {
         unsigned int i, num_groups, total_children;
@@ -161,7 +175,7 @@ int main(int argc, char *argv[])
         unsigned int num_fds = 20;
         int readyfds[2], wakefds[2];
         char dummy;
-        struct children_pairs *children = NULL;
+        pid_t *children = NULL;
 
         if (argv[1] && strcmp(argv[1], "-pipe") == 0) {
                 use_pipes = 1;
@@ -175,13 +189,21 @@ int main(int argc, char *argv[])
         fdpair(readyfds);
         fdpair(wakefds);
 
-        children = calloc(num_groups, sizeof(struct children_pairs)+1);
+        children = calloc((num_groups * num_fds * 2)+1, sizeof(pid_t)+2);
         if( !children )
                 barf("calloc() for children array");
 
+        /* Start groups of children (num_fds * 2 - sender and receiver processes) */
         total_children = 0;
-        for (i = 0; i < num_groups; i++)
-                total_children += group(num_fds, readyfds[1], wakefds[0], &children[i]);
+        for (i = 0; i < num_groups; i++) {
+                int c = group(num_fds, readyfds[1], wakefds[0], children, total_children);
+                if( c < (num_fds*2) ) {
+                        /* Not all expected children started - kill all children which are alive */
+                        reap_children(children, total_children + c, 1);
+                        barf("fork()");
+                }
+                total_children += c;
+        }
 
         /* Wait for everyone to be ready */
         for (i = 0; i < total_children; i++)
@@ -195,16 +217,7 @@ int main(int argc, char *argv[])
                 barf("Writing to start them");
 
         /* Reap them all */
-        for (i = 0; i < num_groups; i++) {
-                int status;
-                waitpid(children[i].sender, &status, 0);
-                if (!WIFEXITED(status))
-                        exit(1);
-
-                waitpid(children[i].receiver, &status, 0);
-                if (!WIFEXITED(status))
-                        exit(1);
-        }
+        reap_children(children, total_children, 0);
 
         gettimeofday(&stop, NULL);
 
