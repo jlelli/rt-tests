@@ -1,7 +1,8 @@
 VERSION_STRING = 0.66
 
 sources = cyclictest.c signaltest.c pi_stress.c rt-migrate-test.c	\
-	  ptsematest.c sigwaittest.c svsematest.c sendme.c pip.c
+	  ptsematest.c sigwaittest.c svsematest.c sendme.c pip.c	\
+	  hackbench.c
 
 TARGETS = $(sources:.c=)
 
@@ -37,6 +38,7 @@ VPATH	+= src/sigwaittest:
 VPATH	+= src/svsematest:
 VPATH	+= src/backfire:
 VPATH	+= src/lib
+VPATH	+= src/hackbench
 
 %.o: %.c
 	$(CC) -D VERSION_STRING=$(VERSION_STRING) -c $< $(CFLAGS)
@@ -83,6 +85,9 @@ sendme: sendme.o rt-utils.o rt-get_cpu.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
 pip: pip.o error.o rt-utils.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+hackbench: hackbench.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec *.d
