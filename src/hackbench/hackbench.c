@@ -35,7 +35,7 @@ static void fdpair(int fds[2])
 /* Block until we're ready to go */
 static void ready(int ready_out, int wakefd)
 {
-        char dummy;
+        char dummy = '*';
         struct pollfd pollfd = { .fd = wakefd, .events = POLLIN };
 
         /* Tell them we're ready. */
@@ -57,6 +57,7 @@ static void sender(unsigned int num_fds,
         unsigned int i, j;
 
         ready(ready_out, wakefd);
+	memset(&data, '-', DATASIZE);
 
         /* Now pump to every receiver. */
         for (i = 0; i < loops; i++) {
@@ -108,7 +109,7 @@ static unsigned int group(unsigned int num_fds,
                           unsigned int childp_offset)
 {
         unsigned int i;
-        unsigned int out_fds[num_fds];
+        int out_fds[num_fds];
         unsigned int children_started = 0;
 
         for (i = 0; i < num_fds ; i++) {
