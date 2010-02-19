@@ -45,6 +45,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/sendme
 /usr/bin/sigwaittest
 /usr/bin/svsematest
+/usr/bin/hackbench
 %doc
 /usr/share/man/man8/cyclictest.8.gz
 /usr/share/man/man8/pi_stress.8.gz
@@ -56,6 +57,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/svsematest.8.gz
 
 %changelog
+* Fri Feb l9 2010 Clark Williams <williams@redhat.com> - 0.67-1
+- modified specfile to add hackbench
+
 * Mon Feb 15 2010 Clark Williams <williams@redhat.com> - 0.66-1
 - fix incorrect usage of sched_setscheduler in check_privs()
 
