@@ -56,9 +56,13 @@ typedef union {
 	long long error;
 } childinfo_t;
 
+inline static void sneeze(const char *msg) {
+	fprintf(stderr, "%s (error: %s)\n", msg, strerror(errno));
+}
+
 static void barf(const char *msg)
 {
-	fprintf(stderr, "%s (error: %s)\n", msg, strerror(errno));
+	sneeze(msg);
 	exit(1);
 }
 
@@ -165,7 +169,7 @@ childinfo_t create_worker(void *ctx, void *(*func)(void *))
 		/* Fork the sender/receiver child. */
 		switch ((childpid = fork())) {
 			case -1:
-				fprintf(stderr, "fork(): %s\n", strerror(errno));
+				sneeze("fork()");
 				child.error = -1;
 				return child;
 			case 0:
@@ -177,21 +181,21 @@ childinfo_t create_worker(void *ctx, void *(*func)(void *))
 
 	case 0: /* threaded mode */
 		if (pthread_attr_init(&attr) != 0) {
-			fprintf(stderr, "pthread_attr_init: %s\n", strerror(errno));
+			sneeze("pthread_attr_init()");
 			child.error = -1;
 			return child;
 		}
 
 #ifndef __ia64__
 		if (pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN) != 0) {
-			fprintf(stderr, "pthread_attr_setstacksize: %s\n", strerror(errno));
+			sneeze("pthread_attr_setstacksize()");
 			child.error = -1;
 			return child;
 		}
 #endif
 
 		if ((err=pthread_create(&child.threadid, &attr, func, ctx)) != 0) {
-			fprintf(stderr, "pthread_create failed: %s (%d)\n", strerror(err), err);
+			sneeze("pthread_create failed()");
 			child.error = -1;
 			return child;
 		}
@@ -223,7 +227,7 @@ unsigned int reap_workers(childinfo_t *child, unsigned int totchld, unsigned int
 			}
 			err = pthread_join(child[i].threadid, &thr_status);
 			if( err != 0 ) {
-				fprintf(stderr, "pthread_join(): %s\n", strerror(err));
+				sneeze("pthread_join()");
 				rc++;
 			}
 			break;
@@ -244,7 +248,7 @@ static unsigned int group(childinfo_t *child,
 			+num_fds*sizeof(int));
 
 	if (!snd_ctx) {
-		fprintf(stderr, "** malloc() error (sender ctx): %s\n", strerror(errno));
+		sneeze("malloc() [sender ctx]");
 		return 0;
 	}
 
@@ -254,7 +258,7 @@ static unsigned int group(childinfo_t *child,
 		struct receiver_context* ctx = malloc (sizeof(*ctx));
 
 		if (!ctx) {
-			fprintf(stderr, "** malloc() error (receiver ctx): %s\n", strerror(errno));
+			sneeze("malloc() [receiver ctx]");
 			return (i > 0 ? i-1 : 0);
 		}
 
@@ -344,12 +348,8 @@ int main(int argc, char *argv[])
 	total_children = 0;
 	for (i = 0; i < num_groups; i++) {
 		int c = group(child_tab, total_children, num_fds, readyfds[1], wakefds[0]);
-		if( c > (num_fds*2) ) {
-			reap_workers(child_tab, total_children, 1);
-			fprintf(stderr, "%i children started?!?!?  Expected %i\n", c, num_fds*2);
-			barf("Creating workers");
-		}
-		if( c < (num_fds*2) ) {
+		if( c != (num_fds*2) ) {
+			fprintf(stderr, "%i children started.  Expected %i\n", c, num_fds*2);
 			reap_workers(child_tab, total_children + c, 1);
 			barf("Creating workers");
 		}
@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 	/* Kick them off */
 	if (write(wakefds[1], &dummy, 1) != 1) {
 		reap_workers(child_tab, total_children, 1);
-		barf("Writing to start them");
+		barf("Writing to start senders");
 	}
 
 	/* Reap them all */
