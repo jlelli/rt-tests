@@ -26,6 +26,7 @@
 #include <sys/poll.h>
 #include <limits.h>
 #include <getopt.h>
+#include <signal.h>
 
 static unsigned int datasize = 100;
 static unsigned int loops = 100;
@@ -60,8 +61,17 @@ typedef union {
 	long long error;
 } childinfo_t;
 
+childinfo_t *child_tab = NULL;
+unsigned int total_children = 0;
+unsigned int signal_caught = 0;
+
 inline static void sneeze(const char *msg) {
-	fprintf(stderr, "%s (error: %s)\n", msg, strerror(errno));
+	/* Avoid calling these functions when called from a code path
+	 * which involves sigcatcher(), as they are not reentrant safe.
+	 */
+	if( !signal_caught ) {
+		fprintf(stderr, "%s (error: %s)\n", msg, strerror(errno));
+	}
 }
 
 static void barf(const char *msg)
@@ -385,15 +395,22 @@ static void process_options (int argc, char *argv[])
 	}
 }
 
-
+void sigcatcher(int sig) {
+	/* All caught signals will cause the program to exit */
+	signal_caught = 1;
+	if( child_tab && (total_children > 0) ) {
+		reap_workers(child_tab, total_children, 1);
+	}
+	fprintf(stderr, "** Operation aborted **\n");
+	exit(0);
+}
 
 int main(int argc, char *argv[])
 {
-	unsigned int i, total_children;
+	unsigned int i;
 	struct timeval start, stop, diff;
 	int readyfds[2], wakefds[2];
 	char dummy;
-	childinfo_t *child_tab;
 
 	process_options (argc, argv);
 
@@ -403,12 +420,17 @@ int main(int argc, char *argv[])
 	printf("Each sender will pass %d messages of %d bytes\n", loops, datasize);
 	fflush(NULL);
 
-	child_tab = malloc(num_fds * 2 * num_groups * sizeof(childinfo_t));
+	child_tab = calloc(num_fds * 2 * num_groups, sizeof(childinfo_t));
 	if (!child_tab)
 		barf("main:malloc()");
 
 	fdpair(readyfds);
 	fdpair(wakefds);
+
+	/* Catch some signals */
+	signal(SIGINT, sigcatcher);
+	signal(SIGTERM, sigcatcher);
+	signal(SIGHUP, SIG_IGN);
 
 	total_children = 0;
 	for (i = 0; i < num_groups; i++) {
