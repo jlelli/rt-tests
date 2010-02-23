@@ -25,9 +25,13 @@
 #include <sys/time.h>
 #include <sys/poll.h>
 #include <limits.h>
+#include <getopt.h>
 
-#define DATASIZE 100
+static unsigned int datasize = 100;
 static unsigned int loops = 100;
+static unsigned int num_groups = 10;
+static unsigned int num_fds = 20;
+
 /*
  * 0 means thread mode and others mean process (default)
  */
@@ -68,7 +72,9 @@ static void barf(const char *msg)
 
 static void print_usage_exit()
 {
-	printf("Usage: hackbench [-pipe] <num groups> [process|thread] [loops]\n");
+	printf("Usage: hackbench [-p|--pipe] [-s|--datasize <bytes>] [-l|--loops <num loops>]\n"
+	       "\t\t [-g|--groups <num groups] [-f|--fds <num fds>]\n"
+	       "\t\t [-T|--threads] [-P|--process] [--help]\n");
 	exit(1);
 }
 
@@ -102,11 +108,11 @@ static void ready(int ready_out, int wakefd)
 /* Sender sprays loops messages down each file descriptor */
 static void *sender(struct sender_context *ctx)
 {
-	char data[DATASIZE];
+	char data[datasize];
 	unsigned int i, j;
 
 	ready(ctx->ready_out, ctx->wakefd);
-	memset(&data, '-', DATASIZE);
+	memset(&data, '-', datasize);
 
 	/* Now pump to every receiver. */
 	for (i = 0; i < loops; i++) {
@@ -140,15 +146,15 @@ static void *receiver(struct receiver_context* ctx)
 
 	/* Receive them all */
 	for (i = 0; i < ctx->num_packets; i++) {
-		char data[DATASIZE];
+		char data[datasize];
 		int ret, done = 0;
 
 again:
-		ret = read(ctx->in_fds[0], data + done, DATASIZE - done);
+		ret = read(ctx->in_fds[0], data + done, datasize - done);
 		if (ret < 0)
 			barf("SERVER: read");
 		done += ret;
-		if (done < DATASIZE)
+		if (done < datasize)
 			goto again;
 	}
 	if (ctx) {
@@ -302,43 +308,102 @@ static unsigned int group(childinfo_t *child,
 	return num_fds * 2;
 }
 
+static void process_options (int argc, char *argv[])
+{
+	int error = 0;
+
+	while( 1 ) {
+		int optind = 0;
+
+		static struct option longopts[] = {
+			{"pipe",      no_argument,	 NULL, 'p'},
+			{"datasize",  required_argument, NULL, 's'},
+			{"loops",     required_argument, NULL, 'l'},
+			{"groups",    required_argument, NULL, 'g'},
+			{"fds",	      required_argument, NULL, 'f'},
+			{"threads",   no_argument,	 NULL, 'T'},
+			{"processes", no_argument,	 NULL, 'P'},
+			{"help",      no_argument,	 NULL, 'h'},
+			{NULL, 0, NULL, 0}
+		};
+
+		int c = getopt_long(argc, argv, "ps:l:g:f:TPh",
+				    longopts, &optind);
+		if (c == -1) {
+			break;
+		}
+		switch (c) {
+		case 'p':
+			use_pipes = 1;
+			break;
+
+		case 's':
+			if (!(argv[optind] && (datasize = atoi(optarg)) > 0)) {
+				fprintf(stderr, "%s: --datasize|-s requires an integer > 0\n", argv[0]);
+				error = 1;
+			}
+			break;
+
+		case 'l':
+			if (!(argv[optind] && (loops = atoi(optarg)) > 0)) {
+				fprintf(stderr, "%s: --loops|-l requires an integer > 0\n", argv[0]);
+				error = 1;
+			}
+			break;
+
+		case 'g':
+			if (!(argv[optind] && (num_groups = atoi(optarg)) > 0)) {
+				fprintf(stderr, "%s: --groups|-g requires an integer > 0\n", argv[0]);
+				error = 1;
+			}
+			break;
+
+		case 'f':
+			if (!(argv[optind] && (num_fds = atoi(optarg)) > 0)) {
+				fprintf(stderr, "%s: --fds|-f requires an integer > 0\n", argv[0]);
+				error = 1;
+			}
+			break;
+
+		case 'T':
+			process_mode = 0;
+			break;
+		case 'P':
+			process_mode = 1;
+			break;
+
+		case 'h':
+			print_usage_exit();
+
+		default:
+			error = 1;
+		}
+	}
+
+	if( error ) {
+		exit(1);
+	}
+}
+
+
+
 int main(int argc, char *argv[])
 {
-	unsigned int i, num_groups = 10, total_children;
+	unsigned int i, total_children;
 	struct timeval start, stop, diff;
-	unsigned int num_fds = 20;
 	int readyfds[2], wakefds[2];
 	char dummy;
 	childinfo_t *child_tab;
 
-	if (argv[1] && strcmp(argv[1], "-pipe") == 0) {
-		use_pipes = 1;
-		argc--;
-		argv++;
-	}
+	process_options (argc, argv);
 
-	if (argc >= 2 && (num_groups = atoi(argv[1])) == 0)
-		print_usage_exit();
-
-	printf("Running with %d*40 (== %d) tasks.\n",
-		num_groups, num_groups*40);
-
+	printf("Running in %s mode with %d groups using %d file descriptors each (== %d tasks)\n",
+	       (process_mode == 0 ? "threaded" : "process"),
+	       num_groups, 2*num_fds, num_groups*(num_fds*2));
+	printf("Each sender will pass %d messages of %d bytes\n", loops, datasize);
 	fflush(NULL);
 
-	if (argc > 2) {
-		if ( !strcmp(argv[2], "process") )
-			process_mode = 1;
-		else if ( !strcmp(argv[2], "thread") )
-			process_mode = 0;
-		else
-			print_usage_exit();
-	}
-
-	if (argc > 3)
-		loops = atoi(argv[3]);
-
 	child_tab = malloc(num_fds * 2 * num_groups * sizeof(childinfo_t));
-
 	if (!child_tab)
 		barf("main:malloc()");
 
