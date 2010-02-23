@@ -1,2 +1,2 @@
 hackbench: hackbench.c
-	$(CC) $(CFLAGS) -o hackbench hackbench.c -g -Wall
+	$(CC) $(CFLAGS) -o hackbench hackbench.c -g -Wall -lpthread
