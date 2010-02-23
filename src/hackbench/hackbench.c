@@ -52,7 +52,7 @@ struct receiver_context {
 
 typedef union {
 	pthread_t threadid;
-	pid_t     pid;
+	pid_t	  pid;
 	long long error;
 } childinfo_t;
 
@@ -106,7 +106,7 @@ static void *sender(struct sender_context *ctx)
 	unsigned int i, j;
 
 	ready(ctx->ready_out, ctx->wakefd);
-        memset(&data, '-', DATASIZE);
+	memset(&data, '-', DATASIZE);
 
 	/* Now pump to every receiver. */
 	for (i = 0; i < loops; i++) {
