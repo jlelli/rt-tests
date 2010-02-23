@@ -147,7 +147,9 @@ again:
 		if (done < DATASIZE)
 			goto again;
 	}
-
+	if (ctx) {
+		free(ctx);
+	}
 	return NULL;
 }
 
