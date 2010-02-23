@@ -1,0 +1,70 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH HACKBENCH 8 "febrary  23, 2010"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+hackbench \- scheduler benchmark/stress test
+.SH SYNOPSIS
+.B hackbench
+.RI "[ -p|--pipe ] [ -s|--datasize " <bytes> " ] [ -l|--loops " <num loops> " ] " \
+"		  [ -g|--groups " <num groups " ] [ -f|--fds " <num fds> " ] " \
+"		  [ -T|--threads ] [ -P|--process ] [ --help  "]
+
+.\" .SH DESCRIPTION
+.\" This manual page documents briefly the
+.\" .B hackbench commands.
+.\" .PP
+.\" \fI<whatever>\fP escape sequences to invode bold face and italics, respectively.
+.\" \fBhackbench\fP is a program that...
+.SH DESCRIPTION
+Hackbench is both a benchmark and a stress test for the Linux kernel
+scheduler. It's main job is to create a specified number of pairs of
+schedulable entities (either threads or traditional processes) which
+communicate via either sockets or pipes and time how long it takes for
+each pair to send data back and forth.
+
+.SH OPTIONS
+These programs follow the usual GNU command line syntax, with long
+options starting with two dashes ('\-\-').
+.br
+A summary of options is included below.
+.TP
+.B \-p, \-\-pipe 
+.TP
+.B \-s, \-\-datasize=<size in bytes>
+.TP
+.B \-l, \-\-loops=<number of loops>
+.TP
+.B \-g, \-\-groups=<number of groups>
+.TP
+.B \-f, \-\-fds=<number of file descriptors>
+.TP
+.B \-T, \-\-threads
+.TP
+.B \-P, \-\-process
+.TP
+.B \-\-help
+.TP
+
+.\" .SH SEE ALSO
+.\" .BR bar (1),
+.\" .BR baz (1).
+.\" .br
+.\" The programs are documented fully by
+.\" .IR "The Rise and Fall of a Fooish Bar" ,
+.\" available via the Info system.
+.SH AUTHOR
+hackbench was written by Thomas Gleixner <tglx@linuxtronix.de>.
+.PP
+This manual page was written by Alessio Igor Bogani <abogani@texware.it>,
+for the Debian project (but may be used by others).
