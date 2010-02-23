@@ -1,4 +1,3 @@
-
 /*
  * This is the latest version of hackbench.c, that tests scheduler and
  * unix-socket (or pipe) performance.
@@ -7,75 +6,11 @@
  *
  * Build it with:
  *   gcc -g -Wall -O2 -o hackbench hackbench.c -lpthread
+ *
+ * Downloaded from http://people.redhat.com/mingo/cfs-scheduler/tools/hackbench.c
+ * February 19 2010.
+ *
  */
-#if 0
-
-Date: Fri, 04 Jan 2008 14:06:26 +0800
-From: "Zhang, Yanmin" <yanmin_zhang@linux.intel.com>
-To: LKML <linux-kernel@vger.kernel.org>
-Subject: Improve hackbench
-Cc: Ingo Molnar <mingo@elte.hu>, Arjan van de Ven <arjan@infradead.org>
-
-hackbench tests the Linux scheduler. The original program is at 
-http://devresources.linux-foundation.org/craiger/hackbench/src/hackbench.c
-Based on this multi-process version, a nice person created a multi-thread
-version. Pls. see
-http://www.bullopensource.org/posix/pi-futex/hackbench_pth.c
-
-When I integrated them into my automation testing system, I found
-a couple of issues and did some improvements.
-
-1) Merge hackbench: I integrated hackbench_pth.c into hackbench and added a
-new parameter which can be used to choose process mode or thread mode. The
-default mode is process.
-
-2) It runs too fast and ends in a couple of seconds. Sometimes it's too hard to debug
-the issues. On my ia64 Montecito machines, the result looks weird when comparing
-process mode and thread mode.
-I want a stable result and hope the testing could run for a stable longer time, so I
-might use performance tools to debug issues.
-I added another new parameter,`loops`, which can be used to change variable loops,
-so more messages will be passed from writers to receivers. Parameter 'loops' is equal to
-100 by default.
-
-For example on my 8-core x86_64:
-[ymzhang@lkp-st01-x8664 hackbench]$ uname -a
-Linux lkp-st01-x8664 2.6.24-rc6 #1 SMP Fri Dec 21 08:32:31 CST 2007 x86_64 x86_64 x86_64 GNU/Linux
-[ymzhang@lkp-st01-x8664 hackbench]$ ./hackbench 
-Usage: hackbench [-pipe] <num groups> [process|thread] [loops]
-[ymzhang@lkp-st01-x8664 hackbench]$ ./hackbench 150 process 1000
-Time: 151.533
-[ymzhang@lkp-st01-x8664 hackbench]$ ./hackbench 150 thread 1000
-Time: 153.666
-
-
-With the same new parameters, I did captured the SLUB issue discussed on LKML recently.
-
-3) hackbench_pth.c will fail on ia64 machine because pthread_attr_setstacksize always
-fails if the stack size is less than 196*1024. I moved this statement within a __ia64__ check.
-
-
-This new program could be compiled with command line:
-#gcc -g -Wall  -o hackbench hackbench.c -lpthread
-
-
-Thank Ingo for his great comments!
-
--yanmin
-
----
-
-* Nathan Lynch <ntl@pobox.com> wrote:
-
-> Here's a fixlet for the hackbench program found at
->
-> http://people.redhat.com/mingo/cfs-scheduler/tools/hackbench.c
->
-> When redirecting hackbench output I am seeing multiple copies of the
-> "Running with %d*40 (== %d) tasks" line.  Need to flush the buffered
-> output before forking.
-
-#endif
 
 /* Test groups of 20 processes spraying to 20 receivers */
 #include <pthread.h>
@@ -115,6 +50,12 @@ struct receiver_context {
 };
 
 
+typedef union {
+	pthread_t threadid;
+	pid_t     pid;
+	long long error;
+} childinfo_t;
+
 static void barf(const char *msg)
 {
 	fprintf(stderr, "%s (error: %s)\n", msg, strerror(errno));
@@ -142,7 +83,7 @@ static void fdpair(int fds[2])
 /* Block until we're ready to go */
 static void ready(int ready_out, int wakefd)
 {
-	char dummy;
+	char dummy = '*';
 	struct pollfd pollfd = { .fd = wakefd, .events = POLLIN };
 
 	/* Tell them we're ready. */
@@ -161,6 +102,7 @@ static void *sender(struct sender_context *ctx)
 	unsigned int i, j;
 
 	ready(ctx->ready_out, ctx->wakefd);
+        memset(&data, '-', DATASIZE);
 
 	/* Now pump to every receiver. */
 	for (i = 0; i < loops; i++) {
@@ -209,72 +151,110 @@ again:
 	return NULL;
 }
 
-pthread_t create_worker(void *ctx, void *(*func)(void *))
+childinfo_t create_worker(void *ctx, void *(*func)(void *))
 {
 	pthread_attr_t attr;
-	pthread_t childid;
 	int err;
+	childinfo_t child;
+	pid_t childpid;
 
-	if (process_mode) {
-		/* process mode */
-		/* Fork the receiver. */
-		switch (fork()) {
-			case -1: barf("fork()");
+	switch (process_mode) {
+	case 1: /* process mode */
+		/* Fork the sender/receiver child. */
+		switch ((childpid = fork())) {
+			case -1:
+				fprintf(stderr, "fork(): %s\n", strerror(errno));
+				child.error = -1;
+				return child;
 			case 0:
 				(*func) (ctx);
 				exit(0);
 		}
+		child.pid = childpid;
+		break;
 
-		return (pthread_t) 0;
-	}
-
-	if (pthread_attr_init(&attr) != 0)
-		barf("pthread_attr_init:");
+	case 0: /* threaded mode */
+		if (pthread_attr_init(&attr) != 0) {
+			fprintf(stderr, "pthread_attr_init: %s\n", strerror(errno));
+			child.error = -1;
+			return child;
+		}
 
 #ifndef __ia64__
-	if (pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN) != 0)
-		barf("pthread_attr_setstacksize");
+		if (pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN) != 0) {
+			fprintf(stderr, "pthread_attr_setstacksize: %s\n", strerror(errno));
+			child.error = -1;
+			return child;
+		}
 #endif
 
-	if ((err=pthread_create(&childid, &attr, func, ctx)) != 0) {
-		fprintf(stderr, "pthread_create failed: %s (%d)\n", strerror(err), err);
-		exit(-1);
+		if ((err=pthread_create(&child.threadid, &attr, func, ctx)) != 0) {
+			fprintf(stderr, "pthread_create failed: %s (%d)\n", strerror(err), err);
+			child.error = -1;
+			return child;
+		}
+		break;
 	}
-	return (childid);
+	return child;
 }
 
-void reap_worker(pthread_t id)
+unsigned int reap_workers(childinfo_t *child, unsigned int totchld, unsigned int dokill)
 {
-	int status;
+	unsigned int i, rc = 0;
+	int status, err;
+	void *thr_status;
 
-	if (process_mode) {
-		/* process mode */
-		wait(&status);
-		if (!WIFEXITED(status))
-			exit(1);
-	} else {
-		void *status;
-
-		pthread_join(id, &status);
+	for( i = 0; i < totchld; i++ ) {
+		switch( process_mode ) {
+		case 1: /* process mode */
+			if( dokill ) {
+				kill(child[i].pid, SIGTERM);
+			}
+			fflush(stdout);
+			waitpid(child[i].pid, &status, 0);
+			if (!WIFEXITED(status))
+				rc++;
+			break;
+		case 0: /* threaded mode */
+			if( dokill ) {
+				pthread_kill(child[i].threadid, SIGTERM);
+			}
+			err = pthread_join(child[i].threadid, &thr_status);
+			if( err != 0 ) {
+				fprintf(stderr, "pthread_join(): %s\n", strerror(err));
+				rc++;
+			}
+			break;
+		}
 	}
+	return rc;
 }
 
 /* One group of senders and receivers */
-static unsigned int group(pthread_t *pth,
-		unsigned int num_fds,
-		int ready_out,
-		int wakefd)
+static unsigned int group(childinfo_t *child,
+			  unsigned int tab_offset,
+			  unsigned int num_fds,
+			  int ready_out,
+			  int wakefd)
 {
 	unsigned int i;
 	struct sender_context* snd_ctx = malloc (sizeof(struct sender_context)
 			+num_fds*sizeof(int));
 
+	if (!snd_ctx) {
+		fprintf(stderr, "** malloc() error (sender ctx): %s\n", strerror(errno));
+		return 0;
+	}
+
+
 	for (i = 0; i < num_fds; i++) {
 		int fds[2];
 		struct receiver_context* ctx = malloc (sizeof(*ctx));
 
-		if (!ctx)
-			barf("malloc()");
+		if (!ctx) {
+			fprintf(stderr, "** malloc() error (receiver ctx): %s\n", strerror(errno));
+			return (i > 0 ? i-1 : 0);
+		}
 
 
 		/* Create the pipe between client and server */
@@ -286,8 +266,10 @@ static unsigned int group(pthread_t *pth,
 		ctx->ready_out = ready_out;
 		ctx->wakefd = wakefd;
 
-		pth[i] = create_worker(ctx, (void *)(void *)receiver);
-
+		child[tab_offset+i] = create_worker(ctx, (void *)(void *)receiver);
+		if( child[tab_offset+i].error < 0 ) {
+			return (i > 0 ? i-1 : 0);
+		}
 		snd_ctx->out_fds[i] = fds[1];
 		if (process_mode)
 			close(fds[0]);
@@ -299,7 +281,10 @@ static unsigned int group(pthread_t *pth,
 		snd_ctx->wakefd = wakefd;
 		snd_ctx->num_fds = num_fds;
 
-		pth[num_fds+i] = create_worker(snd_ctx, (void *)(void *)sender);
+		child[tab_offset+num_fds+i] = create_worker(snd_ctx, (void *)(void *)sender);
+		if( child[tab_offset+num_fds+i].error < 0 ) {
+			return (num_fds+i)-1;
+		}
 	}
 
 	/* Close the fds we have left */
@@ -318,7 +303,7 @@ int main(int argc, char *argv[])
 	unsigned int num_fds = 20;
 	int readyfds[2], wakefds[2];
 	char dummy;
-	pthread_t *pth_tab;
+	childinfo_t *child_tab;
 
 	if (argv[1] && strcmp(argv[1], "-pipe") == 0) {
 		use_pipes = 1;
@@ -346,39 +331,52 @@ int main(int argc, char *argv[])
 	if (argc > 3)
 		loops = atoi(argv[3]);
 
-	pth_tab = malloc(num_fds * 2 * num_groups * sizeof(pthread_t));
+	child_tab = malloc(num_fds * 2 * num_groups * sizeof(childinfo_t));
 
-	if (!pth_tab)
+	if (!child_tab)
 		barf("main:malloc()");
 
 	fdpair(readyfds);
 	fdpair(wakefds);
 
 	total_children = 0;
-	for (i = 0; i < num_groups; i++)
-		total_children += group(pth_tab+total_children, num_fds, readyfds[1], wakefds[0]);
+	for (i = 0; i < num_groups; i++) {
+		int c = group(child_tab, total_children, num_fds, readyfds[1], wakefds[0]);
+		if( c > (num_fds*2) ) {
+			reap_workers(child_tab, total_children, 1);
+			fprintf(stderr, "%i children started?!?!?  Expected %i\n", c, num_fds*2);
+			barf("Creating workers");
+		}
+		if( c < (num_fds*2) ) {
+			reap_workers(child_tab, total_children + c, 1);
+			barf("Creating workers");
+		}
+		total_children += c;
+	}
 
 	/* Wait for everyone to be ready */
 	for (i = 0; i < total_children; i++)
-		if (read(readyfds[0], &dummy, 1) != 1)
+		if (read(readyfds[0], &dummy, 1) != 1) {
+			reap_workers(child_tab, total_children, 1);
 			barf("Reading for readyfds");
+		}
 
 	gettimeofday(&start, NULL);
 
 	/* Kick them off */
-	if (write(wakefds[1], &dummy, 1) != 1)
+	if (write(wakefds[1], &dummy, 1) != 1) {
+		reap_workers(child_tab, total_children, 1);
 		barf("Writing to start them");
+	}
 
 	/* Reap them all */
-	for (i = 0; i < total_children; i++)
-		reap_worker(pth_tab[i]);
+	reap_workers(child_tab, total_children, 0);
 
 	gettimeofday(&stop, NULL);
 
 	/* Print time... */
 	timersub(&stop, &start, &diff);
 	printf("Time: %lu.%03lu\n", diff.tv_sec, diff.tv_usec/1000);
+	free(child_tab);
 	exit(0);
 }
-
-
