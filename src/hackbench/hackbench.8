@@ -46,12 +46,26 @@ Hackbench will use fork() on all children (default behaviour)
 .B \-\-help
 .br 
 Shows a simple help screen
-.\".TP 
-
-.\" 
 .SH "AUTHORS"
-hackbench was written by Rusty Russell <rusty@rustcorp.com.au>, with contributions
-from Craig Thomas, Ingo Molnar <mingo@elte.hu> and David Sommerseth <davids@redhat.com>
+.LP 
+hackbench was written by Rusty Russell <rusty@rustcorp.com.au>
+with contributions from Craig Thomas, Yanmin Zhang 
+.br 
+<yanmin_zhang@linux.intel.com>,
+Ingo Molnar <mingo@elte.hu> and David Sommerseth <davids@redhat.com>
 
 This manual page was written by Clark Williams <williams@redhat.com> 
 and David Sommerseth <davids@redhat.com>
+.SH "HISTORY"
+This version of hackbench is based on the code downloaded from http://people.redhat.com/mingo/cfs\-scheduler/tools/hackbench.c. 
+Yanmin Zhang merged the original hackbench code from
+.br 
+http://devresources.linuxfoundation.org/craiger/hackbench/src/hackbench.c
+which uses fork() and a modified version from
+.br 
+http://www.bullopensource.org/posix/pi\-futex/hackbench_pth.c
+which uses pthread only and gave the possibility to change 
+behaviour at run time.  Hackbench have since then gone through some
+more rewriting to improve error handling and proper tracking of fork()ed
+children, to avoid leaving zombies on the system if hackbench stops
+unexpectedly.
