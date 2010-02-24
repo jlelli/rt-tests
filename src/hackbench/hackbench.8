@@ -1,70 +1,57 @@
-.\"                                      Hey, EMACS: -*- nroff -*-
-.TH HACKBENCH 8 "febrary  23, 2010"
-.\" Please adjust this date whenever revising the manpage.
-.\"
-.\" Some roff macros, for reference:
-.\" .nh        disable hyphenation
-.\" .hy        enable hyphenation
-.\" .ad l      left justify
-.\" .ad b      justify to both left and right margins
-.\" .nf        disable filling
-.\" .fi        enable filling
-.\" .br        insert line break
-.\" .sp <n>    insert n+1 empty lines
-.\" for manpage-specific macros, see man(7)
-.SH NAME
+.TH "hackbench" "8" "February  23, 2010" "" ""
+.SH "NAME"
 hackbench \- scheduler benchmark/stress test
-.SH SYNOPSIS
+.SH "SYNOPSIS"
 .B hackbench
-.RI "[ -p|--pipe ] [ -s|--datasize " <bytes> " ] [ -l|--loops " <num loops> " ] " \
-"		  [ -g|--groups " <num groups " ] [ -f|--fds " <num fds> " ] " \
-"		  [ -T|--threads ] [ -P|--process ] [ --help  "]
+.RI "[\-p|\-\-pipe] [\-s|\-\-datasize " <bytes> "] " 
+.RI "[\-l|\-\-loops " <num\-loops> "] "
+.RI "[\-g|\-\-groups "<num\-groups> "] "
+.RI "[\-f|\-\-fds <num\-fds>] "
+.RI "[\-T|\-\-threads] [\-P|\-\-process] [\-\-help]"
 
-.\" .SH DESCRIPTION
-.\" This manual page documents briefly the
-.\" .B hackbench commands.
-.\" .PP
-.\" \fI<whatever>\fP escape sequences to invode bold face and italics, respectively.
-.\" \fBhackbench\fP is a program that...
-.SH DESCRIPTION
+.SH "DESCRIPTION"
 Hackbench is both a benchmark and a stress test for the Linux kernel
 scheduler. It's main job is to create a specified number of pairs of
 schedulable entities (either threads or traditional processes) which
 communicate via either sockets or pipes and time how long it takes for
 each pair to send data back and forth.
 
-.SH OPTIONS
+.SH "OPTIONS"
 These programs follow the usual GNU command line syntax, with long
-options starting with two dashes ('\-\-').
-.br
+options starting with two dashes ("\-\-").
+.br 
 A summary of options is included below.
-.TP
-.B \-p, \-\-pipe 
-.TP
+.TP 
+.B \-p, \-\-pipe
+Sends the data via a pipe instead of the socket (default)
+.TP 
 .B \-s, \-\-datasize=<size in bytes>
-.TP
+Sets the amount of data to send in each message
+.TP 
 .B \-l, \-\-loops=<number of loops>
-.TP
+How many messages each sender/receiver pair should send
+.TP 
 .B \-g, \-\-groups=<number of groups>
-.TP
+Defines how many groups of senders and receivers should be started
+.TP 
 .B \-f, \-\-fds=<number of file descriptors>
-.TP
+Defines how many file descriptors each group of senders and receivers should use
+.TP 
 .B \-T, \-\-threads
-.TP
+Each sender/receiver child will be a POSIX thread of the parent.
+.TP 
 .B \-P, \-\-process
-.TP
+Hackbench will use fork() on all children (default behaviour)
+.TP 
 .B \-\-help
-.TP
+.br 
+Shows a simple help screen
+.\".TP 
 
-.\" .SH SEE ALSO
-.\" .BR bar (1),
-.\" .BR baz (1).
-.\" .br
-.\" The programs are documented fully by
-.\" .IR "The Rise and Fall of a Fooish Bar" ,
-.\" available via the Info system.
-.SH AUTHOR
-hackbench was written by Thomas Gleixner <tglx@linuxtronix.de>.
-.PP
-This manual page was written by Alessio Igor Bogani <abogani@texware.it>,
-for the Debian project (but may be used by others).
+.\" 
+.SH "AUTHORS"
+hackbench was written by Rusty Russel <rusty@rustcorp.com.au>, with contributions
+from Craig Thomas, Ingo Molnar <mingo@elte.hu> and David Sommerseth <davids@redhat.com>
+
+This manual page was written by Clark Williams <williams@redhat.com> 
+and David Sommerseth <davids@redhat.com>
