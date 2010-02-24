@@ -58,7 +58,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
-* Fri Feb l9 2010 Clark Williams <williams@redhat.com> - 0.67-1
+* Fri Feb 19 2010 Clark Williams <williams@redhat.com> - 0.67-1
 - modified specfile to add hackbench
 
 * Mon Feb 15 2010 Clark Williams <williams@redhat.com> - 0.66-1
