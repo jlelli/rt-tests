@@ -55,6 +55,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/sendme.8.gz
 /usr/share/man/man8/sigwaittest.8.gz
 /usr/share/man/man8/svsematest.8.gz
+/usr/share/man/man8/hackbench.8.gz
 
 %changelog
 * Fri Feb l9 2010 Clark Williams <williams@redhat.com> - 0.67-1
