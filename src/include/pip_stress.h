@@ -1,5 +1,5 @@
-#ifndef __PIP_H
-#define __PIP_H
+#ifndef __PIP_STRESS_H
+#define __PIP_STRESS_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,5 +37,4 @@ int get_rt_prio(pid_t pid);
 #define PROTRW PROT_READ|PROT_WRITE
 #define MMAP_FLAGS MAP_SHARED|MAP_ANONYMOUS
 
-#endif	/* __PIP_H */
-
+#endif	/* __PIP_STRESS_H */

@@ -1,7 +1,7 @@
 VERSION_STRING = 0.66
 
 sources = cyclictest.c signaltest.c pi_stress.c rt-migrate-test.c	\
-	  ptsematest.c sigwaittest.c svsematest.c sendme.c pip.c
+	  ptsematest.c sigwaittest.c svsematest.c sendme.c pip_stress.c
 
 TARGETS = $(sources:.c=)
 
@@ -79,7 +79,7 @@ svsematest: svsematest.o rt-utils.o rt-get_cpu.o
 sendme: sendme.o rt-utils.o rt-get_cpu.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
-pip: pip.o error.o rt-utils.o
+pip_stress: pip_stress.o error.o rt-utils.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec *.d

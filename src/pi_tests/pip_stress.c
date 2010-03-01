@@ -1,6 +1,6 @@
 /*
-	Pip - Priority Inheritance with processes
-    
+	Pip stress - Priority Inheritance with processes
+
     Copyright (C) 2009, John Kacur <jkacur@redhat.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@
  * scheduling priorities.
  */
 
-#include "pip.h"
+#include "pip_stress.h"
 
 pthread_mutex_t *resource;
 
@@ -107,7 +107,7 @@ int main(void)
 	set_rt_prio(0, prio_min, policy);
 
 	/* We restrict this program to the first cpu, inorder to increase
-	 * the likelihood of a priority inversion */ 
+	 * the likelihood of a priority inversion */
 	CPU_ZERO(setp);
 	CPU_SET(0, setp);
 	res = sched_setaffinity(0, sizeof(set), setp);
@@ -311,7 +311,7 @@ void init_shared_pthread_mutex(pthread_mutex_t *mutex, int protocol, int policy)
 	Pthread_mutexattr_init(&attr);
 	Pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
 	Pthread_mutexattr_setprotocol(&attr, protocol);
-	
+
 	Pthread_mutex_init(mutex, &attr);
 }
 
