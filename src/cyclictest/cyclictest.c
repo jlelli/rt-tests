@@ -778,8 +778,8 @@ static void display_help(int error)
                "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n"
                "-y POLI  --policy=POLI     policy of realtime thread (1:FIFO, 2:RR)\n"
                "                           format: --policy=fifo(default) or --policy=rr\n"
-	       "-S       --smp             Standard SMP testing (equals -a -t -n -m -d0)\n"
-               "                           same priority on all threads.\n"
+	       "-S       --smp             Standard SMP testing: options -a -t -n and\n"
+               "                           same priority of all threads\n"
 	       "-U       --numa            Standard NUMA testing (similar to SMP option)\n"
                "                           thread data structures allocated from local node\n",
 	       tracers
