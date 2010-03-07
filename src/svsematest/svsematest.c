@@ -248,6 +248,8 @@ static void display_help(void)
 	"-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 	"-p PRIO  --prio=PRIO       priority\n"
+	"-S       --smp             SMP testing: options -a -t and same priority\n"
+        "                           of all threads\n"
 	"-t       --threads         one thread per available processor\n"
 	"-t [NUM] --threads=NUM     number of threads:\n"
 	"                           without NUM, threads = max_cpus\n"
@@ -263,6 +265,8 @@ static int num_threads = 1;
 static int max_cycles;
 static int interval = 1000;
 static int distance = 500;
+static int smp;
+static int sameprio;
 
 static void process_options (int argc, char *argv[])
 {
@@ -281,16 +285,21 @@ static void process_options (int argc, char *argv[])
 			{"interval", required_argument, NULL, 'i'},
 			{"loops", required_argument, NULL, 'l'},
 			{"priority", required_argument, NULL, 'p'},
+			{"smp", no_argument, NULL, 'S'},
 			{"threads", optional_argument, NULL, 't'},
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:d:f::i:l:p:t::",
+		int c = getopt_long (argc, argv, "a::b:d:f::i:l:p:St::",
 			long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
 		case 'a':
+			if (smp) {
+				warn("-a ignored due to --smp\n");
+				break;
+			}
 			if (optarg != NULL) {
 				affinity = atoi(optarg);
 				setaffinity = AFFINITY_SPECIFIED;
@@ -317,7 +326,16 @@ static void process_options (int argc, char *argv[])
 		case 'i': interval = atoi(optarg); break;
 		case 'l': max_cycles = atoi(optarg); break;
 		case 'p': priority = atoi(optarg); break;
+		case 'S':
+			smp = 1;
+			num_threads = max_cpus;
+			setaffinity = AFFINITY_USEALL;
+			break;
 		case 't':
+			if (smp) {
+				warn("-t ignored due to --smp\n");
+				break;
+			}
 			if (optarg != NULL)
 				num_threads = atoi(optarg);
 			else if (optind<argc && atoi(argv[optind]))
@@ -346,6 +364,9 @@ static void process_options (int argc, char *argv[])
 
 		if (priority < 0 || priority > 99)
 			error = 1;
+
+		if (priority && smp)
+			sameprio = 1;
 
 		tracelimit = thistracelimit;
 	}
@@ -525,7 +546,7 @@ int main(int argc, char *argv[])
 		}
 		receiver[i].priority = priority;
 		receiver[i].tracelimit = tracelimit;
-		if (priority > 0)
+		if (priority > 1 && !sameprio)
 			priority--;
 		receiver[i].delay.tv_sec = interval / USEC_PER_SEC;
 		receiver[i].delay.tv_nsec = (interval % USEC_PER_SEC) * 1000;
