@@ -826,13 +826,8 @@ static void handlepolicy(char *polname)
 		policy = SCHED_FIFO;
 	else if (strncasecmp(polname, "rr", 2) == 0)
 		policy = SCHED_RR;
-
-	if (policy == SCHED_FIFO || policy == SCHED_RR) {
-		if (policy == 0)
-			policy = 1;
-	}
-	else 
-		policy = 0;
+	else	/* default policy if we don't recognize the request */
+		policy = SCHED_FIFO;
 }
 
 static char *policyname(int policy)
@@ -1303,9 +1298,9 @@ int main(int argc, char **argv)
 		par->prio = priority;
 		if (priority && !histogram && !smp && !numa)
 			priority--;
-                if      (priority && policy <= 1) par->policy = SCHED_FIFO;
-                else if (priority && policy == 2) par->policy = SCHED_RR;
-                else                              par->policy = SCHED_OTHER;
+                if (priority && policy == SCHED_FIFO) par->policy = SCHED_FIFO;
+                else if (priority && policy == SCHED_RR) par->policy = SCHED_RR;
+                else  par->policy = SCHED_OTHER;
 		par->clock = clocksources[clocksel];
 		par->mode = mode;
 		par->timermode = timermode;
