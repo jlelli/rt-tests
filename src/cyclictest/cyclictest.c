@@ -156,6 +156,7 @@ static int histogram = 0;
 static int duration = 0;
 static int use_nsecs = 0;
 static int refresh_on_max;
+static int force_sched_other;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -1295,11 +1296,14 @@ int main(int argc, char **argv)
 		}
 
 		par->prio = priority;
+                if (priority && (policy == SCHED_FIFO || policy == SCHED_RR))
+			par->policy = policy;
+                else {
+			par->policy = SCHED_OTHER;
+			force_sched_other = 1;
+		}
 		if (priority && !histogram && !smp && !numa)
 			priority--;
-                if (priority && policy == SCHED_FIFO) par->policy = SCHED_FIFO;
-                else if (priority && policy == SCHED_RR) par->policy = SCHED_RR;
-                else  par->policy = SCHED_OTHER;
 		par->clock = clocksources[clocksel];
 		par->mode = mode;
 		par->timermode = timermode;
@@ -1330,18 +1334,27 @@ int main(int argc, char **argv)
 	while (!shutdown) {
 		char lavg[256];
 		int fd, len, allstopped = 0;
-		char *policystr = NULL;
+		static char *policystr = NULL;
+		static char *slash = NULL;
+		static char *policystr2;
 
 		if (!policystr)
 			policystr = policyname(policy);
 
+		if (!slash) {
+			if (force_sched_other) {
+				slash = "/";
+				policystr2 = policyname(SCHED_OTHER);
+			} else
+				slash = policystr2 = "";
+		}
 		if (!verbose && !quiet) {
 			fd = open("/proc/loadavg", O_RDONLY, 0666);
 			len = read(fd, &lavg, 255);
 			close(fd);
 			lavg[len-1] = 0x0;
-			printf("policy: %s: loadavg: %s          \n\n", 
-			       policystr, lavg);
+			printf("policy: %s%s%s: loadavg: %s          \n\n",
+			       policystr, slash, policystr2, lavg);
 		}
 
 		for (i = 0; i < num_threads; i++) {
