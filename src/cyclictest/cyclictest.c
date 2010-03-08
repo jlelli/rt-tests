@@ -801,7 +801,6 @@ static int interval = 1000;
 static int distance = 500;
 static int affinity = 0;
 static int smp = 0;
-static int sameprio = 0;
 
 enum {
 	AFFINITY_UNSPECIFIED,
@@ -1043,9 +1042,7 @@ static void process_options (int argc, char *argv[])
 	if (num_threads < 1)
 		error = 1;
 
-	if (priority && (smp || numa || histogram)) 
-		sameprio = 1;
- 
+
 	if (error)
 		display_help(1);
 }
@@ -1304,7 +1301,7 @@ int main(int argc, char **argv)
 		}
 
 		par->prio = priority;
-		if (!sameprio)
+		if (priority && !histogram && !smp && !numa)
 			priority--;
                 if      (priority && policy <= 1) par->policy = SCHED_FIFO;
                 else if (priority && policy == 2) par->policy = SCHED_RR;
