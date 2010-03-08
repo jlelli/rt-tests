@@ -792,7 +792,7 @@ static int use_nanosleep;
 static int timermode = TIMER_ABSTIME;
 static int use_system;
 static int priority;
-static int policy = 0;
+static int policy = SCHED_FIFO;	/* default policy if not specified */
 static int num_threads = 1;
 static int max_cycles;
 static int clocksel = 0;
@@ -1036,7 +1036,6 @@ static void process_options (int argc, char *argv[])
 
 	if (num_threads < 1)
 		error = 1;
-
 
 	if (error)
 		display_help(1);
