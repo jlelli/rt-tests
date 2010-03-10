@@ -1,7 +1,7 @@
 /*
  * High resolution timer test software
  *
- * (C) 2008-2009 Clark Williams <williams@redhat.com>
+ * (C) 2008-2010 Clark Williams <williams@redhat.com>
  * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
  *
  * This program is free software; you can redistribute it and/or
@@ -907,7 +907,7 @@ static void process_options (int argc, char *argv[])
 			{"numa", no_argument, NULL, 'U'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:i:Il:MnNo:O:p:PmqrsSt::uUvD:wWTy:",
+		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:i:Il:MnNo:O:p:PmqrsSt::uUvD:wWT:y:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
