@@ -13,9 +13,9 @@ Obsoletes: cyclictest signaltest pi_tests
 BuildRequires: numactl-devel
 
 %description
-A set of programs that test and measure various components of "realtime"
-kernel behavior, such as timer latency, signal latency and the functioning
-of priority-inheritance mutexes.
+rt-tests is a set of programs that test and measure various components of
+real-time kernel behavior. This package measures timer, signal, and hardware
+latency. It also tests the functioning of priority-inheritance mutexes. 
 
 %prep
 %setup -qn rt-tests
