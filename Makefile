@@ -1,7 +1,8 @@
 VERSION_STRING = 0.66
 
 sources = cyclictest.c signaltest.c pi_stress.c rt-migrate-test.c	\
-	  ptsematest.c sigwaittest.c svsematest.c sendme.c pip_stress.c
+	  ptsematest.c sigwaittest.c svsematest.c sendme.c pip_stress.c \
+	  hackbench.c
 
 TARGETS = $(sources:.c=)
 
@@ -37,6 +38,7 @@ VPATH	+= src/sigwaittest:
 VPATH	+= src/svsematest:
 VPATH	+= src/backfire:
 VPATH	+= src/lib
+VPATH	+= src/hackbench
 
 %.o: %.c
 	$(CC) -D VERSION_STRING=$(VERSION_STRING) -c $< $(CFLAGS)
@@ -82,6 +84,9 @@ sendme: sendme.o rt-utils.o rt-get_cpu.o
 pip_stress: pip_stress.o error.o rt-utils.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
+hackbench: hackbench.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec *.d
 CLEANUP += $(if $(wildcard .git), ChangeLog)
 
@@ -116,6 +121,7 @@ install: all
 	gzip src/sigwaittest/sigwaittest.8 -c >"$(DESTDIR)$(mandir)/man8/sigwaittest.8.gz"
 	gzip src/svsematest/svsematest.8 -c >"$(DESTDIR)$(mandir)/man8/svsematest.8.gz"
 	gzip src/backfire/sendme.8 -c >"$(DESTDIR)$(mandir)/man8/sendme.8.gz"
+	gzip src/hackbench/hackbench.8 -c >"$(DESTDIR)$(mandir)/man8/hackbench.8.gz"
 
 .PHONY: release
 release: clean changelog

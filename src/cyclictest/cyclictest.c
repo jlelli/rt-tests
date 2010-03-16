@@ -1,7 +1,7 @@
 /*
  * High resolution timer test software
  *
- * (C) 2008-2009 Clark Williams <williams@redhat.com>
+ * (C) 2008-2010 Clark Williams <williams@redhat.com>
  * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
  *
  * This program is free software; you can redistribute it and/or
@@ -107,6 +107,7 @@ enum {
 	IRQPREEMPTOFF,
 	WAKEUP,
 	WAKEUPRT,
+	CUSTOM,
 };
 
 /* Struct to transfer parameters to the thread */
@@ -146,7 +147,7 @@ struct thread_stat {
 
 static int shutdown;
 static int tracelimit = 0;
-static int ftrace = 0;
+static int ftrace = 1;
 static int kernelversion;
 static int verbose = 0;
 static int oscope_reduction = 1;
@@ -311,14 +312,14 @@ void tracing(int on)
 		switch (kernelversion) {
 		case KV_26_LT18: gettimeofday(0,(struct timezone *)1); break;
 		case KV_26_LT24: prctl(0, 1); break;
-		case KV_26_CURR: setkernvar("tracing_enabled", "1"); break;
+		case KV_26_CURR: setkernvar("tracing_on", "1"); break;
 		default:	 break;
 		}
 	} else {
 		switch (kernelversion) {
 		case KV_26_LT18: gettimeofday(0,0); break;
 		case KV_26_LT24: prctl(0, 0); break;
-		case KV_26_CURR: setkernvar("tracing_enabled", "0"); break;
+		case KV_26_CURR: setkernvar("tracing_on", "0"); break;
 		default:	 break;
 		}
 	}
@@ -388,6 +389,8 @@ static void setup_tracer(void)
 		char buffer[32];
 		int ret;
 
+		setkernvar("tracing_enabled", "1");
+
 		sprintf(buffer, "%d", tracelimit);
 		setkernvar("tracing_thresh", buffer);
 
@@ -446,6 +449,7 @@ static void setup_tracer(void)
 			fprintf(stderr, "Requested tracer '%s' not available\n", tracer);
 
 		setkernvar(traceroptions, "print-parent");
+		setkernvar(traceroptions, "latency-format");
 		if (verbose) {
 			setkernvar(traceroptions, "sym-offset");
 			setkernvar(traceroptions, "sym-addr");
@@ -902,7 +906,7 @@ static void process_options (int argc, char *argv[])
 			{"numa", no_argument, NULL, 'U'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:i:Il:MnNo:O:p:PmqrsSt::uUvD:wWTy:",
+		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:i:Il:MnNo:O:p:PmqrsSt::uUvD:wWT:y:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -958,7 +962,10 @@ static void process_options (int argc, char *argv[])
 			else
 				num_threads = max_cpus;
 			break;
-		case 'T': strncpy(tracer, optarg, sizeof(tracer)); break;
+		case 'T': 
+			tracetype = CUSTOM;
+			strncpy(tracer, optarg, sizeof(tracer)); 
+			break;
 		case 'u': setvbuf(stdout, NULL, _IONBF, 0); break;
 		case 'v': verbose = 1; break;
 		case 'm': lockall = 1; break;

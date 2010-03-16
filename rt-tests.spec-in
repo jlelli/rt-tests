@@ -13,9 +13,9 @@ Obsoletes: cyclictest signaltest pi_tests
 BuildRequires: numactl-devel
 
 %description
-A set of programs that test and measure various components of "realtime"
-kernel behavior, such as timer latency, signal latency and the functioning
-of priority-inheritance mutexes.
+rt-tests is a set of programs that test and measure various components of
+real-time kernel behavior. This package measures timer, signal, and hardware
+latency. It also tests the functioning of priority-inheritance mutexes. 
 
 %prep
 %setup -qn rt-tests
@@ -45,6 +45,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/sendme
 /usr/bin/sigwaittest
 /usr/bin/svsematest
+/usr/bin/hackbench
 %doc
 /usr/share/man/man8/cyclictest.8.gz
 /usr/share/man/man8/pi_stress.8.gz
@@ -54,8 +55,12 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/sendme.8.gz
 /usr/share/man/man8/sigwaittest.8.gz
 /usr/share/man/man8/svsematest.8.gz
+/usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Fri Feb 19 2010 Clark Williams <williams@redhat.com> - 0.67-1
+- modified specfile to add hackbench
+
 * Mon Feb 15 2010 Clark Williams <williams@redhat.com> - 0.66-1
 - fix incorrect usage of sched_setscheduler in check_privs()
 
