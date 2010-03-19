@@ -306,21 +306,42 @@ void traceopt(char *option)
 }
 
 
+static int
+trace_file_exists(char *name)
+{
+	struct stat sbuf;
+	char *tracing_prefix = get_debugfileprefix();
+	char path[MAX_PATH];
+	strcat(strcpy(path, tracing_prefix), name);
+	return stat(path, &sbuf) ? 0 : 1;
+}
+
 void tracing(int on)
 {
 	if (on) {
 		switch (kernelversion) {
 		case KV_26_LT18: gettimeofday(0,(struct timezone *)1); break;
 		case KV_26_LT24: prctl(0, 1); break;
-		case KV_26_CURR: setkernvar("tracing_on", "1"); break;
+		case KV_26_CURR: 
+			if (trace_file_exists("tracing_on"))
+				setkernvar("tracing_on", "1"); 
+			else
+				setkernvar("tracing_enabled", "1");
+			break;
+
 		default:	 break;
 		}
 	} else {
 		switch (kernelversion) {
 		case KV_26_LT18: gettimeofday(0,0); break;
 		case KV_26_LT24: prctl(0, 0); break;
-		case KV_26_CURR: setkernvar("tracing_on", "0"); break;
-		default:	 break;
+		case KV_26_CURR: 
+			if (trace_file_exists("tracing_on"))
+				setkernvar("tracing_on", "0"); 
+			else
+				setkernvar("tracing_enabled", "0"); 
+			break;
+		default:	break;
 		}
 	}
 }
