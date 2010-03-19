@@ -59,6 +59,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Fri Mar 19 2010 Clark Williams <williams@redhat.com> - 0.68-1
+- fix tracing difference between 2.6.24 and 2.6.33
+
 * Tue Mar 16 2010 Clark Williams <williams@redhat.com> - 0.67-1
 - modified specfile to add hackbench
 - modified internal ftrace logic for correct tracing
