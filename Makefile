@@ -1,8 +1,8 @@
 VERSION_STRING = 0.68
 
 sources = cyclictest.c signaltest.c pi_stress.c rt-migrate-test.c	\
-	  ptsematest.c sigwaittest.c svsematest.c sendme.c pip_stress.c \
-	  hackbench.c
+	  ptsematest.c sigwaittest.c svsematest.c pmqtest.c sendme.c 	\
+	  pip_stress.c hackbench.c
 
 TARGETS = $(sources:.c=)
 
@@ -36,6 +36,7 @@ VPATH	+= src/rt-migrate-test:
 VPATH	+= src/ptsematest:
 VPATH	+= src/sigwaittest:
 VPATH	+= src/svsematest:
+VPATH	+= src/pmqtest:
 VPATH	+= src/backfire:
 VPATH	+= src/lib
 VPATH	+= src/hackbench
@@ -76,6 +77,9 @@ sigwaittest: sigwaittest.o rt-utils.o rt-get_cpu.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
 svsematest: svsematest.o rt-utils.o rt-get_cpu.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
+
+pmqtest: pmqtest.o rt-utils.o rt-get_cpu.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
 sendme: sendme.o rt-utils.o rt-get_cpu.o
@@ -120,6 +124,7 @@ install: all
 	gzip src/ptsematest/ptsematest.8 -c >"$(DESTDIR)$(mandir)/man8/ptsematest.8.gz"
 	gzip src/sigwaittest/sigwaittest.8 -c >"$(DESTDIR)$(mandir)/man8/sigwaittest.8.gz"
 	gzip src/svsematest/svsematest.8 -c >"$(DESTDIR)$(mandir)/man8/svsematest.8.gz"
+	gzip src/pmqtest/pmqtest.8 -c >"$(DESTDIR)$(mandir)/man8/pmqtest.8.gz"
 	gzip src/backfire/sendme.8 -c >"$(DESTDIR)$(mandir)/man8/sendme.8.gz"
 	gzip src/hackbench/hackbench.8 -c >"$(DESTDIR)$(mandir)/man8/hackbench.8.gz"
 

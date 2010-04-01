@@ -45,6 +45,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/sendme
 /usr/bin/sigwaittest
 /usr/bin/svsematest
+/usr/bin/pmqtest
 /usr/bin/hackbench
 /usr/src/backfire/backfire.c
 %doc
@@ -56,6 +57,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/sendme.8.gz
 /usr/share/man/man8/sigwaittest.8.gz
 /usr/share/man/man8/svsematest.8.gz
+/usr/share/man/man8/pmqtest.8.gz
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
