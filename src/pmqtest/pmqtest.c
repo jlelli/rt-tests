@@ -119,7 +119,7 @@ void *pmqthread(void *param)
 				
 				senddelay.tv_sec = par->forcetimeout;
 				senddelay.tv_nsec = 0;
-				nanosleep(&senddelay, NULL);
+				clock_nanosleep(CLOCK_MONOTONIC, 0, &senddelay, NULL);
 			}
 
 			/* Send message: Start of latency measurement ... */
@@ -223,7 +223,7 @@ void *pmqthread(void *param)
 				par->shutdown = 1;
 			if (mustgetcpu)
 				par->cpu = get_cpu();
-			nanosleep(&par->delay, NULL);
+			clock_nanosleep(CLOCK_MONOTONIC, 0, &par->delay, NULL);
 
 			/* Tell receiver that we are ready for the next measurement */
 			if (mq_send(par->syncmq, syncmsg, strlen(syncmsg), 1) != 0) {
