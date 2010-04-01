@@ -72,7 +72,7 @@ static int rt_numa_numa_node_of_cpu(int cpu)
 
 static int rt_numa_numa_node_of_cpu(int cpu)
 {
-	unsigned char cpumask[16];
+	unsigned char cpumask[256];
 	int node, idx, bit;
 	int max_node, max_cpus;
 
