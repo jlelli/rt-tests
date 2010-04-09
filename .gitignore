@@ -25,3 +25,4 @@ sigwaittest
 svsematest
 pip_stress
 hackbench
+pmqtest
