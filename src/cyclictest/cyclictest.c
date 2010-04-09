@@ -801,7 +801,7 @@ static void display_help(int error)
 	       "                           format: n:c:v n=tasknum c=count v=value in us\n"
                "-w       --wakeup          task wakeup tracing (used with -b)\n"
                "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n"
-               "-y POLI  --policy=POLI     policy of realtime thread (1:FIFO, 2:RR)\n"
+               "-y POLI  --policy=POLI     policy of realtime thread, POLI may be fifo(default) or rr\n"
                "                           format: --policy=fifo(default) or --policy=rr\n"
 	       "-S       --smp             Standard SMP testing: options -a -t -n and\n"
                "                           same priority of all threads\n"
@@ -818,7 +818,7 @@ static int use_nanosleep;
 static int timermode = TIMER_ABSTIME;
 static int use_system;
 static int priority;
-static int policy = SCHED_FIFO;	/* default policy if not specified */
+static int policy = SCHED_OTHER;	/* default policy if not specified */
 static int num_threads = 1;
 static int max_cycles;
 static int clocksel = 0;
@@ -853,7 +853,7 @@ static void handlepolicy(char *polname)
 	else if (strncasecmp(polname, "rr", 2) == 0)
 		policy = SCHED_RR;
 	else	/* default policy if we don't recognize the request */
-		policy = SCHED_FIFO;
+		policy = SCHED_OTHER;
 }
 
 static char *policyname(int policy)
