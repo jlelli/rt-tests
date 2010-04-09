@@ -1,4 +1,4 @@
-VERSION_STRING = 0.68
+VERSION_STRING = 0.69
 
 sources = cyclictest.c signaltest.c pi_stress.c rt-migrate-test.c	\
 	  ptsematest.c sigwaittest.c svsematest.c pmqtest.c sendme.c 	\

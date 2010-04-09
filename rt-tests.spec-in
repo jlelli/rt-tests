@@ -61,6 +61,13 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Fri Apr  9 2010 Clark Williams <williams@redhat.com> - 0.69-1
+- fix bus error in cyclictest on NUMA systems with more than 16 cores
+- reset default cyclictest policy to SCHED_OTHER
+- from Carsten Emde <C.Emde@osadl.org>
+  - add pmqest program for testing posix message queue performance
+  - misc doc fixes
+
 * Fri Mar 19 2010 Clark Williams <williams@redhat.com> - 0.68-1
 - fix tracing difference between 2.6.24 and 2.6.33
 
