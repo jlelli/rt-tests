@@ -61,6 +61,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Fri Apr  9 2010 Clark Williams <williams@redhat.com> - 0.70-1
+- from Olaf Hering <olaf@aepfle.de>
+  - skip python dependency during install if python not available
+
 * Fri Apr  9 2010 Clark Williams <williams@redhat.com> - 0.69-1
 - fix bus error in cyclictest on NUMA systems with more than 16 cores
 - reset default cyclictest policy to SCHED_OTHER
