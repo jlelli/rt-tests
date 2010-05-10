@@ -713,6 +713,11 @@ void *timerthread(void *param)
 
 		next.tv_sec += interval.tv_sec;
 		next.tv_nsec += interval.tv_nsec;
+		if (par->mode == MODE_CYCLIC) {
+			int overrun_count = timer_getoverrun(timer);
+			next.tv_sec += overrun_count * interval.tv_sec;
+			next.tv_nsec += overrun_count * interval.tv_nsec;
+		}
 		tsnorm(&next);
 
 		if (par->max_cycles && par->max_cycles == stat->cycles)
