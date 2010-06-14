@@ -18,7 +18,7 @@ cyclictest \- High resolution test program
 .B cyclictest
 .RI "[ \-hfmnqrsvMS ] [\-a " proc " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] \
 [\-h " histogram " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] \
-[\-t " num " ] [\-D " time "] [\-w] [\-W] [\-y " policy "]"
+[\-t " num " ] [\-D " time "] [\-w] [\-W] [\-y " policy " ] [ \-S | \-U ]"
 
 .\" .SH DESCRIPTION
 .\" This manual page documents briefly the
@@ -164,6 +164,14 @@ running cyclictest on low-bandwidth connections)
 Set options for standard testing on SMP systems. Equivalent to using
 the options: "\-t \-a \-n" as well keeping any specified priority
 equal across all threads 
+.TP
+.B \\-U, \-\-numa
+Similar to the above \-\-smp option, this implies the "\-t \-a \-n"
+options, as well as a constant measurement interval, but also forces
+memory allocations using the numa(3) policy library. Thread stacks and
+data structures are allocated from the NUMA node local to the core to
+which the thread is bound. Requires the underlying kernel to have NUMA
+support compiled in.
 .\" .SH SEE ALSO
 .\" .BR bar (1),
 .\" .BR baz (1).
