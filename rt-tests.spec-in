@@ -61,6 +61,12 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Fri Jun 25 2010 Clark Williams <williams@redhat.com> - 0.72-1
+- changed 'diff' variable in timerthread() routine to be unsigned
+  64-bit to avoid overflow issues in debugging
+- included <stdint.h> and changed all 'long long' declarations to
+  use uint64_t and int64_t
+
 * Tue May 18 2010 Clark Williams <williams@redhat.com> - 0.71-1
 - from Michal Schmit <mschmidt@redhat.com>:
   - fix accumulating overruns in periodic timer mode
