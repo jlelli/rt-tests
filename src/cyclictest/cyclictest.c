@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -270,18 +271,18 @@ static inline void tsnorm(struct timespec *ts)
 	}
 }
 
-static inline long long calcdiff(struct timespec t1, struct timespec t2)
+static inline int64_t calcdiff(struct timespec t1, struct timespec t2)
 {
-	long long diff;
+	int64_t diff;
 	diff = USEC_PER_SEC * (long long)((int) t1.tv_sec - (int) t2.tv_sec);
 	diff += ((int) t1.tv_nsec - (int) t2.tv_nsec) / 1000;
 	return diff;
 }
 
-static inline long long calcdiff_ns(struct timespec t1, struct timespec t2)
+static inline int64_t calcdiff_ns(struct timespec t1, struct timespec t2)
 {
-	long long diff;
-	diff = NSEC_PER_SEC * (long long)((int) t1.tv_sec - (int) t2.tv_sec);
+	int64_t diff;
+	diff = NSEC_PER_SEC * (int64_t)((int) t1.tv_sec - (int) t2.tv_sec);
 	diff += ((int) t1.tv_nsec - (int) t2.tv_nsec);
 	return diff;
 }
@@ -630,7 +631,7 @@ void *timerthread(void *param)
 
 	while (!shutdown) {
 
-		long diff;
+		uint64_t diff;
 		int sigs, ret;
 
 		/* Wait for next period */
@@ -1139,7 +1140,7 @@ static void print_tids(struct thread_param *par[], int nthreads)
 static void print_hist(struct thread_param *par[], int nthreads)
 {
 	int i, j;
-	unsigned long long log_entries[nthreads];
+	uint64_t log_entries[nthreads];
 
 	bzero(log_entries, sizeof(log_entries));
 
@@ -1355,7 +1356,7 @@ int main(int argc, char **argv)
 		case AFFINITY_USEALL: par->cpu = i % max_cpus; break;
 		}
 		stat->min = 1000000;
-		stat->max = -1000000;
+		stat->max = 0;
 		stat->avg = 0.0;
 		stat->threadstarted = 1;
 		status = pthread_create(&stat->thread, &attr, timerthread, par);
