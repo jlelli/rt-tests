@@ -1,14 +1,17 @@
+# If KERNELRELEASE is defined, we've been invoked from the
+# kernel build system and can use its language
+ifneq ($(KERNELRELEASE),)
 obj-m := backfire.o
 
-all:	modules modules_install
-	@echo Done
+# otherwise we were called directly from the command
+# line; invoke the kernel build system.
+else
+KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
-modules:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+modules modules_install clean::
+	make -C $(KERNELDIR) M=$(CURDIR) $@
 
-modules_install:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules_install
+clean::
+	rm -f *.o Module.markers modules.order
 
-clean:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
-	@rm -f *.o Module.markers modules.order
+endif
