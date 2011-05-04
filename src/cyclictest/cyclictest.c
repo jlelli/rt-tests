@@ -65,14 +65,17 @@ static int clock_nanosleep(clockid_t clock_id, int flags, const struct timespec 
 	return syscall(__NR_clock_nanosleep, clock_id, flags, req, rem);
 }
 
-static int sched_setaffinity(pid_t pid, unsigned int cpusetsize,
-		cpu_set_t *mask)
+int sched_setaffinity (__pid_t __pid, size_t __cpusetsize,
+                              __const cpu_set_t *__cpuset)
 {
 	return -EINVAL;
 }
 
-static void CPU_SET(int cpu, cpu_set_t *set) { }
-static void CPU_ZERO(cpu_set_t *set) { }
+#undef CPU_SET
+#undef CPU_ZERO
+#define CPU_SET(cpu, cpusetp)
+#define CPU_ZERO(cpusetp)
+
 #else
 extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 			   __const struct timespec *__req,
@@ -1159,6 +1162,15 @@ static void print_hist(struct thread_param *par[], int nthreads)
 	printf("# Total:");
 	for (j = 0; j < nthreads; j++)
 		printf(" %09llu", log_entries[j]);
+	printf("\n");
+	printf("# Min Latencys:");
+	for (j = 0; j < nthreads; j++)
+		printf(" %05lu", par[j]->stats->min);
+	printf("\n");
+	printf("# Avg Latencys:");
+	for (j = 0; j < nthreads; j++)
+		printf(" %05lu", par[j]->stats->cycles ?
+		       (long)(par[j]->stats->avg/par[j]->stats->cycles) : 0);
 	printf("\n");
 	printf("# Max Latencys:");
 	for (j = 0; j < nthreads; j++)
