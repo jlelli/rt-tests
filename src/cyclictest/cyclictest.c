@@ -36,6 +36,9 @@
 
 #include "rt-utils.h"
 
+#define DEFAULT_INTERVAL 1000
+#define DEFAULT_DISTANCE 500
+
 #ifndef SCHED_IDLE
 #define SCHED_IDLE 5
 #endif
@@ -158,6 +161,7 @@ static int oscope_reduction = 1;
 static int lockall = 0;
 static int tracetype = NOTRACE;
 static int histogram = 0;
+static int histofall = 0;
 static int duration = 0;
 static int use_nsecs = 0;
 static int refresh_on_max;
@@ -785,6 +789,7 @@ static void display_help(int error)
 	       "-h       --histogram=US    dump a latency histogram to stdout after the run\n"
                "                           (with same priority about many threads)\n"
 	       "                           US is the max time to be be tracked in microseconds\n"
+	       "-H       --histofall=US    same as -h except with an additional summary column\n"
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-I       --irqsoff         Irqsoff tracing (used with -b)\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
@@ -832,8 +837,8 @@ static int num_threads = 1;
 static int max_cycles;
 static int clocksel = 0;
 static int quiet;
-static int interval = 1000;
-static int distance = 500;
+static int interval = DEFAULT_INTERVAL;
+static int distance = -1;
 static int affinity = 0;
 static int smp = 0;
 
@@ -909,6 +914,7 @@ static void process_options (int argc, char *argv[])
 			{"event", no_argument, NULL, 'E'},
 			{"ftrace", no_argument, NULL, 'f'},
 			{"histogram", required_argument, NULL, 'h'},
+			{"histofall", required_argument, NULL, 'H'},
 			{"interval", required_argument, NULL, 'i'},
 			{"irqsoff", no_argument, NULL, 'I'},
 			{"loops", required_argument, NULL, 'l'},
@@ -936,7 +942,7 @@ static void process_options (int argc, char *argv[])
 			{"numa", no_argument, NULL, 'U'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:i:Il:MnNo:O:p:PmqrsSt::uUvD:wWT:y:",
+		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:H:i:Il:MnNo:O:p:PmqrsSt::uUvD:wWT:y:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -963,6 +969,7 @@ static void process_options (int argc, char *argv[])
 		case 'd': distance = atoi(optarg); break;
 		case 'E': tracetype = EVENTS; break;
 		case 'f': ftrace = 1; break;
+		case 'H': histofall = 1; /* fall through */
 		case 'h': histogram = atoi(optarg); break;
 		case 'i': interval = atoi(optarg); break;
 		case 'I': tracetype = IRQSOFF; break;
@@ -1058,6 +1065,11 @@ static void process_options (int argc, char *argv[])
 	if (histogram > HIST_MAX)
 		histogram = HIST_MAX;
 
+	if (histogram && distance != -1)
+		warn("distance is ignored and set to 0, if histogram enabled\n");
+	if (distance == -1)
+		distance = DEFAULT_DISTANCE;
+
 	if (priority < 0 || priority > 99)
 		error = 1;
 
@@ -1143,25 +1155,36 @@ static void print_tids(struct thread_param *par[], int nthreads)
 static void print_hist(struct thread_param *par[], int nthreads)
 {
 	int i, j;
-	uint64_t log_entries[nthreads];
+	unsigned long long int log_entries[nthreads+1];
+	unsigned long maxmax, alloverflows;
 
 	bzero(log_entries, sizeof(log_entries));
 
 	printf("# Histogram\n");
 	for (i = 0; i < histogram; i++) {
+		unsigned long long int allthreads = 0;
 
 		printf("%06d ", i);
 
 		for (j = 0; j < nthreads; j++) {
 			unsigned long curr_latency=par[j]->stats->hist_array[i];
-			printf("%06lu\t", curr_latency);
+			printf("%06lu", curr_latency);
+			if (j < nthreads - 1)
+				printf("\t");
 			log_entries[j] += curr_latency;
+			allthreads += curr_latency;
+		}
+		if (histofall && nthreads > 1) {
+			printf("\t%06llu", allthreads);
+			log_entries[nthreads] += allthreads;
 		}
 		printf("\n");
 	}
 	printf("# Total:");
 	for (j = 0; j < nthreads; j++)
 		printf(" %09llu", log_entries[j]);
+	if (histofall && nthreads > 1)
+		printf(" %09llu", log_entries[nthreads]);
 	printf("\n");
 	printf("# Min Latencys:");
 	for (j = 0; j < nthreads; j++)
@@ -1172,13 +1195,24 @@ static void print_hist(struct thread_param *par[], int nthreads)
 		printf(" %05lu", par[j]->stats->cycles ?
 		       (long)(par[j]->stats->avg/par[j]->stats->cycles) : 0);
 	printf("\n");
-	printf("# Max Latencys:");
-	for (j = 0; j < nthreads; j++)
-		printf(" %05lu", par[j]->stats->max);
+	printf("# Max Latencies:");
+	maxmax = 0;
+	for (j = 0; j < nthreads; j++) {
+ 		printf(" %05lu", par[j]->stats->max);
+		if (par[j]->stats->max > maxmax)
+			maxmax = par[j]->stats->max;
+	}
+	if (histofall && nthreads > 1)
+		printf(" %05lu", maxmax);
 	printf("\n");
 	printf("# Histogram Overflows:");
-	for (j = 0; j < nthreads; j++)
-		printf(" %05lu", par[j]->stats->hist_overflow);
+	alloverflows = 0;
+	for (j = 0; j < nthreads; j++) {
+ 		printf(" %05lu", par[j]->stats->hist_overflow);
+		alloverflows += par[j]->stats->hist_overflow;
+	}
+	if (histofall && nthreads > 1)
+		printf(" %05lu", alloverflows);
 	printf("\n");
 }
 

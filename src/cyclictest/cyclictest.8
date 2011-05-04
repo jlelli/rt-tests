@@ -93,6 +93,9 @@ Enable function tracing using ftrace as tracer. This option is available only wi
 .B \-h, \-\-histogram=MAXLATENCYINUS
 Dump latency histogram to stdout. US means the max time to be be tracked in microseconds. When you use \-h option to get histogram data, Cyclictest runs many threads with same priority without priority\-\-.
 .TP
+.B \-H, \-\-histofall=MAXLATENCYINUS
+Same as -h except that an additional histogram column is displayed at the right that contains summary data of all thread histograms. If cyclictest runs a single thread only, the -H option is equivalent to -h.
+.TP
 .B \-i, \-\-interval=INTV
 Set the base interval of the thread(s) in microseconds (default is 1000us). This sets the interval of the first thread. See also \-d.
 .TP
