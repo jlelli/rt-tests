@@ -494,7 +494,7 @@ static void setup_tracer(void)
 				setkernvar(traceroptions, traceptr[i]);
 		}
 		setkernvar("tracing_max_latency", "0");
-		setkernvar("latency_hist/wakeup_latency/reset", "1");
+		setkernvar("latency_hist/wakeup/reset", "1");
 	} else {
 		setkernvar("trace_all_cpus", "1");
 		setkernvar("trace_freerunning", "1");
@@ -508,6 +508,7 @@ static void setup_tracer(void)
 		if (ftrace)
 			setkernvar("mcount_enabled", "1");
 		setkernvar("trace_enabled", "1");
+		setkernvar("latency_hist/wakeup_latency/reset", "1");
 	}
 
 	tracing(1);
