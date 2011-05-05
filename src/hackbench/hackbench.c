@@ -27,6 +27,7 @@
 #include <limits.h>
 #include <getopt.h>
 #include <signal.h>
+#include <setjmp.h>
 
 static unsigned int datasize = 100;
 static unsigned int loops = 100;
@@ -64,6 +65,8 @@ typedef union {
 childinfo_t *child_tab = NULL;
 unsigned int total_children = 0;
 unsigned int signal_caught = 0;
+
+static jmp_buf jmpbuf;
 
 inline static void sneeze(const char *msg) {
 	/* Avoid calling these functions when called from a code path
@@ -115,12 +118,19 @@ static void ready(int ready_out, int wakefd)
 		barf("poll");
 }
 
+static void reset_worker_signals(void)
+{
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
+}
+
 /* Sender sprays loops messages down each file descriptor */
 static void *sender(struct sender_context *ctx)
 {
 	char data[datasize];
 	unsigned int i, j;
 
+	reset_worker_signals();
 	ready(ctx->ready_out, ctx->wakefd);
 	memset(&data, '-', datasize);
 
@@ -148,6 +158,7 @@ static void *receiver(struct receiver_context* ctx)
 {
 	unsigned int i;
 
+	reset_worker_signals();
 	if (process_mode)
 		close(ctx->in_fds[1]);
 
@@ -226,21 +237,24 @@ unsigned int reap_workers(childinfo_t *child, unsigned int totchld, unsigned int
 	int status, err;
 	void *thr_status;
 
+	if (dokill) {
+		fprintf(stderr, "sending SIGTERM to all child processes\n");
+		signal(SIGTERM, SIG_IGN);
+		kill(0, SIGTERM);
+	}
+
 	for( i = 0; i < totchld; i++ ) {
+		int pid;
 		switch( process_mode ) {
 		case 1: /* process mode */
-			if( dokill ) {
-				kill(child[i].pid, SIGTERM);
-			}
 			fflush(stdout);
-			waitpid(child[i].pid, &status, 0);
+			pid = wait(&status);
+			if (pid == -1 && errno == ECHILD)
+				break;
 			if (!WIFEXITED(status))
 				rc++;
 			break;
 		case 0: /* threaded mode */
-			if( dokill ) {
-				pthread_kill(child[i].threadid, SIGTERM);
-			}
 			err = pthread_join(child[i].threadid, &thr_status);
 			if( err != 0 ) {
 				sneeze("pthread_join()");
@@ -398,11 +412,9 @@ static void process_options (int argc, char *argv[])
 void sigcatcher(int sig) {
 	/* All caught signals will cause the program to exit */
 	signal_caught = 1;
-	if( child_tab && (total_children > 0) ) {
-		reap_workers(child_tab, total_children, 1);
-	}
-	fprintf(stderr, "** Operation aborted **\n");
-	exit(0);
+	fprintf(stderr, "Signal %d caught, longjmp'ing out!\n", sig);
+	signal(sig, SIG_IGN);
+	longjmp(jmpbuf, 1);
 }
 
 int main(int argc, char *argv[])
@@ -432,34 +444,37 @@ int main(int argc, char *argv[])
 	signal(SIGTERM, sigcatcher);
 	signal(SIGHUP, SIG_IGN);
 
-	total_children = 0;
-	for (i = 0; i < num_groups; i++) {
-		int c = group(child_tab, total_children, num_fds, readyfds[1], wakefds[0]);
-		if( c != (num_fds*2) ) {
-			fprintf(stderr, "%i children started.  Expected %i\n", c, num_fds*2);
-			reap_workers(child_tab, total_children + c, 1);
-			barf("Creating workers");
+	if (setjmp(jmpbuf) == 0) {
+		total_children = 0;
+		for (i = 0; i < num_groups; i++) {
+			int c = group(child_tab, total_children, num_fds, readyfds[1], wakefds[0]);
+			if( c != (num_fds*2) ) {
+				fprintf(stderr, "%i children started.  Expected %i\n", c, num_fds*2);
+				reap_workers(child_tab, total_children + c, 1);
+				barf("Creating workers");
+			}
+			total_children += c;
 		}
-		total_children += c;
-	}
-
-	/* Wait for everyone to be ready */
-	for (i = 0; i < total_children; i++)
-		if (read(readyfds[0], &dummy, 1) != 1) {
+		/* Wait for everyone to be ready */
+		for (i = 0; i < total_children; i++)
+			if (read(readyfds[0], &dummy, 1) != 1) {
+				reap_workers(child_tab, total_children, 1);
+				barf("Reading for readyfds");
+			}
+		
+		gettimeofday(&start, NULL);
+		
+		/* Kick them off */
+		if (write(wakefds[1], &dummy, 1) != 1) {
 			reap_workers(child_tab, total_children, 1);
-			barf("Reading for readyfds");
+			barf("Writing to start senders");
 		}
-
-	gettimeofday(&start, NULL);
-
-	/* Kick them off */
-	if (write(wakefds[1], &dummy, 1) != 1) {
-		reap_workers(child_tab, total_children, 1);
-		barf("Writing to start senders");
 	}
+	else
+		fprintf(stderr, "longjmp'ed out, reaping children\n");
 
 	/* Reap them all */
-	reap_workers(child_tab, total_children, 0);
+	reap_workers(child_tab, total_children, signal_caught);
 
 	gettimeofday(&stop, NULL);
 
