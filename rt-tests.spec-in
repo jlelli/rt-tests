@@ -48,6 +48,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/pmqtest
 /usr/bin/hackbench
 /usr/src/backfire/backfire.c
+/usr/src/backfire/Makefile
 %doc
 /usr/share/man/man8/cyclictest.8.gz
 /usr/share/man/man8/pi_stress.8.gz
@@ -61,6 +62,20 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Mon May  9 2011 Clark Williams <williams@redhat.com> - 0.73-1
+- fixed signal handling in hackbench (avoid thousands of zombies)
+- from Geunsik Lim <geunsik.lim@samsung.com>
+  - fix incorrect wakeup interface in cyclictest
+- from Wolfram Sang <w.sang@pengutronix.de>
+  - Simplify Makefile using -D option to install
+- from Carsten Emde <C.Emde@osadl.org>
+  - add histogram summary column option (-H) to cyclictest
+- from Daniel Sangorrin <daniel.sangorrin@gmail.com>
+  - fix sched_setaffinity type error when building with UCLIB
+- from Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
+  - install backfire's Makefile
+  - modernize backfire's Makefile
+
 * Fri Jun 25 2010 Clark Williams <williams@redhat.com> - 0.72-1
 - changed 'diff' variable in timerthread() routine to be unsigned
   64-bit to avoid overflow issues in debugging
