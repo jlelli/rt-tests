@@ -1030,7 +1030,7 @@ static void process_options (int argc, char *argv[])
 			setaffinity = AFFINITY_USEALL;
 			use_nanosleep = MODE_CLOCK_NANOSLEEP;
 #else
-			warn("cyclicteset was not built with the numa option\n");
+			warn("cyclictest was not built with the numa option\n");
 			warn("ignoring --numa or -U\n");
 #endif
 			break;
