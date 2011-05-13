@@ -313,9 +313,7 @@ void traceopt(char *option)
 	traceptr[traceopt_count++] = ptr;
 }
 
-
-static int
-trace_file_exists(char *name)
+static int trace_file_exists(char *name)
 {
 	struct stat sbuf;
 	char *tracing_prefix = get_debugfileprefix();
@@ -1030,7 +1028,7 @@ static void process_options (int argc, char *argv[])
 			setaffinity = AFFINITY_USEALL;
 			use_nanosleep = MODE_CLOCK_NANOSLEEP;
 #else
-			warn("cyclicteset was not built with the numa option\n");
+			warn("cyclictest was not built with the numa option\n");
 			warn("ignoring --numa or -U\n");
 #endif
 			break;
@@ -1187,11 +1185,11 @@ static void print_hist(struct thread_param *par[], int nthreads)
 	if (histofall && nthreads > 1)
 		printf(" %09llu", log_entries[nthreads]);
 	printf("\n");
-	printf("# Min Latencys:");
+	printf("# Min Latencies:");
 	for (j = 0; j < nthreads; j++)
 		printf(" %05lu", par[j]->stats->min);
 	printf("\n");
-	printf("# Avg Latencys:");
+	printf("# Avg Latencies:");
 	for (j = 0; j < nthreads; j++)
 		printf(" %05lu", par[j]->stats->cycles ?
 		       (long)(par[j]->stats->avg/par[j]->stats->cycles) : 0);
