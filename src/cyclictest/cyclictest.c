@@ -1,7 +1,7 @@
 /*
  * High resolution timer test software
  *
- * (C) 2008-2010 Clark Williams <williams@redhat.com>
+ * (C) 2008-2011 Clark Williams <williams@redhat.com>
  * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
  *
  * This program is free software; you can redistribute it and/or
@@ -187,10 +187,11 @@ static int traceopt_count;
 static int traceopt_size;
 
 enum kernelversion {
-	KV_NOT_26,
+	KV_NOT_SUPPORTED,
 	KV_26_LT18,
 	KV_26_LT24,
-	KV_26_CURR
+	KV_26_33,
+	KV_30
 };
 
 enum {
@@ -200,6 +201,9 @@ enum {
 
 static char functiontracer[MAX_PATH];
 static char traceroptions[MAX_PATH];
+
+static int trace_fd     = -1;
+static int tracemark_fd = -1;
 
 static int kernvar(int mode, const char *name, char *value, size_t sizeofvalue)
 {
@@ -231,7 +235,7 @@ static void setkernvar(const char *name, char *value)
 	int i;
 	char oldvalue[KVALUELEN];
 
-	if (kernelversion != KV_26_CURR) {
+	if (kernelversion < KV_26_33) {
 		if (kernvar(O_RDONLY, name, oldvalue, sizeof(oldvalue)))
 			fprintf(stderr, "could not retrieve %s\n", name);
 		else {
@@ -322,30 +326,34 @@ static int trace_file_exists(char *name)
 	return stat(path, &sbuf) ? 0 : 1;
 }
 
+static void tracemark(char *comment)
+{
+	/* bail out if we're not tracing */
+	/* or if the kernel doesn't support trace_mark */
+	if (!tracelimit || kernelversion < KV_26_33 || tracemark_fd < 0)
+		return;
+	write(tracemark_fd, comment, strlen(comment));
+}
+
 void tracing(int on)
 {
 	if (on) {
 		switch (kernelversion) {
 		case KV_26_LT18: gettimeofday(0,(struct timezone *)1); break;
 		case KV_26_LT24: prctl(0, 1); break;
-		case KV_26_CURR: 
-			if (trace_file_exists("tracing_on"))
-				setkernvar("tracing_on", "1"); 
-			else
-				setkernvar("tracing_enabled", "1");
+		case KV_26_33: 
+		case KV_30:
+			write(trace_fd, "1", 1);
 			break;
-
 		default:	 break;
 		}
 	} else {
 		switch (kernelversion) {
 		case KV_26_LT18: gettimeofday(0,0); break;
 		case KV_26_LT24: prctl(0, 0); break;
-		case KV_26_CURR: 
-			if (trace_file_exists("tracing_on"))
-				setkernvar("tracing_on", "0"); 
-			else
-				setkernvar("tracing_enabled", "0"); 
+		case KV_26_33: 
+		case KV_30:
+			write(trace_fd, "0", 1);
 			break;
 		default:	break;
 		}
@@ -399,24 +407,25 @@ static void setup_tracer(void)
 	if (!tracelimit)
 		return;
 
-	if (kernelversion == KV_26_CURR) {
+	if (kernelversion >= KV_26_33) {
 		char testname[MAX_PATH];
 
 		fileprefix = get_debugfileprefix();
-		strcpy(testname, fileprefix);
-		strcat(testname, "tracing_enabled");
-		if (access(testname, R_OK))
-			warn("%s not found\n"
+		if (!trace_file_exists("tracing_enabled") &&
+		    !trace_file_exists("tracing_on"))
+			warn("tracing_enabled or tracing_on not found\n"
 			    "debug fs not mounted, "
 			    "TRACERs not configured?\n", testname);
 	} else
 		fileprefix = procfileprefix;
 
-	if (kernelversion == KV_26_CURR) {
+	if (kernelversion >= KV_26_33) {
 		char buffer[32];
 		int ret;
 
-		setkernvar("tracing_enabled", "1");
+		if (trace_file_exists("tracing_enabled") &&
+		    !trace_file_exists("tracing_on"))
+			setkernvar("tracing_enabled", "1");
 
 		sprintf(buffer, "%d", tracelimit);
 		setkernvar("tracing_thresh", buffer);
@@ -446,9 +455,9 @@ static void setup_tracer(void)
 			ret = settracer("preemptirqsoff");
 			break;
 		case EVENTS:
-			ret = settracer("events");
-			if (ftrace)
-				ret = settracer(functiontracer);
+			/* per rostedt: use nop tracer with event tracing */
+			setkernvar("events/enable", "1");
+			ret = settracer("nop");
 			break;
 		case CTXTSWITCH:
 			ret = settracer("sched_switch");
@@ -492,7 +501,28 @@ static void setup_tracer(void)
 				setkernvar(traceroptions, traceptr[i]);
 		}
 		setkernvar("tracing_max_latency", "0");
-		setkernvar("latency_hist/wakeup/reset", "1");
+		if (trace_file_exists("latency_hist"))
+			setkernvar("latency_hist/wakeup/reset", "1");
+
+		/* open the tracing on file descriptor */
+		if (trace_fd == -1) {
+			char path[MAX_PATH];
+			strcpy(path, fileprefix);
+			if (trace_file_exists("tracing_on"))
+				strcat(path, "tracing_on");
+			else
+				strcat(path, "tracing_enabled");
+			if ((trace_fd = open(path, O_WRONLY)) == -1)
+				fatal("unable to open %s for tracing", path);
+		}
+
+		/* open the tracemark file descriptor */
+		if (tracemark_fd == -1) {
+			char path[MAX_PATH];
+			strcat(strcpy(path, fileprefix), "trace_marker");
+			if ((tracemark_fd = open(path, O_WRONLY)) == -1)
+				warn("unable to open trace_marker file: %s\n", path);
+		}
 	} else {
 		setkernvar("trace_all_cpus", "1");
 		setkernvar("trace_freerunning", "1");
@@ -635,6 +665,8 @@ void *timerthread(void *param)
 
 	stat->threadstarted++;
 
+	tracemark("entering time loop");
+
 	while (!shutdown) {
 
 		uint64_t diff;
@@ -677,7 +709,10 @@ void *timerthread(void *param)
 			tsnorm(&next);
 			break;
 		}
+
 		clock_gettime(par->clock, &now);
+
+		tracemark("out of critical loop, calculating");
 
 		if (use_nsecs)
 			diff = calcdiff_ns(now, next);
@@ -697,6 +732,7 @@ void *timerthread(void *param)
 
 		if (!stopped && tracelimit && (diff > tracelimit)) {
 			stopped++;
+			tracemark("hit latency threshold");
 			tracing(0);
 			shutdown++;
 			pthread_mutex_lock(&break_thread_id_lock);
@@ -729,6 +765,7 @@ void *timerthread(void *param)
 
 		if (par->max_cycles && par->max_cycles == stat->cycles)
 			break;
+		tracemark("heading back to sleep");
 	}
 
 out:
@@ -1099,7 +1136,7 @@ static int check_kernel(void)
 	if (ret) {
 		fprintf(stderr, "uname failed: %s. Assuming not 2.6\n",
 				strerror(errno));
-		return KV_NOT_26;
+		return KV_NOT_SUPPORTED;
 	}
 	sscanf(kname.release, "%d.%d.%d", &maj, &min, &sub);
 	if (maj == 2 && min == 6) {
@@ -1108,16 +1145,21 @@ static int check_kernel(void)
 		else if (sub < 24)
 			kv = KV_26_LT24;
 		else if (sub < 28) {
-			kv = KV_26_CURR;
+			kv = KV_26_33;
 			strcpy(functiontracer, "ftrace");
 			strcpy(traceroptions, "iter_ctrl");
 		} else {
-			kv = KV_26_CURR;
+			kv = KV_26_33;
 			strcpy(functiontracer, "function");
 			strcpy(traceroptions, "trace_options");
 		}
+	} else if (maj == 3) {
+		kv = KV_30;
+		strcpy(functiontracer, "function");
+		strcpy(traceroptions, "trace_options");
+		
 	} else
-		kv = KV_NOT_26;
+		kv = KV_NOT_SUPPORTED;
 
 	return kv;
 }
@@ -1282,8 +1324,8 @@ int main(int argc, char **argv)
 
 	kernelversion = check_kernel();
 
-	if (kernelversion == KV_NOT_26)
-		warn("Most functions require kernel 2.6\n");
+	if (kernelversion == KV_NOT_SUPPORTED)
+		warn("Running on unknown kernel version...YMMV\n");
 
 	setup_tracer();
 
@@ -1506,12 +1548,18 @@ int main(int argc, char **argv)
 	if (tracelimit)
 		tracing(0);
 
+	/* close any tracer file descriptors */
+	if (tracemark_fd >= 0)
+		close(tracemark_fd);
+	if (trace_fd >= 0)
+		close(trace_fd);
+
 	/* unlock everything */
 	if (lockall)
 		munlockall();
 
 	/* Be a nice program, cleanup */
-	if (kernelversion != KV_26_CURR)
+	if (kernelversion < KV_26_33)
 		restorekernvars();
 
 	exit(ret);
