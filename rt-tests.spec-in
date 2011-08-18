@@ -62,6 +62,16 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Thu Aug 18 2011 Clark Williams <williams@redhat.com> - 0.74-1
+- changes to deal with 3.0 kernel
+- fixed buildrequires in specfile for Python
+- fixed spelling error in printf in cyclictest
+- from John Kacur <jkacur@redhat.com>
+  - Make the function header style consistent with the rest of cyclictest.
+  - Spelling clean-ups
+- from Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
+  - fix possible buffer overflow in string handling
+
 * Mon May  9 2011 Clark Williams <williams@redhat.com> - 0.73-1
 - fixed signal handling in hackbench (avoid thousands of zombies)
 - from Geunsik Lim <geunsik.lim@samsung.com>
