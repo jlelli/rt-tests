@@ -28,6 +28,7 @@
 #include <sched.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 #include "rt-utils.h"
 #include "rt-get_cpu.h"
 
@@ -63,9 +64,16 @@ static int kernvar(int mode, const char *name, char *value, size_t sizeofvalue)
 	char *fileprefix = get_debugfileprefix();
 	int retval = 1;
 	int path;
+	size_t len_prefix = strlen(fileprefix), len_name = strlen(name);
 
-	strncpy(filename, fileprefix, sizeof(filename));
-	strncat(filename, name, sizeof(filename) - strlen(fileprefix));
+	if (len_prefix + len_name + 1 > sizeof(filename)) {
+		errno = ENOMEM;
+		return 1;
+	}
+
+	memcpy(filename, fileprefix, len_prefix);
+	memcpy(filename + len_prefix, name, len_name + 1);
+
 	path = open(filename, mode);
 	if (path >= 0) {
 		if (mode == O_RDONLY) {
