@@ -105,9 +105,10 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 #define KVARNAMELEN		32
 #define KVALUELEN		32
 
+int enable_events;
+
 enum {
 	NOTRACE,
-	EVENTS,
 	CTXTSWITCH,
 	IRQSOFF,
 	PREEMPTOFF,
@@ -417,10 +418,15 @@ static void setup_tracer(void)
 			setkernvar("ftrace_enabled", "0");
 		fileprefix = get_debugfileprefix();
 
+		/*
+		 * Set default tracer to nop.
+		 * this also has the nice side effect of clearing out
+		 * old traces.
+		 */
+		ret = settracer("nop");
+
 		switch (tracetype) {
 		case NOTRACE:
-			setkernvar("events/enable", "1");
-			ret = settracer("nop");
 			break;
 		case IRQSOFF:
 			ret = settracer("irqsoff");
@@ -431,18 +437,10 @@ static void setup_tracer(void)
 		case IRQPREEMPTOFF:
 			ret = settracer("preemptirqsoff");
 			break;
-		case EVENTS:
-			/* per rostedt: use nop tracer with event tracing */
-			ret = settracer("nop");
-			/* turn on all events */
-			event_enable_all();
-			break;
 		case CTXTSWITCH:
 			if (valid_tracer("sched_switch"))
 			    ret = settracer("sched_switch");
 			else {
-				if ((ret = settracer("nop")))
-					break;
 				if ((ret = event_enable("sched/sched_wakeup")))
 					break;
 				ret = event_enable("sched/sched_switch");
@@ -466,6 +464,10 @@ static void setup_tracer(void)
 			}
 			break;
 		}
+
+		if (enable_events)
+			/* turn on all events */
+			event_enable_all();
 
 		if (ret)
 			fprintf(stderr, "Requested tracer '%s' not available\n", tracer);
@@ -990,7 +992,7 @@ static void process_options (int argc, char *argv[])
 		case 'c': clocksel = atoi(optarg); break;
 		case 'C': tracetype = CTXTSWITCH; break;
 		case 'd': distance = atoi(optarg); break;
-		case 'E': tracetype = EVENTS; break;
+		case 'E': enable_events = 1; break;
 		case 'f': ftrace = 1; break;
 		case 'H': histofall = 1; /* fall through */
 		case 'h': histogram = atoi(optarg); break;
