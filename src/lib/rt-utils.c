@@ -11,6 +11,8 @@
 #include <string.h>
 #include <sched.h>
 #include <stdarg.h>
+#include <errno.h>
+#include <fcntl.h>
 #include "rt-utils.h"
 
 static char debugfileprefix[MAX_PATH];
@@ -50,6 +52,165 @@ char *get_debugfileprefix(void)
 	return debugfileprefix;
 }
 
+int mount_debugfs(char *path)
+{
+	char *mountpoint = path;
+	char cmd[MAX_PATH];
+	int ret;
+
+	if (get_debugfileprefix())
+		return 0;
+	
+	if (!mountpoint)
+		mountpoint = "/sys/kernel/debug";
+	
+	sprintf(cmd, "mount -t debugfs debugfs %s", mountpoint);
+	ret = system(cmd);
+	if (ret != 0) {
+		fprintf(stderr, "Error mounting debugfs at %s: %s\n", mountpoint, strerror(errno));
+		return -1;
+	}
+	return 0;
+		
+}
+
+static char **tracer_list;
+static char *tracer_buffer;
+static int num_tracers;
+#define CHUNKSZ   1024
+
+/*
+ * return a list of the tracers configured into the running kernel
+ */
+
+int get_tracers(char ***list)
+{
+	int ret;
+	FILE *fp;
+	char buffer[CHUNKSZ];
+	char *prefix = get_debugfileprefix();
+	char *tmpbuf = NULL;
+	char *ptr;
+	int tmpsz = 0;
+
+	/* if we've already parse it, return what we have */
+	if (tracer_list) {
+		*list = tracer_list;
+		return num_tracers;
+	}
+
+	/* open the tracing file available_tracers */
+	sprintf(buffer, "%savailable_tracers", prefix);
+	if ((fp = fopen(buffer, "r")) == NULL)
+		fatal ("Can't open %s for reading\n", buffer);
+
+	/* allocate initial buffer */
+	ptr = tmpbuf = malloc(CHUNKSZ);
+	if (ptr == NULL)
+		fatal("error allocating initial space for tracer list\n");
+
+	/* read in the list of available tracers */
+	while((ret = fread(buffer, sizeof(char), CHUNKSZ, fp))) {
+		if ((ptr+ret+1) > (tmpbuf+tmpsz)) {
+			tmpbuf = realloc(tmpbuf, tmpsz + CHUNKSZ);
+			if (tmpbuf == NULL)
+				fatal("error allocating space for list of valid tracers\n");
+			tmpsz += CHUNKSZ;
+		}
+		strncpy(ptr, buffer, ret);
+		ptr += ret;
+	}
+	fclose(fp);
+	if (tmpsz == 0)
+		fatal("error reading available tracers\n");
+	
+	tracer_buffer = tmpbuf;
+
+	/* get a buffer for the pointers to tracers */
+	if (!(tracer_list = malloc(sizeof(char *))))
+		fatal ("error allocatinging tracer list buffer\n");
+
+	/* parse the buffer */
+	ptr = strtok(tmpbuf, " \t\n\r");
+	do {
+		tracer_list[num_tracers++] = ptr;
+		tracer_list = realloc(tracer_list, sizeof(char*)*(num_tracers+1));
+		tracer_list[num_tracers] = NULL;
+	} while ((ptr = strtok(NULL, " \t\n\r")) != NULL);
+
+	/* return the list and number of tracers */
+	*list = tracer_list;
+	return num_tracers;
+}
+
+
+/* 
+ * return zero if tracername is not a valid tracer, non-zero if it is 
+ */
+
+int valid_tracer(char *tracername)
+{
+	char **list;
+	int ntracers;
+	int i;
+
+	ntracers = get_tracers(&list);
+	if (ntracers == 0 || tracername == NULL)
+		return 0;
+	for (i = 0; i < ntracers; i++)
+		if (strncmp(list[i], tracername, strlen(list[i])) == 0)
+			return 1;
+	return 0;
+}
+
+/*
+ * enable event tracepoint
+ */
+int setevent(char *event, char *val)
+{
+	char *prefix = get_debugfileprefix();
+	char buffer[MAX_PATH];
+	int fd;
+	int ret;
+
+	sprintf(buffer, "%s%s", prefix, event);
+	if ((fd = open(buffer, O_WRONLY)) < 0) {
+		warn("unable to open %s\n", buffer);
+		return -1;
+	}
+	if ((ret = write(fd, val, strlen(val))) < 0) {
+		warn("unable to write %s to %s\n", val, buffer);
+		close(fd);
+		return -1;
+	}
+	close(fd);
+	return 0;
+}
+
+int event_enable_all(void)
+{
+	return setevent("events/enable", "1");
+}
+
+int event_disable_all(void)
+{
+	return setevent("events/enable", "0");
+}
+
+int event_enable(char *event) 
+{
+	char path[MAX_PATH];
+	sprintf(path, "events/%s/enable", event);
+	return setevent(path, "1");
+}
+
+int event_disable(char *event)
+{
+	char path[MAX_PATH];
+	sprintf(path, "events/%s/enable", event);
+	return setevent(path, "0");
+}
+	
 int check_privs(void)
 {
 	int policy = sched_getscheduler(0);

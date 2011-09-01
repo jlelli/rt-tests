@@ -114,6 +114,7 @@ enum {
 	IRQPREEMPTOFF,
 	WAKEUP,
 	WAKEUPRT,
+	LATENCY,
 	CUSTOM,
 };
 
@@ -154,7 +155,7 @@ struct thread_stat {
 
 static int shutdown;
 static int tracelimit = 0;
-static int ftrace = 1;
+static int ftrace = 0;
 static int kernelversion;
 static int verbose = 0;
 static int oscope_reduction = 1;
@@ -172,6 +173,7 @@ static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static pthread_mutex_t break_thread_id_lock = PTHREAD_MUTEX_INITIALIZER;
 static pid_t break_thread_id = 0;
+static uint64_t break_thread_value = 0;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -369,50 +371,20 @@ void tracing(int on)
 
 static int settracer(char *tracer)
 {
-	char filename[MAX_PATH];
-	char tracers[MAX_PATH];
-	char *name;
-	FILE *fp;
-	int ret = -1;
-	int len;
-	const char *delim = " \t\n";
-	char *prefix = get_debugfileprefix();
-
-	/* Make sure tracer is available */
-	strncpy(filename, prefix, sizeof(filename));
-	strncat(filename, "available_tracers", 
-		sizeof(filename) - strlen(prefix));
-
-	fp = fopen(filename, "r");
-	if (!fp)
-		return -1;
-
-	if (!(len = fread(tracers, 1, sizeof(tracers), fp))) {
-		fclose(fp);
-		return -1;
-	}
-	tracers[len] = '\0';
-	fclose(fp);
-
-	name = strtok(tracers, delim);
-	while (name) {
-		if (strcmp(name, tracer) == 0) {
-			ret = 0;
-			break;
-		}
-		name = strtok(NULL, delim);
-	}
-
-	if (!ret)
+	if (valid_tracer(tracer)) {
 		setkernvar("current_tracer", tracer);
-
-	return ret;
+		return 0;
+	}
+	return -1;
 }
 
 static void setup_tracer(void)
 {
 	if (!tracelimit)
 		return;
+
+	if (mount_debugfs(NULL))
+		fatal("could not mount debugfs");
 
 	if (kernelversion >= KV_26_33) {
 		char testname[MAX_PATH];
@@ -447,10 +419,8 @@ static void setup_tracer(void)
 
 		switch (tracetype) {
 		case NOTRACE:
-			if (ftrace)
-				ret = settracer(functiontracer);
-			else
-				ret = 0;
+			setkernvar("events/enable", "1");
+			ret = settracer("nop");
 			break;
 		case IRQSOFF:
 			ret = settracer("irqsoff");
@@ -463,11 +433,20 @@ static void setup_tracer(void)
 			break;
 		case EVENTS:
 			/* per rostedt: use nop tracer with event tracing */
-			setkernvar("events/enable", "1");
 			ret = settracer("nop");
+			/* turn on all events */
+			event_enable_all();
 			break;
 		case CTXTSWITCH:
-			ret = settracer("sched_switch");
+			if (valid_tracer("sched_switch"))
+			    ret = settracer("sched_switch");
+			else {
+				if ((ret = settracer("nop")))
+					break;
+				if ((ret = event_enable("sched/sched_wakeup")))
+					break;
+				ret = event_enable("sched/sched_switch");
+			}
 			break;
                case WAKEUP:
                        ret = settracer("wakeup");
@@ -745,6 +724,7 @@ void *timerthread(void *param)
 			pthread_mutex_lock(&break_thread_id_lock);
 			if (break_thread_id == 0)
 				break_thread_id = stat->tid;
+			break_thread_value = diff;
 			pthread_mutex_unlock(&break_thread_id_lock);
 		}
 		stat->act = diff;
@@ -1533,8 +1513,10 @@ int main(int argc, char **argv)
 
 	if (tracelimit) {
 		print_tids(parameters, num_threads);
-		if (break_thread_id)
+		if (break_thread_id) {
 			printf("# Break thread: %d\n", break_thread_id);
+			printf("# Break value: %lu\n", break_thread_value);
+		}
 	}
 	
 
@@ -1560,6 +1542,9 @@ int main(int argc, char **argv)
 		close(tracemark_fd);
 	if (trace_fd >= 0)
 		close(trace_fd);
+
+	/* turn off all events */
+	event_disable_all();
 
 	/* unlock everything */
 	if (lockall)
