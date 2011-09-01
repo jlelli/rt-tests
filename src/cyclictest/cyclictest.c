@@ -112,7 +112,7 @@ enum {
 	CTXTSWITCH,
 	IRQSOFF,
 	PREEMPTOFF,
-	IRQPREEMPTOFF,
+	PREEMPTIRQSOFF,
 	WAKEUP,
 	WAKEUPRT,
 	LATENCY,
@@ -434,7 +434,7 @@ static void setup_tracer(void)
 		case PREEMPTOFF:
 			ret = settracer("preemptoff");
 			break;
-		case IRQPREEMPTOFF:
+		case PREEMPTIRQSOFF:
 			ret = settracer("preemptirqsoff");
 			break;
 		case CTXTSWITCH:
@@ -988,7 +988,7 @@ static void process_options (int argc, char *argv[])
 			}
 			break;
 		case 'b': tracelimit = atoi(optarg); break;
-		case 'B': tracetype = IRQPREEMPTOFF; break;
+		case 'B': tracetype = PREEMPTIRQSOFF; break;
 		case 'c': clocksel = atoi(optarg); break;
 		case 'C': tracetype = CTXTSWITCH; break;
 		case 'd': distance = atoi(optarg); break;
@@ -997,7 +997,15 @@ static void process_options (int argc, char *argv[])
 		case 'H': histofall = 1; /* fall through */
 		case 'h': histogram = atoi(optarg); break;
 		case 'i': interval = atoi(optarg); break;
-		case 'I': tracetype = IRQSOFF; break;
+		case 'I':
+			if (tracetype == PREEMPTOFF) {
+				tracetype = PREEMPTIRQSOFF;
+				strncpy(tracer, "preemptirqsoff", sizeof(tracer));
+			} else {
+				tracetype = IRQSOFF;
+				strncpy(tracer, "irqsoff", sizeof(tracer));
+			}
+			break;
 		case 'l': max_cycles = atoi(optarg); break;
 		case 'n': use_nanosleep = MODE_CLOCK_NANOSLEEP; break;
 		case 'N': use_nsecs = 1; break;
@@ -1008,7 +1016,15 @@ static void process_options (int argc, char *argv[])
 			if (policy != SCHED_FIFO && policy != SCHED_RR)
 				policy = SCHED_FIFO;
 			break;
-		case 'P': tracetype = PREEMPTOFF; break;
+		case 'P':
+			if (tracetype == IRQSOFF) {
+				tracetype = PREEMPTIRQSOFF;
+				strncpy(tracer, "preemptirqsoff", sizeof(tracer));
+			} else {
+				tracetype = PREEMPTOFF;
+				strncpy(tracer, "preemptoff", sizeof(tracer));
+			}
+			break;
 		case 'q': quiet = 1; break;
 		case 'r': timermode = TIMER_RELTIME; break;
 		case 's': use_system = MODE_SYS_OFFSET; break;
@@ -1322,7 +1338,7 @@ int main(int argc, char **argv)
 		warn("High resolution timers not available\n");
 
 	mode = use_nanosleep + use_system;
- 
+
 	sigemptyset(&sigset);
 	sigaddset(&sigset, signum);
 	sigprocmask (SIG_BLOCK, &sigset, NULL);
