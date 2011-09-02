@@ -621,8 +621,11 @@ void *timerthread(void *param)
 
 	/* Get current time */
 	clock_gettime(par->clock, &now);
+
 	next = now;
-	next.tv_sec++;
+	next.tv_sec += interval.tv_sec;
+	next.tv_nsec += interval.tv_nsec;
+	tsnorm(&next);
 
 	if (duration) {
 		memset(&stop, 0, sizeof(stop)); /* grrr */
