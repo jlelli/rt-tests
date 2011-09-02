@@ -62,6 +62,16 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Fri Sep  2 2011 Clark Williams <williams@redhat.com> - 0.75-1
+- added utility routines for mounting debugfs and event/tracing manipulation
+- from Steven Rostedt <srostedt@redhat.com>:
+  - allow events for all tracers
+  - Have -I and -P together also be -B
+  - do not touch tracing_thresh
+  - only check file descriptor in tracemark() function
+  - use interval on first loop instead of 1 second
+  - allow tracemark() to take variable args
+
 * Thu Aug 18 2011 Clark Williams <williams@redhat.com> - 0.74-1
 - changes to deal with 3.0 kernel
 - fixed buildrequires in specfile for Python
