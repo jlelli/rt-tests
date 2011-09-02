@@ -340,7 +340,7 @@ static void tracemark(char *comment)
 {
 	/* bail out if we're not tracing */
 	/* or if the kernel doesn't support trace_mark */
-	if (!tracelimit || kernelversion < KV_26_33 || tracemark_fd < 0)
+	if (tracemark_fd < 0)
 		return;
 	write(tracemark_fd, comment, strlen(comment));
 }
