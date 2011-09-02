@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -336,13 +337,23 @@ static int trace_file_exists(char *name)
 	return stat(path, &sbuf) ? 0 : 1;
 }
 
-static void tracemark(char *comment)
+#define TRACEBUFSIZ 1024
+static __thread char tracebuf[TRACEBUFSIZ];
+
+static void tracemark(char *fmt, ...)
 {
+	va_list ap;
+	int len;
+
 	/* bail out if we're not tracing */
 	/* or if the kernel doesn't support trace_mark */
 	if (tracemark_fd < 0)
 		return;
-	write(tracemark_fd, comment, strlen(comment));
+
+	va_start(ap, fmt);
+	len = vsnprintf(tracebuf, TRACEBUFSIZ, fmt, ap);
+	va_end(ap);
+	write(tracemark_fd, tracebuf, len);
 }
 
 void tracing(int on)
