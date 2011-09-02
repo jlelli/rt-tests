@@ -407,9 +407,6 @@ static void setup_tracer(void)
 		    !trace_file_exists("tracing_on"))
 			setkernvar("tracing_enabled", "1");
 
-		sprintf(buffer, "%d", tracelimit);
-		setkernvar("tracing_thresh", buffer);
-
 		/* ftrace_enabled is a sysctl variable */
 		fileprefix = procfileprefix;
 		if (ftrace)
