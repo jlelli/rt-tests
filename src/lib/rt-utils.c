@@ -25,6 +25,7 @@ char *get_debugfileprefix(void)
 	char type[100];
 	FILE *fp;
 	int size;
+	int found = 0;
 
 	if (debugfileprefix[0] != '\0')
 		return debugfileprefix;
@@ -36,12 +37,19 @@ char *get_debugfileprefix(void)
 		      STR(MAX_PATH)
 		      "s %99s %*s %*d %*d\n",
 		      debugfileprefix, type) == 2) {
-		if (strcmp(type, "debugfs") == 0)
+		if (strcmp(type, "debugfs") == 0) {
+			found = 1;
 			break;
+		}
+		if ((strcmp(debugfileprefix, "/sys/kernel/debug") == 0) &&
+		    (strcmp(type, "systemd") == 0)) {
+			found = 1;
+			break;
+		}
 	}
 	fclose(fp);
 
-	if (strcmp(type, "debugfs") != 0) {
+	if (!found) {
 		debugfileprefix[0] = '\0';
 		return debugfileprefix;
 	}
@@ -56,15 +64,23 @@ int mount_debugfs(char *path)
 {
 	char *mountpoint = path;
 	char cmd[MAX_PATH];
+	char *prefix;
 	int ret;
 
-	if (get_debugfileprefix())
+	if (!path)
+		printf("mount_debugfs: null input\n");
+
+	prefix = get_debugfileprefix();
+	if (strlen(prefix)) {
+		printf("mount_debugfs:  current debug fileprefix: %s\n", prefix);
 		return 0;
+	}
 	
 	if (!mountpoint)
 		mountpoint = "/sys/kernel/debug";
 	
 	sprintf(cmd, "mount -t debugfs debugfs %s", mountpoint);
+	printf("running: %s\n", cmd);
 	ret = system(cmd);
 	if (ret != 0) {
 		fprintf(stderr, "Error mounting debugfs at %s: %s\n", mountpoint, strerror(errno));
