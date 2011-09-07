@@ -1,4 +1,4 @@
-VERSION_STRING = 0.75
+VERSION_STRING = 0.76
 
 sources = cyclictest.c signaltest.c pi_stress.c rt-migrate-test.c	\
 	  ptsematest.c sigwaittest.c svsematest.c pmqtest.c sendme.c 	\
@@ -13,6 +13,8 @@ prefix  ?= /usr/local
 bindir  ?= $(prefix)/bin
 mandir	?= $(prefix)/share/man
 srcdir	?= $(prefix)/src
+
+NUMA	:= 1
 
 CFLAGS = -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/include
 
