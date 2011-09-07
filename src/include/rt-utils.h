@@ -20,5 +20,6 @@ int event_disable_all(void);
 
 void warn(char *fmt, ...);
 void fatal(char *fmt, ...);
+void info(char *fmt, ...);
 
 #endif	/* __RT_UTILS.H */

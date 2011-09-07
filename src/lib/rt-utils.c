@@ -13,6 +13,9 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "rt-utils.h"
 
 static char debugfileprefix[MAX_PATH];
@@ -26,12 +29,26 @@ char *get_debugfileprefix(void)
 	FILE *fp;
 	int size;
 	int found = 0;
+	struct stat s;
 
 	if (debugfileprefix[0] != '\0')
-		return debugfileprefix;
+		goto out;
 
+	/* look in the "standard" mount point first */
+	if ((stat("/sys/kernel/debug/tracing", &s) == 0) && S_ISDIR(s.st_mode)) {
+		strcpy(debugfileprefix, "/sys/kernel/debug/tracing/");
+		goto out;
+	}
+
+	/* now look in the "other standard" place */
+	if ((stat("/debug/tracing", &s) == 0) && S_ISDIR(s.st_mode)) {
+		strcpy(debugfileprefix, "/debug/tracing/");
+		goto out;
+	}
+	
+	/* oh well, parse /proc/mounts and see if it's there */
 	if ((fp = fopen("/proc/mounts","r")) == NULL)
-		return debugfileprefix;
+		goto out;
 
 	while (fscanf(fp, "%*s %"
 		      STR(MAX_PATH)
@@ -41,6 +58,7 @@ char *get_debugfileprefix(void)
 			found = 1;
 			break;
 		}
+		/* stupid check for systemd-style autofs mount */
 		if ((strcmp(debugfileprefix, "/sys/kernel/debug") == 0) &&
 		    (strcmp(type, "systemd") == 0)) {
 			found = 1;
@@ -51,12 +69,13 @@ char *get_debugfileprefix(void)
 
 	if (!found) {
 		debugfileprefix[0] = '\0';
-		return debugfileprefix;
+		goto out;
 	}
 
 	size = sizeof(debugfileprefix) - strlen(debugfileprefix);
 	strncat(debugfileprefix, "/tracing/", size);
 
+out:
 	return debugfileprefix;
 }
 
@@ -67,20 +86,16 @@ int mount_debugfs(char *path)
 	char *prefix;
 	int ret;
 
-	if (!path)
-		printf("mount_debugfs: null input\n");
-
+	/* if it's already mounted just return */
 	prefix = get_debugfileprefix();
-	if (strlen(prefix)) {
-		printf("mount_debugfs:  current debug fileprefix: %s\n", prefix);
+	if (strlen(prefix) != 0) {
+		info("debugfs mountpoint: %s\n", prefix);
 		return 0;
 	}
-	
 	if (!mountpoint)
 		mountpoint = "/sys/kernel/debug";
 	
 	sprintf(cmd, "mount -t debugfs debugfs %s", mountpoint);
-	printf("running: %s\n", cmd);
 	ret = system(cmd);
 	if (ret != 0) {
 		fprintf(stderr, "Error mounting debugfs at %s: %s\n", mountpoint, strerror(errno));
@@ -255,6 +270,16 @@ int check_privs(void)
 
 	/* we're good; change back and return success */
 	return sched_setscheduler(0, policy, &old_param);
+}
+
+void info(char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	fputs("INFO: ", stderr);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
 }
 
 void warn(char *fmt, ...)
