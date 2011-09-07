@@ -117,6 +117,7 @@ enum {
 	WAKEUP,
 	WAKEUPRT,
 	LATENCY,
+	FUNCTION,
 	CUSTOM,
 };
 
@@ -411,7 +412,6 @@ static void setup_tracer(void)
 		fileprefix = procfileprefix;
 
 	if (kernelversion >= KV_26_33) {
-		char buffer[32];
 		int ret;
 
 		if (trace_file_exists("tracing_enabled") &&
@@ -419,8 +419,10 @@ static void setup_tracer(void)
 			setkernvar("tracing_enabled", "1");
 
 		/* ftrace_enabled is a sysctl variable */
+		/* turn it on if you're doing anything but nop or event tracing */
+
 		fileprefix = procfileprefix;
-		if (ftrace)
+		if (tracetype)
 			setkernvar("ftrace_enabled", "1");
 		else
 			setkernvar("ftrace_enabled", "0");
@@ -435,6 +437,11 @@ static void setup_tracer(void)
 
 		switch (tracetype) {
 		case NOTRACE:
+			/* no tracer specified, use events */
+			enable_events = 1;
+			break;
+		case FUNCTION:
+			ret = settracer("function");
 			break;
 		case IRQSOFF:
 			ret = settracer("irqsoff");
@@ -1004,7 +1011,7 @@ static void process_options (int argc, char *argv[])
 		case 'C': tracetype = CTXTSWITCH; break;
 		case 'd': distance = atoi(optarg); break;
 		case 'E': enable_events = 1; break;
-		case 'f': ftrace = 1; break;
+		case 'f': tracetype = FUNCTION; ftrace = 1; break;
 		case 'H': histofall = 1; /* fall through */
 		case 'h': histogram = atoi(optarg); break;
 		case 'i': interval = atoi(optarg); break;
@@ -1574,6 +1581,12 @@ int main(int argc, char **argv)
 
 	/* turn off all events */
 	event_disable_all();
+
+	/* turn off the function tracer */
+	fileprefix = procfileprefix;
+	if (tracetype)
+		setkernvar("ftrace_enabled", "0");
+	fileprefix = get_debugfileprefix();
 
 	/* unlock everything */
 	if (lockall)
