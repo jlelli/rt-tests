@@ -208,7 +208,6 @@ static char functiontracer[MAX_PATH];
 static char traceroptions[MAX_PATH];
 
 static int trace_fd     = -1;
-static int tracemark_fd = -1;
 
 static int kernvar(int mode, const char *name, char *value, size_t sizeofvalue)
 {
@@ -336,25 +335,6 @@ static int trace_file_exists(char *name)
 	char path[MAX_PATH];
 	strcat(strcpy(path, tracing_prefix), name);
 	return stat(path, &sbuf) ? 0 : 1;
-}
-
-#define TRACEBUFSIZ 1024
-static __thread char tracebuf[TRACEBUFSIZ];
-
-static void tracemark(char *fmt, ...)
-{
-	va_list ap;
-	int len;
-
-	/* bail out if we're not tracing */
-	/* or if the kernel doesn't support trace_mark */
-	if (tracemark_fd < 0)
-		return;
-
-	va_start(ap, fmt);
-	len = vsnprintf(tracebuf, TRACEBUFSIZ, fmt, ap);
-	va_end(ap);
-	write(tracemark_fd, tracebuf, len);
 }
 
 void tracing(int on)
@@ -519,13 +499,6 @@ static void setup_tracer(void)
 				fatal("unable to open %s for tracing", path);
 		}
 
-		/* open the tracemark file descriptor */
-		if (tracemark_fd == -1) {
-			char path[MAX_PATH];
-			strcat(strcpy(path, fileprefix), "trace_marker");
-			if ((tracemark_fd = open(path, O_WRONLY)) == -1)
-				warn("unable to open trace_marker file: %s\n", path);
-		}
 	} else {
 		setkernvar("trace_all_cpus", "1");
 		setkernvar("trace_freerunning", "1");
@@ -671,8 +644,6 @@ void *timerthread(void *param)
 
 	stat->threadstarted++;
 
-	tracemark("entering time loop");
-
 	while (!shutdown) {
 
 		uint64_t diff;
@@ -718,8 +689,6 @@ void *timerthread(void *param)
 
 		clock_gettime(par->clock, &now);
 
-		tracemark("out of critical loop, calculating");
-
 		if (use_nsecs)
 			diff = calcdiff_ns(now, next);
 		else
@@ -738,7 +707,6 @@ void *timerthread(void *param)
 
 		if (!stopped && tracelimit && (diff > tracelimit)) {
 			stopped++;
-			tracemark("hit latency threshold");
 			tracing(0);
 			shutdown++;
 			pthread_mutex_lock(&break_thread_id_lock);
@@ -772,7 +740,6 @@ void *timerthread(void *param)
 
 		if (par->max_cycles && par->max_cycles == stat->cycles)
 			break;
-		tracemark("heading back to sleep");
 	}
 
 out:
@@ -1573,9 +1540,8 @@ int main(int argc, char **argv)
 	if (tracelimit)
 		tracing(0);
 
+
 	/* close any tracer file descriptors */
-	if (tracemark_fd >= 0)
-		close(tracemark_fd);
 	if (trace_fd >= 0)
 		close(trace_fd);
 
