@@ -62,6 +62,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Wed Sep 14 2011 Clark Williams <williams@redhat.com> - 0.78-1
+- modified hackebench signal logic
+
 * Fri Sep  9 2011 Clark Williams <williams@redhat.com> - 0.77-1
 - removed tracemark functions (too much contention on multiprocessors)
 
