@@ -37,7 +37,10 @@ static unsigned int num_fds = 20;
 /*
  * 0 means thread mode and others mean process (default)
  */
-static unsigned int process_mode = 1;
+#define THREAD_MODE 0
+#define PROCESS_MODE 1
+
+static unsigned int process_mode = PROCESS_MODE;
 
 static int use_pipes = 0;
 
@@ -159,7 +162,7 @@ static void *receiver(struct receiver_context* ctx)
 	unsigned int i;
 
 	reset_worker_signals();
-	if (process_mode)
+	if (process_mode == PROCESS_MODE)
 		close(ctx->in_fds[1]);
 
 	/* Wait for start... */
@@ -192,7 +195,7 @@ childinfo_t create_worker(void *ctx, void *(*func)(void *))
 	pid_t childpid;
 
 	switch (process_mode) {
-	case 1: /* process mode */
+	case PROCESS_MODE: /* process mode */
 		/* Fork the sender/receiver child. */
 		switch ((childpid = fork())) {
 			case -1:
@@ -206,7 +209,7 @@ childinfo_t create_worker(void *ctx, void *(*func)(void *))
 		child.pid = childpid;
 		break;
 
-	case 0: /* threaded mode */
+	case THREAD_MODE: /* threaded mode */
 		if (pthread_attr_init(&attr) != 0) {
 			sneeze("pthread_attr_init()");
 			child.error = -1;
@@ -246,7 +249,7 @@ unsigned int reap_workers(childinfo_t *child, unsigned int totchld, unsigned int
 	for( i = 0; i < totchld; i++ ) {
 		int pid;
 		switch( process_mode ) {
-		case 1: /* process mode */
+		case PROCESS_MODE: /* process mode */
 			fflush(stdout);
 			pid = wait(&status);
 			if (pid == -1 && errno == ECHILD)
@@ -254,7 +257,7 @@ unsigned int reap_workers(childinfo_t *child, unsigned int totchld, unsigned int
 			if (!WIFEXITED(status))
 				rc++;
 			break;
-		case 0: /* threaded mode */
+		case THREAD_MODE: /* threaded mode */
 			err = pthread_join(child[i].threadid, &thr_status);
 			if( err != 0 ) {
 				sneeze("pthread_join()");
@@ -307,7 +310,7 @@ static unsigned int group(childinfo_t *child,
 			return (i > 0 ? i-1 : 0);
 		}
 		snd_ctx->out_fds[i] = fds[1];
-		if (process_mode)
+		if (process_mode == PROCESS_MODE)
 			close(fds[0]);
 	}
 
@@ -324,7 +327,7 @@ static unsigned int group(childinfo_t *child,
 	}
 
 	/* Close the fds we have left */
-	if (process_mode)
+	if (process_mode == PROCESS_MODE)
 		for (i = 0; i < num_fds; i++)
 			close(snd_ctx->out_fds[i]);
 
@@ -390,10 +393,10 @@ static void process_options (int argc, char *argv[])
 			break;
 
 		case 'T':
-			process_mode = 0;
+			process_mode = THREAD_MODE;
 			break;
 		case 'P':
-			process_mode = 1;
+			process_mode = PROCESS_MODE;
 			break;
 
 		case 'h':
@@ -427,7 +430,7 @@ int main(int argc, char *argv[])
 	process_options (argc, argv);
 
 	printf("Running in %s mode with %d groups using %d file descriptors each (== %d tasks)\n",
-	       (process_mode == 0 ? "threaded" : "process"),
+	       (process_mode == THREAD_MODE ? "threaded" : "process"),
 	       num_groups, 2*num_fds, num_groups*(num_fds*2));
 	printf("Each sender will pass %d messages of %d bytes\n", loops, datasize);
 	fflush(NULL);
@@ -470,8 +473,11 @@ int main(int argc, char *argv[])
 			barf("Writing to start senders");
 		}
 	}
-	else
+	else {
 		fprintf(stderr, "longjmp'ed out, reaping children\n");
+		signal(SIGINT, SIG_IGN);
+		signal(SIGTERM, SIG_IGN);
+	}
 
 	/* Reap them all */
 	reap_workers(child_tab, total_children, signal_caught);
