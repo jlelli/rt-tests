@@ -28,11 +28,13 @@
 #include <getopt.h>
 #include <signal.h>
 #include <setjmp.h>
+#include <sched.h>
 
 static unsigned int datasize = 100;
 static unsigned int loops = 100;
 static unsigned int num_groups = 10;
 static unsigned int num_fds = 20;
+static unsigned int fifo = 0;
 
 /*
  * 0 means thread mode and others mean process (default)
@@ -234,6 +236,15 @@ childinfo_t create_worker(void *ctx, void *(*func)(void *))
 	return child;
 }
 
+void signal_workers(childinfo_t *children, unsigned int num_children)
+{
+	int i;
+	printf("signaling %d worker threads to terminate\n", num_children);
+	for (i=0; i < num_children; i++) {
+		kill(children[i].pid, SIGTERM);
+	}
+}
+
 unsigned int reap_workers(childinfo_t *child, unsigned int totchld, unsigned int dokill)
 {
 	unsigned int i, rc = 0;
@@ -243,7 +254,7 @@ unsigned int reap_workers(childinfo_t *child, unsigned int totchld, unsigned int
 	if (dokill) {
 		fprintf(stderr, "sending SIGTERM to all child processes\n");
 		signal(SIGTERM, SIG_IGN);
-		kill(0, SIGTERM);
+		signal_workers(child, totchld);
 	}
 
 	for( i = 0; i < totchld; i++ ) {
@@ -350,11 +361,12 @@ static void process_options (int argc, char *argv[])
 			{"fds",	      required_argument, NULL, 'f'},
 			{"threads",   no_argument,	 NULL, 'T'},
 			{"processes", no_argument,	 NULL, 'P'},
+			{"fifo",      no_argument,       NULL, 'F'},
 			{"help",      no_argument,	 NULL, 'h'},
 			{NULL, 0, NULL, 0}
 		};
 
-		int c = getopt_long(argc, argv, "ps:l:g:f:TPh",
+		int c = getopt_long(argc, argv, "ps:l:g:f:TPFh",
 				    longopts, &optind);
 		if (c == -1) {
 			break;
@@ -399,6 +411,10 @@ static void process_options (int argc, char *argv[])
 			process_mode = PROCESS_MODE;
 			break;
 
+		case 'F':
+			fifo = 1;
+			break;
+
 		case 'h':
 			print_usage_exit();
 
@@ -426,6 +442,7 @@ int main(int argc, char *argv[])
 	struct timeval start, stop, diff;
 	int readyfds[2], wakefds[2];
 	char dummy;
+	struct sched_param sp;
 
 	process_options (argc, argv);
 
@@ -458,6 +475,13 @@ int main(int argc, char *argv[])
 			}
 			total_children += c;
 		}
+		if (fifo) {
+			/* make main a realtime task so that we can manage the workers */
+			sp.sched_priority = 1;
+			if (sched_setscheduler(0, SCHED_FIFO, &sp) < 0)
+				barf("can't change to fifo in main");
+		}
+
 		/* Wait for everyone to be ready */
 		for (i = 0; i < total_children; i++)
 			if (read(readyfds[0], &dummy, 1) != 1) {
