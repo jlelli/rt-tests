@@ -191,6 +191,38 @@ static char **traceptr;
 static int traceopt_count;
 static int traceopt_size;
 
+static int latency_trick_fd = -1;
+
+/* Latency trick
+ * if the file /dev/cpu_dma_latency exists,
+ * open it and write a zero into it. This will tell 
+ * the power management system not to transition to 
+ * a high cstate (in fact, the system acts like idle=poll)
+ * When the fd to /dev/cpu_dma_latency is closed, the behavior
+ * goes back to the system default.
+ * 
+ * Documentation/power/pm_qos_interface.txt
+ */
+static void latency_trick(void)
+{
+	struct stat s;
+	int ret;
+
+	if (stat("/dev/cpu_dma_latency", &s) == 0) {
+		latency_trick_fd = open("/dev/cpu_dma_latency", O_RDWR);
+		if (latency_trick_fd == -1)
+			return;
+		ret = write(latency_trick_fd, "0x00000000", 10);
+		if (ret == 0) {
+			printf("error setting cpu_dma_latency to zero!: %s\n", strerror(errno));
+			close(latency_trick_fd);
+			return;
+		}
+		printf("cpu_dma_latency set to zero\n");
+	}
+}
+
+
 enum kernelversion {
 	KV_NOT_SUPPORTED,
 	KV_26_LT18,
@@ -1304,13 +1336,15 @@ int main(int argc, char **argv)
 	/* Checks if numa is on, program exits if numa on but not available */
 	numa_on_and_available();
 
-	/* lock all memory (prevent paging) */
+	/* lock all memory (prevent swapping) */
 	if (lockall)
 		if (mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
 			perror("mlockall");
 			goto out;
 		}
 
+	/* use the /dev/cpu_dma_latency trick if it's there */
+	latency_trick();
 
 	kernelversion = check_kernel();
 
@@ -1561,6 +1595,10 @@ int main(int argc, char **argv)
 	/* Be a nice program, cleanup */
 	if (kernelversion < KV_26_33)
 		restorekernvars();
+
+	/* close the latency_trick fd if it's open */
+	if (latency_trick_fd >= 0)
+		close(latency_trick_fd);
 
 	exit(ret);
 }
