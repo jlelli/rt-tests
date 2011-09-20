@@ -191,7 +191,8 @@ static char **traceptr;
 static int traceopt_count;
 static int traceopt_size;
 
-static int latency_trick_fd = -1;
+static int latency_target_fd = -1;
+static int32_t latency_target_value = 0;
 
 /* Latency trick
  * if the file /dev/cpu_dma_latency exists,
@@ -203,22 +204,22 @@ static int latency_trick_fd = -1;
  * 
  * Documentation/power/pm_qos_interface.txt
  */
-static void latency_trick(void)
+static void set_latency_target(void)
 {
 	struct stat s;
 	int ret;
 
 	if (stat("/dev/cpu_dma_latency", &s) == 0) {
-		latency_trick_fd = open("/dev/cpu_dma_latency", O_RDWR);
-		if (latency_trick_fd == -1)
+		latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR);
+		if (latency_target_fd == -1)
 			return;
-		ret = write(latency_trick_fd, "0x00000000", 10);
+		ret = write(latency_target_fd, &latency_target_value, 4);
 		if (ret == 0) {
 			printf("error setting cpu_dma_latency to zero!: %s\n", strerror(errno));
-			close(latency_trick_fd);
+			close(latency_target_fd);
 			return;
 		}
-		printf("cpu_dma_latency set to zero\n");
+		printf("/dev/cpu_dma_latency set to %dus\n", latency_target_value);
 	}
 }
 
@@ -982,9 +983,10 @@ static void process_options (int argc, char *argv[])
 			{"traceopt", required_argument, NULL, 'O'},
 			{"smp", no_argument, NULL, 'S'},
 			{"numa", no_argument, NULL, 'U'},
+			{"latency", required_argument, NULL, 'e'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:H:i:Il:MnNo:O:p:PmqrsSt::uUvD:wWT:y:",
+		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:H:i:Il:MnNo:O:p:PmqrsSt::uUvD:wWT:y:e:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1091,6 +1093,13 @@ static void process_options (int argc, char *argv[])
 			warn("ignoring --numa or -U\n");
 #endif
 			break;
+		case 'e': /* power management latency target value */
+			  /* note: default is 0 (zero) */
+			latency_target_value = atoi(optarg);
+			if (latency_target_value < 0)
+				latency_target_value = 0;
+			break;
+
 		case '?': display_help(0); break;
 		}
 	}
@@ -1344,7 +1353,7 @@ int main(int argc, char **argv)
 		}
 
 	/* use the /dev/cpu_dma_latency trick if it's there */
-	latency_trick();
+	set_latency_target();
 
 	kernelversion = check_kernel();
 
@@ -1596,9 +1605,9 @@ int main(int argc, char **argv)
 	if (kernelversion < KV_26_33)
 		restorekernvars();
 
-	/* close the latency_trick fd if it's open */
-	if (latency_trick_fd >= 0)
-		close(latency_trick_fd);
+	/* close the latency_target_fd if it's open */
+	if (latency_target_fd >= 0)
+		close(latency_target_fd);
 
 	exit(ret);
 }
