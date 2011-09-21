@@ -62,6 +62,9 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Wed Sep 21 2011 Clark Williams <williams@redhat.com> - 0.82-1
+- fix print that causes error in histogram processing
+
 * Tue Sep 20 2011 Clark Williams <williams@redhat.com> - 0.81-1
 - cleaned up previous hack for /dev/cpu_dma_latency interface
 
