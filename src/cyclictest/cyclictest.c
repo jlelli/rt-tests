@@ -215,11 +215,11 @@ static void set_latency_target(void)
 			return;
 		ret = write(latency_target_fd, &latency_target_value, 4);
 		if (ret == 0) {
-			printf("error setting cpu_dma_latency to zero!: %s\n", strerror(errno));
+			printf("# error setting cpu_dma_latency to %d!: %s\n", latency_target_value, strerror(errno));
 			close(latency_target_fd);
 			return;
 		}
-		printf("/dev/cpu_dma_latency set to %dus\n", latency_target_value);
+		printf("# /dev/cpu_dma_latency set to %dus\n", latency_target_value);
 	}
 }
 
