@@ -170,6 +170,7 @@ static int duration = 0;
 static int use_nsecs = 0;
 static int refresh_on_max;
 static int force_sched_other;
+static int priospread = 0;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -845,6 +846,7 @@ static void display_help(int error)
 	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 	       "-P       --preemptoff      Preempt off tracing (used with -b)\n"
 	       "-q       --quiet           print only a summary on exit\n"
+	       "-Q       --priospread       spread priority levels starting at specified value\n"
 	       "-r       --relative        use relative timer instead of absolute\n"
 	       "-s       --system          use sys_nanosleep and sys_setitimer\n"
 	       "-t       --threads         one thread per available processor\n"
@@ -984,9 +986,10 @@ static void process_options (int argc, char *argv[])
 			{"smp", no_argument, NULL, 'S'},
 			{"numa", no_argument, NULL, 'U'},
 			{"latency", required_argument, NULL, 'e'},
+			{"priospread", no_argument, NULL, 'Q'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:H:i:Il:MnNo:O:p:PmqrsSt::uUvD:wWT:y:e:",
+		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:H:i:Il:MnNo:O:p:PmqQrsSt::uUvD:wWT:y:e:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1045,6 +1048,7 @@ static void process_options (int argc, char *argv[])
 			}
 			break;
 		case 'q': quiet = 1; break;
+		case 'Q': priospread = 1; break;
 		case 'r': timermode = TIMER_RELTIME; break;
 		case 's': use_system = MODE_SYS_OFFSET; break;
 		case 't':
@@ -1139,6 +1143,12 @@ static void process_options (int argc, char *argv[])
 
 	if (priority < 0 || priority > 99)
 		error = 1;
+
+	if (priospread && priority == 0) {
+		fprintf(stderr, "defaulting realtime priority to %d\n", 
+			num_threads+1);
+		priority = num_threads+1;
+	}
 
 	if (priority && (policy != SCHED_FIFO && policy != SCHED_RR)) {
 		fprintf(stderr, "policy and priority don't match: setting policy to SCHED_FIFO\n");
@@ -1456,7 +1466,7 @@ int main(int argc, char **argv)
 			par->policy = SCHED_OTHER;
 			force_sched_other = 1;
 		}
-		if (priority && !histogram && !smp && !numa)
+		if (priospread)
 			priority--;
 		par->clock = clocksources[clocksel];
 		par->mode = mode;
