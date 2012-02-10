@@ -33,6 +33,7 @@
 #include <sys/time.h>
 #include <sys/utsname.h>
 #include <sys/mman.h>
+#include <sys/resource.h>
 #include "rt_numa.h"
 
 #include "rt-utils.h"
@@ -641,7 +642,10 @@ void *timerthread(void *param)
 
 	memset(&schedp, 0, sizeof(schedp));
 	schedp.sched_priority = par->prio;
-	sched_setscheduler(0, par->policy, &schedp);
+	if(sched_setscheduler(0, par->policy, &schedp) == -1){
+		fprintf(stderr,"sched_setscheduler prio %d failed\n",par->prio);
+		par->prio=0; 
+	}
 
 	/* Get current time */
 	clock_gettime(par->clock, &now);
@@ -943,6 +947,7 @@ static void process_options (int argc, char *argv[])
 {
 	int error = 0;
 	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
+	struct rlimit rlim;
 
 	for (;;) {
 		int option_index = 0;
@@ -1144,6 +1149,15 @@ static void process_options (int argc, char *argv[])
 		fprintf(stderr, "policy and priority don't match: setting policy to SCHED_FIFO\n");
 		policy = SCHED_FIFO;
 	}
+
+	/* check against rlimit see /etc/security/limits.conf */
+	getrlimit(RLIMIT_RTPRIO, &rlim);
+	if ( priority > rlim.rlim_max){
+		fprintf(stderr, "defaulting realtime priority to %d\n", 
+			(int) rlim.rlim_max);
+		priority = rlim.rlim_max;
+	}
+
 
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) && priority == 0) {
 		fprintf(stderr, "defaulting realtime priority to %d\n", 
