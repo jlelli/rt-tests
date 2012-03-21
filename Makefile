@@ -6,7 +6,7 @@ sources = cyclictest.c signaltest.c pi_stress.c rt-migrate-test.c	\
 
 TARGETS = $(sources:.c=)
 
-LIBS 	= -lrt -lpthread
+LIBS 	= -lrt -lpthread -lrttest -L.
 EXTRA_LIBS ?= -ldl	# for get_cpu
 DESTDIR	?=
 prefix  ?= /usr/local
@@ -61,10 +61,10 @@ all: $(TARGETS) hwlatdetect
 # Include dependency files, automatically generate them if needed.
 -include $(sources:.c=.d)
 
-cyclictest: cyclictest.o rt-utils.o
+cyclictest: cyclictest.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(NUMA_LIBS)
 
-signaltest: signaltest.o rt-utils.o
+signaltest: signaltest.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 pi_stress: pi_stress.o
@@ -77,28 +77,31 @@ hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 rt-migrate-test: rt-migrate-test.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-ptsematest: ptsematest.o rt-utils.o rt-get_cpu.o
+ptsematest: ptsematest.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
-sigwaittest: sigwaittest.o rt-utils.o rt-get_cpu.o
+sigwaittest: sigwaittest.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
-svsematest: svsematest.o rt-utils.o rt-get_cpu.o
+svsematest: svsematest.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
-pmqtest: pmqtest.o rt-utils.o rt-get_cpu.o
+pmqtest: pmqtest.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
-sendme: sendme.o rt-utils.o rt-get_cpu.o
+sendme: sendme.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXTRA_LIBS)
 
-pip_stress: pip_stress.o error.o rt-utils.o
+pip_stress: pip_stress.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 hackbench: hackbench.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec *.d
+librttest.a: rt-utils.o error.o rt-get_cpu.o
+	$(AR) rcs librttest.a rt-utils.o error.o rt-get_cpu.o
+
+CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec *.d *.a
 CLEANUP += $(if $(wildcard .git), ChangeLog)
 
 .PHONY: clean
