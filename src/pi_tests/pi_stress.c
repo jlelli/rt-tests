@@ -597,9 +597,17 @@ void *reporter(void *arg)
 int verify_cpu(int cpu)
 {
 	int status;
+	int err;
 	cpu_set_t mask;
 
+	CPU_ZERO(&mask);
+
 	status = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
+	if (status == -1) {
+		err = errno;
+		fprintf(stderr, "sched_getaffinity %s\n", strerror(err));
+		exit(-1);
+	}
 
 	if (CPU_ISSET(cpu, &mask))
 		return SUCCESS;
