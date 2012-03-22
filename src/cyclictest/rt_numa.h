@@ -15,6 +15,7 @@
 #define _RT_NUMA_H
 
 #include "rt-utils.h"
+#include "error.h"
 
 static int numa = 0;
 

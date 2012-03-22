@@ -46,6 +46,37 @@ void err_quit(char *fmt, ...)
 	exit(1);
 }
 
+void info(char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	fputs("INFO: ", stderr);
+	err_doit(0, fmt, ap);
+	va_end(ap);
+}
+
+void warn(char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	fputs("WARN: ", stderr);
+	err_doit(0, fmt, ap);
+	va_end(ap);
+}
+
+void fatal(char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	fputs("FATAL: ", stderr);
+	err_doit(0, fmt, ap);
+	va_end(ap);
+	exit(EXIT_FAILURE);
+}
+
 void err_doit(int err, const char *fmt, va_list ap)
 {
 	if (err)

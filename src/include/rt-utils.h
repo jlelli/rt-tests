@@ -1,7 +1,6 @@
 #ifndef __RT_UTILS_H
 #define __RT_UTILS_H
 
-
 #define _STR(x) #x
 #define STR(x) _STR(x)
 #define MAX_PATH 256
@@ -17,9 +16,5 @@ int event_enable(char *event);
 int event_disable(char *event);
 int event_enable_all(void);
 int event_disable_all(void);
-
-void warn(char *fmt, ...);
-void fatal(char *fmt, ...);
-void info(char *fmt, ...);
 
 #endif	/* __RT_UTILS.H */
