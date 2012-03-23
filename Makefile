@@ -125,6 +125,7 @@ install: all
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
 	if test -n "$(PYLIB)" ; then \
 		install -D -m 755 src/hwlatdetect/hwlatdetect.py $(DESTDIR)$(PYLIB)/hwlatdetect.py ; \
+		rm -f "$(DESTDIR)$(bindir)/hwlatdetect" ; \
 		ln -s $(PYLIB)/hwlatdetect.py "$(DESTDIR)$(bindir)/hwlatdetect" ; \
 	fi
 	install -D -m 644 src/backfire/backfire.c "$(DESTDIR)$(srcdir)/backfire/backfire.c"
