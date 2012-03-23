@@ -42,6 +42,7 @@
 #include <sys/mman.h>
 #include "rt-utils.h"
 #include "rt-get_cpu.h"
+#include "error.h"
 
 #define gettid() syscall(__NR_gettid)
 

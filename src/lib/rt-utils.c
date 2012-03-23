@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "rt-utils.h"
+#include "error.h"
 
 static char debugfileprefix[MAX_PATH];
 
@@ -270,36 +271,5 @@ int check_privs(void)
 
 	/* we're good; change back and return success */
 	return sched_setscheduler(0, policy, &old_param);
-}
-
-void info(char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	fputs("INFO: ", stderr);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-}
-
-void warn(char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	fputs("WARNING: ", stderr);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-}
-
-void fatal(char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	fputs("FATAL: ", stderr);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	exit(EXIT_FAILURE);
 }
 

@@ -10,6 +10,9 @@ void err_exit(int err, char *fmt, ...);
 void err_msg(char *fmt, ...);
 void err_msg_n(int err, char *fmt, ...);
 void err_quit(char *fmt, ...);
+void info(char *fmt, ...);
+void warn(char *fmt, ...);
+void fatal(char *fmt, ...);
 void err_doit(int err, const char *fmt, va_list ap);
 
 #endif	/* __ERROR_H */

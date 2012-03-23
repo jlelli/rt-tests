@@ -36,6 +36,7 @@
 #include <utmpx.h>
 #include "rt-utils.h"
 #include "rt-get_cpu.h"
+#include "error.h"
 
 #include <pthread.h>
 
