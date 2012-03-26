@@ -1,7 +1,7 @@
 /*
  * High resolution timer test software
  *
- * (C) 2008-2011 Clark Williams <williams@redhat.com>
+ * (C) 2008-2012 Clark Williams <williams@redhat.com>
  * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
  *
  * This program is free software; you can redistribute it and/or
@@ -693,35 +693,46 @@ void *timerthread(void *param)
 
 		case MODE_CLOCK_NANOSLEEP:
 			if (par->timermode == TIMER_ABSTIME) {
-				ret = clock_nanosleep(par->clock, TIMER_ABSTIME,
-						&next, NULL);
+				if ((ret = clock_nanosleep(par->clock, TIMER_ABSTIME, &next, NULL))) {
+					if (ret != EINTR)
+						warn("clock_nanosleep failed. errno: %d\n", errno);
+					goto out;
+				}
 			} else {
 				clock_gettime(par->clock, &now);
-				ret = clock_nanosleep(par->clock, TIMER_RELTIME,
-						&interval, NULL);
+				if ((ret = clock_nanosleep(par->clock, TIMER_RELTIME, &interval, NULL))) {
+					if (ret != EINTR)
+						warn("clock_gettime failed. errno: %d\n", errno);
+					goto out;
+				}
 				next.tv_sec = now.tv_sec + interval.tv_sec;
 				next.tv_nsec = now.tv_nsec + interval.tv_nsec;
 				tsnorm(&next);
 			}
-
-			/* Avoid negative calcdiff result if clock_nanosleep() 
-			 * gets interrupted.
-			 */
-			if (ret == EINTR)
-				goto out;
-
 			break;
 
 		case MODE_SYS_NANOSLEEP:
-			clock_gettime(par->clock, &now);
-			nanosleep(&interval, NULL);
+			if ((ret = clock_gettime(par->clock, &now))) {
+				if (ret != EINTR)
+					warn("clock_gettime failed: errno %d\n", errno);
+				goto out;
+			}
+			if (nanosleep(&interval, NULL)) {
+				if (errno != EINTR)
+					warn("nanosleep failed. errno: %d\n", errno);
+				goto out;
+			}
 			next.tv_sec = now.tv_sec + interval.tv_sec;
 			next.tv_nsec = now.tv_nsec + interval.tv_nsec;
 			tsnorm(&next);
 			break;
 		}
 
-		clock_gettime(par->clock, &now);
+		if ((ret = clock_gettime(par->clock, &now))) {
+			if (ret != EINTR)
+				warn("clock_getttime failed. errno: %d\n", errno);
+			goto out;
+		}
 
 		if (use_nsecs)
 			diff = calcdiff_ns(now, next);
