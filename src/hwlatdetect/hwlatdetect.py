@@ -519,11 +519,13 @@ if __name__ == '__main__':
     info("Samples exceeding threshold: %d" % exceeding)
 
     if reportfile:
+        count = 0
         f = open(reportfile, "w")
         for s in detect.samples:
+            count += 1
             f.write("%s\n" % s)
         f.close()
-        info("sample data written to %s" % reportfile)
+        info("sample data (%d samples) written to %s" % (count, reportfile))
     else:
         for s in detect.samples:
             print "%s" % s
