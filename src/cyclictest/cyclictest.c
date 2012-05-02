@@ -611,6 +611,7 @@ void *timerthread(void *param)
 	struct thread_stat *stat = par->stats;
 	int stopped = 0;
 	cpu_set_t mask;
+	pthread_t thread;
 
 	/* if we're running in numa mode, set our memory node */
 	if (par->node != -1)
@@ -619,7 +620,8 @@ void *timerthread(void *param)
 	if (par->cpu != -1) {
 		CPU_ZERO(&mask);
 		CPU_SET(par->cpu, &mask);
-		if(sched_setaffinity(0, sizeof(mask), &mask) == -1)
+		thread = pthread_self();
+		if(pthread_setaffinity_np(thread, sizeof(mask), &mask) == -1)
 			warn("Could not set CPU affinity to CPU #%d\n", par->cpu);
 	}
 
