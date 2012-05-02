@@ -1611,8 +1611,9 @@ int main(int argc, char **argv)
 	if (trace_fd >= 0)
 		close(trace_fd);
 
-	/* turn off all events */
-	event_disable_all();
+	if (enable_events)
+		/* turn off all events */
+		event_disable_all();
 
 	/* turn off the function tracer */
 	fileprefix = procfileprefix;
