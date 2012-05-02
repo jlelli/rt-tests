@@ -957,10 +957,11 @@ static char *policyname(int policy)
 static void process_options (int argc, char *argv[])
 {
 	int error = 0;
+	int option_affinity = 0;
 	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
 
 	for (;;) {
-		int option_index = 0;
+ 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
 			{"affinity", optional_argument, NULL, 'a'},
@@ -1008,10 +1009,9 @@ static void process_options (int argc, char *argv[])
 			break;
 		switch (c) {
 		case 'a':
-			if (smp) {
-				warn("-a ignored due to --smp\n");
+			option_affinity = 1;
+			if (smp || numa)
 				break;
-			}
 			if (optarg != NULL) {
 				affinity = atoi(optarg);
 				setaffinity = AFFINITY_SPECIFIED;
@@ -1118,6 +1118,14 @@ static void process_options (int argc, char *argv[])
 			break;
 
 		case '?': display_help(0); break;
+		}
+	}
+
+	if (option_affinity) {
+		if (smp) {
+			warn("-a ignored due to --smp\n");
+		} else if (numa) {
+			warn("-a ignored due to --numa\n");
 		}
 	}
 
