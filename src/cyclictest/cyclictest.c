@@ -1602,7 +1602,7 @@ int main(int argc, char **argv)
 		print_tids(parameters, num_threads);
 		if (break_thread_id) {
 			printf("# Break thread: %d\n", break_thread_id);
-			printf("# Break value: %lu\n", break_thread_value);
+			printf("# Break value: %llu\n", (unsigned long long)break_thread_value);
 		}
 	}
 	
