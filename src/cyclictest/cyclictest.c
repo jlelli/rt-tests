@@ -108,6 +108,8 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 
 int enable_events;
 
+static char *policyname(int policy);
+
 enum {
 	NOTRACE,
 	CTXTSWITCH,
@@ -644,7 +646,8 @@ void *timerthread(void *param)
 
 	memset(&schedp, 0, sizeof(schedp));
 	schedp.sched_priority = par->prio;
-	sched_setscheduler(0, par->policy, &schedp);
+	if (sched_setscheduler(0, par->policy, &schedp)) 
+		fatal("timerthread%d: failed to set priority to %d\n", par->cpu, par->prio);
 
 	/* Get current time */
 	clock_gettime(par->clock, &now);
@@ -701,10 +704,14 @@ void *timerthread(void *param)
 					goto out;
 				}
 			} else {
-				clock_gettime(par->clock, &now);
+				if ((ret = clock_gettime(par->clock, &now))) {
+					if (ret != EINTR)
+						warn("clock_gettime() failed: %s", strerror(errno));
+					goto out;
+				}
 				if ((ret = clock_nanosleep(par->clock, TIMER_RELTIME, &interval, NULL))) {
 					if (ret != EINTR)
-						warn("clock_gettime failed. errno: %d\n", errno);
+						warn("clock_nanosleep() failed. errno: %d\n", errno);
 					goto out;
 				}
 				next.tv_sec = now.tv_sec + interval.tv_sec;
@@ -716,7 +723,7 @@ void *timerthread(void *param)
 		case MODE_SYS_NANOSLEEP:
 			if ((ret = clock_gettime(par->clock, &now))) {
 				if (ret != EINTR)
-					warn("clock_gettime failed: errno %d\n", errno);
+					warn("clock_gettime() failed: errno %d\n", errno);
 				goto out;
 			}
 			if (nanosleep(&interval, NULL)) {
@@ -732,7 +739,7 @@ void *timerthread(void *param)
 
 		if ((ret = clock_gettime(par->clock, &now))) {
 			if (ret != EINTR)
-				warn("clock_getttime failed. errno: %d\n", errno);
+				warn("clock_getttime() failed. errno: %d\n", errno);
 			goto out;
 		}
 
@@ -763,7 +770,6 @@ void *timerthread(void *param)
 			pthread_mutex_unlock(&break_thread_id_lock);
 		}
 		stat->act = diff;
-		stat->cycles++;
 
 		if (par->bufmsk)
 			stat->values[stat->cycles & par->bufmsk] = diff;
@@ -775,6 +781,8 @@ void *timerthread(void *param)
 			else
 				stat->hist_array[diff]++;
 		}
+
+		stat->cycles++;
 
 		next.tv_sec += interval.tv_sec;
 		next.tv_nsec += interval.tv_nsec;
@@ -1101,6 +1109,8 @@ static void process_options (int argc, char *argv[])
 			if (smp)
 				fatal("numa and smp options are mutually exclusive\n");
 #ifdef NUMA
+			if (numa_available() == -1)
+				fatal("NUMA functionality not available!");
 			numa = 1;
 			num_threads = max_cpus;
 			setaffinity = AFFINITY_USEALL;
