@@ -31,6 +31,7 @@
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/utsname.h>
 #include <sys/mman.h>
 #include "rt_numa.h"
@@ -589,6 +590,79 @@ parse_time_string(char *val)
 }
 
 /*
+ * Raise the soft priority limit up to prio, if that is less than or equal
+ * to the hard limit
+ * if a call fails, return the error
+ * if successful return 0
+ * if fails, return -1
+*/
+static int raise_soft_prio(int policy, const struct sched_param *param)
+{
+	int err;
+	int policy_max;	/* max for scheduling policy such as SCHED_FIFO */
+	int soft_max;
+	int hard_max;
+	int prio;
+	struct rlimit rlim;
+
+	prio = param->sched_priority;
+
+	policy_max = sched_get_priority_max(policy);
+	if (policy_max == -1) {
+		err = errno;
+		err_msg("WARN: no such policy\n");
+		return err;
+	}
+
+	err = getrlimit(RLIMIT_RTPRIO, &rlim);
+	if (err) {
+		err = errno;
+		err_msg_n(err, "WARN: getrlimit failed\n");
+		return err;
+	}
+
+	soft_max = (rlim.rlim_cur == RLIM_INFINITY) ? policy_max : rlim.rlim_cur;
+	hard_max = (rlim.rlim_max == RLIM_INFINITY) ? policy_max : rlim.rlim_max;
+
+	if (prio > soft_max && prio <= hard_max) {
+		rlim.rlim_cur = prio;
+		err = setrlimit(RLIMIT_RTPRIO, &rlim);
+		if (err) {
+			err = errno;
+			err_msg_n(err, "WARN: setrlimit failed\n");
+			/* return err; */
+		}
+	} else {
+		err = -1;
+	}
+
+	return err;
+}
+
+/*
+ * Check the error status of sched_setscheduler
+ * If an error can be corrected by raising the soft limit priority to
+ * a priority less than or equal to the hard limit, then do so.
+ */
+static int setscheduler(pid_t pid, int policy, const struct sched_param *param)
+{
+	int err = 0;
+
+try_again:
+	err = sched_setscheduler(pid, policy, param);
+	if (err) {
+		err = errno;
+		if (err == EPERM) {
+			int err1;
+			err1 = raise_soft_prio(policy, param);
+			if (!err1) goto try_again;
+		}
+	}
+
+	return err;
+}
+
+/*
  * timer thread
  *
  * Modes:
@@ -646,7 +720,7 @@ void *timerthread(void *param)
 
 	memset(&schedp, 0, sizeof(schedp));
 	schedp.sched_priority = par->prio;
-	if (sched_setscheduler(0, par->policy, &schedp)) 
+	if (setscheduler(0, par->policy, &schedp)) 
 		fatal("timerthread%d: failed to set priority to %d\n", par->cpu, par->prio);
 
 	/* Get current time */
