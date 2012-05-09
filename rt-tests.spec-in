@@ -62,6 +62,29 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Wed May  9 2012 Clark Williams <williams@redhat.com> - 0.84-1
+- [cyclictest] added -Q/--priospread option to 
+- from Markus Kohlhase <mail@markus-kohlhase.de>
+  - [docs] added description from osadl.org
+- from Darren Hart <dvhart@linux.intel.com>
+  - Makefile: Support user supplied CFLAGS and LDFLAGS
+- from Steven Rostedt <rostedt@goodmis.org>
+  - rt-tests: Update rt-migrate-test to use ftrace infrastructure
+- from John Kacur <jkacur@redhat.com>
+  - .gitignore: differentiate between program names and directories
+  - pi_stress: Check the status of sched_getaffinity
+  - Makefile: Introduce a static library
+  - Move info, warn, and fatal functions to error.[ch]
+  - install: Fix failed to create symbolic link hwlatdetect file exists
+  - cyclictest: Make cyclictest fail if it cannot run with requested priority
+- from Frank Rowand <frank.rowand@am.sony.com>
+  - cyclictest: segfault with '-a'
+  - cyclictest: avoid unneeded warning
+  - cyclictest: warn of interaction between '-a', '--smp', and '--numa'
+  - Makefile: get machinetype from compiler instead of uname
+  - cyclictest: incorrect first latency value for --verbose option
+  - cyclictest: printf format compile warning
+
 * Mon Sep 26 2011 Clark Williams <williams@redhat.com> - 0.83-1
 - modified Makefile to be smarter about building with NUMA
 
