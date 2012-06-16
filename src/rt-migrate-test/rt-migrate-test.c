@@ -106,12 +106,15 @@ static void ftrace_write(const char *fmt, ...)
 #define sec2nano(sec) (sec * 1000000000ULL)
 #define INTERVAL ms2nano(100ULL)
 #define RUN_INTERVAL ms2nano(20ULL)
+#define CPU_USAGE 0.70
 #define NR_RUNS 50
 #define PRIO_START 2
 /* 1 millisec off */
 #define MAX_ERR  usec2nano(1000)
 
 #define PROGRESS_CHARS 70
+
+#define PERIOD ((2*nr_tasks * nano2usec(run_interval)))
 
 static unsigned long long interval = INTERVAL;
 static unsigned long long run_interval = RUN_INTERVAL;
@@ -120,6 +123,8 @@ static int nr_runs = NR_RUNS;
 static int prio_start = PRIO_START;
 static int check;
 static int stop;
+
+static float cpu_usage = CPU_USAGE;
 
 static unsigned long long now;
 
@@ -352,9 +357,10 @@ void *start_task(void *data)
 	#else
 	struct sched_param2 param = {
 		.sched_priority = id + prio_start,
-		.sched_runtime = 25000,
-		.sched_period = 100000,
-		.sched_deadline = 100000,
+		.sched_runtime = 2*nano2usec(run_interval) * cpu_usage,
+		//.sched_runtime = 25000,
+		.sched_period = PERIOD,
+		.sched_deadline = PERIOD,
 
 	};
 	#endif
@@ -563,8 +569,8 @@ int main (int argc, char **argv)
 		fprintf(stderr, "Warning, can't set priority of main thread!\n");
 	#else
 	param.sched_runtime = 50000;
-	param.sched_period = 100000;
-	param.sched_deadline = 100000;
+	param.sched_period = PERIOD;
+	param.sched_deadline = PERIOD;
 	if (sched_setscheduler2(0, SCHED_DEADLINE, &param))
 		fprintf(stderr, "Warning, can't set priority of main thread!\n");
 	#endif
