@@ -45,7 +45,8 @@ VPATH	+= src/sigwaittest:
 VPATH	+= src/svsematest:
 VPATH	+= src/pmqtest:
 VPATH	+= src/backfire:
-VPATH	+= src/lib
+VPATH	+= src/lib:
+VPATH	+= src/libdl:
 VPATH	+= src/hackbench
 
 %.o: %.c
