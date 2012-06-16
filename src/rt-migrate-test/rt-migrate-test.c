@@ -53,7 +53,7 @@
 #define VERSION_STRING 0.3
 #endif
 
-//#define USE_DEADLINE_SCHEDULER
+#define USE_DEADLINE_SCHEDULER
 
 int nr_tasks;
 int lfd;
