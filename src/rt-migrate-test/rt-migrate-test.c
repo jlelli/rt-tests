@@ -45,11 +45,15 @@
 #include <sched.h>
 #include <pthread.h>
 
+#include "dl_syscalls.h"
+
 #define gettid() syscall(__NR_gettid)
 
 #ifndef VERSION_STRING
 #define VERSION_STRING 0.3
 #endif
+
+//#define USE_DEADLINE_SCHEDULER
 
 int nr_tasks;
 int lfd;
@@ -340,9 +344,21 @@ void *start_task(void *data)
 {
 	long id = (long)data;
 	unsigned long long start_time;
+
+	#ifndef USE_DEADLINE_SCHEDULER
 	struct sched_param param = {
 		.sched_priority = id + prio_start,
 	};
+	#else
+	struct sched_param2 param = {
+		.sched_priority = id + prio_start,
+		.sched_runtime = 25000,
+		.sched_period = 100000,
+		.sched_deadline = 100000,
+
+	};
+	#endif
+
 	int ret;
 	int high = 0;
 	cpu_set_t cpumask;
@@ -361,9 +377,15 @@ void *start_task(void *data)
 	if (id == nr_tasks-1)
 		high = 1;
 
+	#ifndef USE_DEADLINE_SCHEDULER
 	ret = sched_setscheduler(0, SCHED_FIFO, &param);
 	if (ret < 0 && !id)
 		fprintf(stderr, "Warning, can't set priorities\n");
+	#else
+	ret = sched_setscheduler2(0, SCHED_DEADLINE, &param);
+	if (ret < 0 && !id)
+		fprintf(stderr, "Warning, can't set priorities\n");
+	#endif
 
 	while (!done) {
 		if (high) {
@@ -461,7 +483,12 @@ int main (int argc, char **argv)
 	long i;
 	int ret;
 	struct timespec intv;
+	
+	#ifndef USE_DEADLINE_SCHEDULER
 	struct sched_param param;
+	#else
+	struct sched_param2 param;
+	#endif
 
 	parse_options(argc, argv);
 
@@ -531,8 +558,17 @@ int main (int argc, char **argv)
 	/* up our prio above all tasks */
 	memset(&param, 0, sizeof(param));
 	param.sched_priority = nr_tasks + prio_start;
+	#ifndef USE_DEADLINE_SCHEDULER
 	if (sched_setscheduler(0, SCHED_FIFO, &param))
 		fprintf(stderr, "Warning, can't set priority of main thread!\n");
+	#else
+	param.sched_runtime = 50000;
+	param.sched_period = 100000;
+	param.sched_deadline = 100000;
+	if (sched_setscheduler2(0, SCHED_DEADLINE, &param))
+		fprintf(stderr, "Warning, can't set priority of main thread!\n");
+	#endif
+
 		
 
 
