@@ -106,7 +106,7 @@ static void ftrace_write(const char *fmt, ...)
 #define sec2nano(sec) (sec * 1000000000ULL)
 #define INTERVAL ms2nano(100ULL)
 #define RUN_INTERVAL ms2nano(20ULL)
-#define CPU_USAGE 0.70
+#define CPU_USAGE 1.80
 #define NR_RUNS 50
 #define PRIO_START 2
 /* 1 millisec off */
@@ -114,7 +114,8 @@ static void ftrace_write(const char *fmt, ...)
 
 #define PROGRESS_CHARS 70
 
-#define PERIOD ((2*nr_tasks * nano2usec(run_interval)))
+#define max(a,b) ((a>b)?a:b)
+#define PERIOD max((((nr_tasks * nano2usec(run_interval)) + 50000)/cpu_usage),nano2usec(interval)+50000)
 
 static unsigned long long interval = INTERVAL;
 static unsigned long long run_interval = RUN_INTERVAL;
@@ -345,6 +346,18 @@ static unsigned long busy_loop(unsigned long long start_time)
 	return l;
 }
 
+static void timespec_add(struct timespec * a, const struct timespec * b)
+{
+	a->tv_nsec += b->tv_nsec;
+	a->tv_sec += b->tv_sec;
+	if(a->tv_nsec > 1000000000)
+	{
+		a->tv_nsec -= 1000000000;
+		a->tv_sec += 1;
+	}
+
+}
+
 void *start_task(void *data)
 {
 	long id = (long)data;
@@ -357,8 +370,7 @@ void *start_task(void *data)
 	#else
 	struct sched_param2 param = {
 		.sched_priority = id + prio_start,
-		.sched_runtime = 2*nano2usec(run_interval) * cpu_usage,
-		//.sched_runtime = 25000,
+		.sched_runtime = 2*nano2usec(run_interval),
 		.sched_period = PERIOD,
 		.sched_deadline = PERIOD,
 
@@ -372,6 +384,7 @@ void *start_task(void *data)
 	int cpu = 0;
 	unsigned long l;
 	long pid;
+	struct timespec t_next, t_period;
 
 	ret = sched_getaffinity(0, sizeof(save_cpumask), &save_cpumask);
 	if (ret < 0)
@@ -393,6 +406,11 @@ void *start_task(void *data)
 		fprintf(stderr, "Warning, can't set priorities\n");
 	#endif
 
+	t_period.tv_sec = PERIOD / 1000000;
+	t_period.tv_nsec = usec2nano(PERIOD / 1000000);
+
+	pthread_barrier_wait(&start_barrier);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &t_next);
 	while (!done) {
 		if (high) {
 			/* rotate around the CPUS */
@@ -409,6 +427,8 @@ void *start_task(void *data)
 		l = busy_loop(start_time);
 		record_time(id, start_time, l);
 		pthread_barrier_wait(&end_barrier);
+		timespec_add(&t_next, &t_period);
+		clock_nanosleep(CLOCK_MONOTONIC_RAW, TIMER_ABSTIME, &t_next, NULL);
 	}
 
 	return (void*)pid;
@@ -495,6 +515,7 @@ int main (int argc, char **argv)
 	#else
 	struct sched_param2 param;
 	#endif
+	struct timespec t_next, t_period;
 
 	parse_options(argc, argv);
 
@@ -585,6 +606,9 @@ int main (int argc, char **argv)
 
 	setup_ftrace_marker();
 
+	pthread_barrier_wait(&start_barrier);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &t_next);
+
 	for (loop=0; loop < nr_runs; loop++) {
 		unsigned long long end;
 
@@ -604,6 +628,9 @@ int main (int argc, char **argv)
 		ftrace_write("Loop %d end now=%lld diff=%lld\n", loop, end, end - now);
 
 		pthread_barrier_wait(&end_barrier);
+
+		timespec_add(&t_next, &t_period);
+		clock_nanosleep(CLOCK_MONOTONIC_RAW, TIMER_ABSTIME, &t_next, NULL);
 
 		if (stop || (check && check_times(loop))) {
 			loop++;
