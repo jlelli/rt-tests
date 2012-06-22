@@ -106,7 +106,6 @@ static void ftrace_write(const char *fmt, ...)
 #define sec2nano(sec) (sec * 1000000000ULL)
 #define INTERVAL ms2nano(100ULL)
 #define RUN_INTERVAL ms2nano(20ULL)
-#define CPU_USAGE 1.80
 #define NR_RUNS 50
 #define PRIO_START 2
 /* 1 millisec off */
@@ -116,6 +115,7 @@ static void ftrace_write(const char *fmt, ...)
 
 #define max(a,b) ((a>b)?a:b)
 #define PERIOD max((((nr_tasks * nano2usec(run_interval)) + 50000)/cpu_usage),nano2usec(interval)+50000)
+#define POLICY SCHED_FIFO
 
 static unsigned long long interval = INTERVAL;
 static unsigned long long run_interval = RUN_INTERVAL;
@@ -124,8 +124,9 @@ static int nr_runs = NR_RUNS;
 static int prio_start = PRIO_START;
 static int check;
 static int stop;
+static int policy = POLICY;
 
-static float cpu_usage = CPU_USAGE;
+static float cpu_usage;
 
 static unsigned long long now;
 
@@ -191,6 +192,8 @@ static void usage(char **argv)
 	printf("%s %1.2f\n", p, VERSION_STRING);
 	printf("Usage:\n"
 	       "%s <options> nr_tasks\n\n"
+	       "-y sched --policy sched     use scheduler sched(dl or fifo) \n"
+	       "-g cpu --cpu-usage cpu      use %%cpu (makes sense only for dl scheduler) \n"
 	       "-p prio --prio  prio        base priority to start RT tasks with (2) \n"
 	       "-r time --run-time time     Run time (ms) to busy loop the threads (20)\n"
 	       "-s time --sleep-time time   Sleep time (ms) between intervals (100)\n"
@@ -209,6 +212,8 @@ static void parse_options (int argc, char *argv[])
 		/** Options for getopt */
 		static struct option long_options[] = {
 			{"prio", required_argument, NULL, 'p'},
+			{"policy", required_argument, NULL, 'y'},
+			{"cpu-usage", required_argument, NULL, 'g'},
 			{"run-time", required_argument, NULL, 'r'},
 			{"sleep-time", required_argument, NULL, 's'},
 			{"maxerr", required_argument, NULL, 'm'},
@@ -217,7 +222,7 @@ static void parse_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "p:r:s:m:l:ch",
+		int c = getopt_long (argc, argv, "p:r:s:m:l:y:g:ch",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -230,6 +235,15 @@ static void parse_options (int argc, char *argv[])
 		case 'l': nr_runs = atoi(optarg); break;
 		case 'm': max_err = usec2nano(atoi(optarg)); break;
 		case 'c': check = 1; break;
+		case 'y':
+			if(strncasecmp(optarg, "dl", 2) == 0)
+				policy = SCHED_DEADLINE;
+			else
+				policy = SCHED_FIFO;
+			break;
+		case 'u':
+			cpu_usage = atof(optarg);
+			break;
 		case '?':
 		case 'h':
 			usage(argv);
@@ -363,19 +377,18 @@ void *start_task(void *data)
 	long id = (long)data;
 	unsigned long long start_time;
 
-	#ifndef USE_DEADLINE_SCHEDULER
+	
 	struct sched_param param = {
 		.sched_priority = id + prio_start,
 	};
-	#else
-	struct sched_param2 param = {
+	
+	struct sched_param2 param2 = {
 		.sched_priority = id + prio_start,
 		.sched_runtime = 2*nano2usec(run_interval),
 		.sched_period = PERIOD,
 		.sched_deadline = PERIOD,
 
 	};
-	#endif
 
 	int ret;
 	int high = 0;
@@ -396,15 +409,18 @@ void *start_task(void *data)
 	if (id == nr_tasks-1)
 		high = 1;
 
-	#ifndef USE_DEADLINE_SCHEDULER
-	ret = sched_setscheduler(0, SCHED_FIFO, &param);
-	if (ret < 0 && !id)
-		fprintf(stderr, "Warning, can't set priorities\n");
-	#else
-	ret = sched_setscheduler2(0, SCHED_DEADLINE, &param);
-	if (ret < 0 && !id)
-		fprintf(stderr, "Warning, can't set priorities\n");
-	#endif
+	if (policy == SCHED_DEADLINE)
+	{
+		ret = sched_setscheduler2(0, SCHED_DEADLINE, &param2);
+		if (ret < 0 && !id)
+			fprintf(stderr, "Warning, can't set priorities\n");
+	}
+	else
+	{
+		ret = sched_setscheduler(0, policy, &param);
+		if (ret < 0 && !id)
+			fprintf(stderr, "Warning, can't set priorities\n");
+	}
 
 	t_period.tv_sec = PERIOD / 1000000;
 	t_period.tv_nsec = usec2nano(PERIOD / 1000000);
@@ -510,12 +526,12 @@ int main (int argc, char **argv)
 	int ret;
 	struct timespec intv;
 	
-	#ifndef USE_DEADLINE_SCHEDULER
 	struct sched_param param;
-	#else
-	struct sched_param2 param;
-	#endif
+	struct sched_param2 param2;
+
 	struct timespec t_next, t_period;
+
+	cpu_usage = count_cpus() * 0.90;
 
 	parse_options(argc, argv);
 
@@ -525,6 +541,7 @@ int main (int argc, char **argv)
 		nr_tasks = atoi(argv[optind]);
 	else
 		nr_tasks = count_cpus() + 1;
+
 
 	threads = malloc(sizeof(*threads) * nr_tasks);
 	if (!threads)
@@ -584,18 +601,21 @@ int main (int argc, char **argv)
 
 	/* up our prio above all tasks */
 	memset(&param, 0, sizeof(param));
-	param.sched_priority = nr_tasks + prio_start;
-	#ifndef USE_DEADLINE_SCHEDULER
-	if (sched_setscheduler(0, SCHED_FIFO, &param))
-		fprintf(stderr, "Warning, can't set priority of main thread!\n");
-	#else
-	param.sched_runtime = 50000;
-	param.sched_period = PERIOD;
-	param.sched_deadline = PERIOD;
-	if (sched_setscheduler2(0, SCHED_DEADLINE, &param))
-		fprintf(stderr, "Warning, can't set priority of main thread!\n");
-	#endif
-
+	if(policy == SCHED_DEADLINE)
+	{
+		param2.sched_priority = nr_tasks + prio_start;
+		param2.sched_runtime = 50000;
+		param2.sched_period = PERIOD;
+		param2.sched_deadline = PERIOD;
+		if (sched_setscheduler2(0, SCHED_DEADLINE, &param2))
+			fprintf(stderr, "Warning, can't set priority of main thread!\n");
+	}
+	else
+	{
+		param.sched_priority = nr_tasks + prio_start;
+		if (sched_setscheduler(0, policy, &param))
+			fprintf(stderr, "Warning, can't set priority of main thread!\n");
+	}
 		
 
 

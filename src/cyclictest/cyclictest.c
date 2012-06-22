@@ -180,6 +180,7 @@ static int use_nsecs = 0;
 static int refresh_on_max;
 static int force_sched_other;
 static int priospread = 0;
+static float cpu_usage = CPU_USAGE;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -729,7 +730,7 @@ void *timerthread(void *param)
 	{
 		memset(&schedp2, 0, sizeof(schedp2));
 		schedp2.sched_priority = par->prio;
-		schedp2.sched_runtime = (par->interval / par->num_threads) * CPU_USAGE;
+		schedp2.sched_runtime = (par->interval / par->num_threads) * cpu_usage;
 		schedp2.sched_period = par->interval;
 		schedp2.sched_deadline = par->interval;
 		if (sched_setscheduler2(0, SCHED_DEADLINE, &schedp2)) 
@@ -945,6 +946,7 @@ static void display_help(int error)
 	       "                           to modify value to minutes, hours or days\n"
 	       "-E       --event           event tracing (used with -b)\n"
 	       "-f       --ftrace          function trace (when -b is active)\n"
+	       "-g USAGE --cpu-usage USAGE when using SCHED_DEADLINE total task runtimes are allowed to use only USAGE(default 1.0) of cpu\n"
 	       "-h       --histogram=US    dump a latency histogram to stdout after the run\n"
                "                           (with same priority about many threads)\n"
 	       "                           US is the max time to be be tracked in microseconds\n"
@@ -1108,9 +1110,10 @@ static void process_options (int argc, char *argv[])
 			{"numa", no_argument, NULL, 'U'},
 			{"latency", required_argument, NULL, 'e'},
 			{"priospread", no_argument, NULL, 'Q'},
+			{"cpu-usage", required_argument, NULL, 'g'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:H:i:Il:MnNo:O:p:PmqQrsSt::uUvD:wWT:y:e:",
+		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efg:h:H:i:Il:MnNo:O:p:PmqQrsSt::uUvD:wWT:y:e:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1136,6 +1139,7 @@ static void process_options (int argc, char *argv[])
 		case 'd': distance = atoi(optarg); break;
 		case 'E': enable_events = 1; break;
 		case 'f': tracetype = FUNCTION; ftrace = 1; break;
+		case 'g': cpu_usage = atof(optarg); break;
 		case 'H': histofall = 1; /* fall through */
 		case 'h': histogram = atoi(optarg); break;
 		case 'i': interval = atoi(optarg); break;
