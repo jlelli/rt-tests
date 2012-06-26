@@ -113,8 +113,7 @@ static void ftrace_write(const char *fmt, ...)
 
 #define PROGRESS_CHARS 70
 
-#define max(a,b) ((a>b)?a:b)
-#define PERIOD max((((nr_tasks * nano2usec(run_interval)) + 50000)/cpu_usage),nano2usec(interval)+50000)
+#define PERIOD (nano2usec(interval)+50000)
 #define POLICY SCHED_FIFO
 
 static unsigned long long interval = INTERVAL;
@@ -125,8 +124,6 @@ static int prio_start = PRIO_START;
 static int check;
 static int stop;
 static int policy = POLICY;
-
-static float cpu_usage;
 
 static unsigned long long now;
 
@@ -193,7 +190,6 @@ static void usage(char **argv)
 	printf("Usage:\n"
 	       "%s <options> nr_tasks\n\n"
 	       "-y sched --policy sched     use scheduler sched(dl or fifo) \n"
-	       "-g cpu --cpu-usage cpu      use %%cpu (makes sense only for dl scheduler) \n"
 	       "-p prio --prio  prio        base priority to start RT tasks with (2) \n"
 	       "-r time --run-time time     Run time (ms) to busy loop the threads (20)\n"
 	       "-s time --sleep-time time   Sleep time (ms) between intervals (100)\n"
@@ -213,7 +209,6 @@ static void parse_options (int argc, char *argv[])
 		static struct option long_options[] = {
 			{"prio", required_argument, NULL, 'p'},
 			{"policy", required_argument, NULL, 'y'},
-			{"cpu-usage", required_argument, NULL, 'g'},
 			{"run-time", required_argument, NULL, 'r'},
 			{"sleep-time", required_argument, NULL, 's'},
 			{"maxerr", required_argument, NULL, 'm'},
@@ -240,9 +235,6 @@ static void parse_options (int argc, char *argv[])
 				policy = SCHED_DEADLINE;
 			else
 				policy = SCHED_FIFO;
-			break;
-		case 'u':
-			cpu_usage = atof(optarg);
 			break;
 		case '?':
 		case 'h':
@@ -530,8 +522,6 @@ int main (int argc, char **argv)
 	struct sched_param2 param2;
 
 	struct timespec t_next, t_period;
-
-	cpu_usage = count_cpus() * 0.90;
 
 	parse_options(argc, argv);
 
