@@ -53,7 +53,6 @@
 #define VERSION_STRING 0.3
 #endif
 
-#define USE_DEADLINE_SCHEDULER
 
 int nr_tasks;
 int lfd;
@@ -113,6 +112,7 @@ static void ftrace_write(const char *fmt, ...)
 
 #define PROGRESS_CHARS 70
 
+//The period is the sleep time of the main thread plus its worst-case execution time. The other threads should fit in the period, since run_interval should be much lower than interval, even if we don't use SCHED_DEADLINE
 #define PERIOD (nano2usec(interval)+50000)
 #define POLICY SCHED_FIFO
 
