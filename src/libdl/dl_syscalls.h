@@ -42,15 +42,6 @@
 #define __NR_sched_getparam2		380
 #endif
 
-#define SF_SIG_RORUN		2
-#define SF_SIG_DMISS		4
-#define SF_BWRECL_DL		8
-#define SF_BWRECL_RT		16
-#define SF_BWRECL_OTH		32
-
-#define RLIMIT_DLDLINE		16
-#define RLIMIT_DLRTIME		17
-
 struct sched_param2 {
 	int sched_priority;
 	unsigned int sched_flags;
