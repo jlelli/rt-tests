@@ -38,6 +38,8 @@
 
 #include "rt-utils.h"
 
+#include "dl_syscalls.h"
+
 #define DEFAULT_INTERVAL 1000
 #define DEFAULT_DISTANCE 500
 
@@ -107,6 +109,8 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 #define KVARNAMELEN		32
 #define KVALUELEN		32
 
+#define CPU_USAGE		1.0
+
 int enable_events;
 
 static char *policyname(int policy);
@@ -138,6 +142,8 @@ struct thread_param {
 	unsigned long interval;
 	int cpu;
 	int node;
+	int num_threads;
+
 };
 
 /* Struct for statistics */
@@ -174,6 +180,7 @@ static int use_nsecs = 0;
 static int refresh_on_max;
 static int force_sched_other;
 static int priospread = 0;
+static float cpu_usage = CPU_USAGE;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -678,6 +685,7 @@ void *timerthread(void *param)
 {
 	struct thread_param *par = param;
 	struct sched_param schedp;
+	struct sched_param2 schedp2;
 	struct sigevent sigev;
 	sigset_t sigset;
 	timer_t timer;
@@ -718,11 +726,24 @@ void *timerthread(void *param)
 		tspec.it_interval = interval;
 	}
 
-	memset(&schedp, 0, sizeof(schedp));
-	schedp.sched_priority = par->prio;
-	if (setscheduler(0, par->policy, &schedp)) 
-		fatal("timerthread%d: failed to set priority to %d\n", par->cpu, par->prio);
+	if(par->policy == SCHED_DEADLINE)
+	{
+		memset(&schedp2, 0, sizeof(schedp2));
+		schedp2.sched_priority = par->prio;
+		schedp2.sched_runtime = (par->interval / par->num_threads) * cpu_usage;
+		schedp2.sched_period = par->interval;
+		schedp2.sched_deadline = par->interval;
+		if (sched_setscheduler2(0, SCHED_DEADLINE, &schedp2)) 
+			fatal("timerthread%d: failed to set priority to %d\n", par->cpu, par->prio);
 
+	}
+	else
+	{
+		memset(&schedp, 0, sizeof(schedp));
+		schedp.sched_priority = par->prio;
+		if (setscheduler(0, par->policy, &schedp)) 
+			fatal("timerthread%d: failed to set priority to %d\n", par->cpu, par->prio);
+	}
 	/* Get current time */
 	clock_gettime(par->clock, &now);
 
@@ -925,6 +946,8 @@ static void display_help(int error)
 	       "                           to modify value to minutes, hours or days\n"
 	       "-E       --event           event tracing (used with -b)\n"
 	       "-f       --ftrace          function trace (when -b is active)\n"
+	       "-g USAGE --cpu-usage USAGE when using SCHED_DEADLINE total task runtimes\n"
+	       "                           are allowed to use only USAGE(default 1.0) of cpu\n"
 	       "-h       --histogram=US    dump a latency histogram to stdout after the run\n"
                "                           (with same priority about many threads)\n"
 	       "                           US is the max time to be be tracked in microseconds\n"
@@ -955,7 +978,7 @@ static void display_help(int error)
 	       "                           format: n:c:v n=tasknum c=count v=value in us\n"
                "-w       --wakeup          task wakeup tracing (used with -b)\n"
                "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n"
-               "-y POLI  --policy=POLI     policy of realtime thread, POLI may be fifo(default) or rr\n"
+               "-y POLI  --policy=POLI     policy of realtime thread, POLI may be fifo(default), rr or dl(use SCHED_DEADLINE)\n"
                "                           format: --policy=fifo(default) or --policy=rr\n"
 	       "-S       --smp             Standard SMP testing: options -a -t -n and\n"
                "                           same priority of all threads\n"
@@ -1006,6 +1029,8 @@ static void handlepolicy(char *polname)
 		policy = SCHED_FIFO;
 	else if (strncasecmp(polname, "rr", 2) == 0)
 		policy = SCHED_RR;
+	else if (strncasecmp(polname, "dl",  2) == 0)
+		policy = SCHED_DEADLINE;
 	else	/* default policy if we don't recognize the request */
 		policy = SCHED_OTHER;
 }
@@ -1029,6 +1054,9 @@ static char *policyname(int policy)
 		break;
 	case SCHED_IDLE:
 		policystr = "idle";
+		break;
+	case SCHED_DEADLINE:
+		policystr = "dl";
 		break;
 	}
 	return policystr;
@@ -1083,9 +1111,10 @@ static void process_options (int argc, char *argv[])
 			{"numa", no_argument, NULL, 'U'},
 			{"latency", required_argument, NULL, 'e'},
 			{"priospread", no_argument, NULL, 'Q'},
+			{"cpu-usage", required_argument, NULL, 'g'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efh:H:i:Il:MnNo:O:p:PmqQrsSt::uUvD:wWT:y:e:",
+		int c = getopt_long(argc, argv, "a::b:Bc:Cd:Efg:h:H:i:Il:MnNo:O:p:PmqQrsSt::uUvD:wWT:y:e:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1111,6 +1140,7 @@ static void process_options (int argc, char *argv[])
 		case 'd': distance = atoi(optarg); break;
 		case 'E': enable_events = 1; break;
 		case 'f': tracetype = FUNCTION; ftrace = 1; break;
+		case 'g': cpu_usage = atof(optarg); break;
 		case 'H': histofall = 1; /* fall through */
 		case 'h': histogram = atoi(optarg); break;
 		case 'i': interval = atoi(optarg); break;
@@ -1255,12 +1285,12 @@ static void process_options (int argc, char *argv[])
 		priority = num_threads+1;
 	}
 
-	if (priority && (policy != SCHED_FIFO && policy != SCHED_RR)) {
+	if (priority && (policy != SCHED_FIFO && policy != SCHED_RR && policy != SCHED_DEADLINE)) {
 		fprintf(stderr, "policy and priority don't match: setting policy to SCHED_FIFO\n");
 		policy = SCHED_FIFO;
 	}
 
-	if ((policy == SCHED_FIFO || policy == SCHED_RR) && priority == 0) {
+	if ((policy == SCHED_FIFO || policy == SCHED_RR || policy == SCHED_DEADLINE) && priority == 0) {
 		fprintf(stderr, "defaulting realtime priority to %d\n", 
 			num_threads+1);
 		priority = num_threads+1;
@@ -1565,7 +1595,7 @@ int main(int argc, char **argv)
 		}
 
 		par->prio = priority;
-                if (priority && (policy == SCHED_FIFO || policy == SCHED_RR))
+                if (priority && (policy == SCHED_FIFO || policy == SCHED_RR || policy == SCHED_DEADLINE))
 			par->policy = policy;
                 else {
 			par->policy = SCHED_OTHER;
@@ -1585,6 +1615,7 @@ int main(int argc, char **argv)
 		par->max_cycles = max_cycles;
 		par->stats = stat;
 		par->node = node;
+		par->num_threads = num_threads;
 		switch (setaffinity) {
 		case AFFINITY_UNSPECIFIED: par->cpu = -1; break;
 		case AFFINITY_SPECIFIED: par->cpu = affinity; break;

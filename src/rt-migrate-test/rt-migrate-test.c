@@ -45,11 +45,14 @@
 #include <sched.h>
 #include <pthread.h>
 
+#include "dl_syscalls.h"
+
 #define gettid() syscall(__NR_gettid)
 
 #ifndef VERSION_STRING
 #define VERSION_STRING 0.3
 #endif
+
 
 int nr_tasks;
 int lfd;
@@ -109,6 +112,15 @@ static void ftrace_write(const char *fmt, ...)
 
 #define PROGRESS_CHARS 70
 
+/*
+ * The period is the sleep time of the main thread + its wcet.
+ * The other threads should fit in the period, 
+ * since run_interval should be much lower than interval, 
+ * even if we don't use SCHED_DEADLINE
+ */
+#define PERIOD (nano2usec(interval)+50000)
+#define POLICY SCHED_FIFO
+
 static unsigned long long interval = INTERVAL;
 static unsigned long long run_interval = RUN_INTERVAL;
 static unsigned long long max_err = MAX_ERR;
@@ -116,6 +128,7 @@ static int nr_runs = NR_RUNS;
 static int prio_start = PRIO_START;
 static int check;
 static int stop;
+static int policy = POLICY;
 
 static unsigned long long now;
 
@@ -181,6 +194,7 @@ static void usage(char **argv)
 	printf("%s %1.2f\n", p, VERSION_STRING);
 	printf("Usage:\n"
 	       "%s <options> nr_tasks\n\n"
+	       "-y sched --policy sched     use scheduler sched(dl or fifo) \n"
 	       "-p prio --prio  prio        base priority to start RT tasks with (2) \n"
 	       "-r time --run-time time     Run time (ms) to busy loop the threads (20)\n"
 	       "-s time --sleep-time time   Sleep time (ms) between intervals (100)\n"
@@ -199,6 +213,7 @@ static void parse_options (int argc, char *argv[])
 		/** Options for getopt */
 		static struct option long_options[] = {
 			{"prio", required_argument, NULL, 'p'},
+			{"policy", required_argument, NULL, 'y'},
 			{"run-time", required_argument, NULL, 'r'},
 			{"sleep-time", required_argument, NULL, 's'},
 			{"maxerr", required_argument, NULL, 'm'},
@@ -207,7 +222,7 @@ static void parse_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "p:r:s:m:l:ch",
+		int c = getopt_long (argc, argv, "p:r:s:m:l:y:g:ch",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -220,6 +235,12 @@ static void parse_options (int argc, char *argv[])
 		case 'l': nr_runs = atoi(optarg); break;
 		case 'm': max_err = usec2nano(atoi(optarg)); break;
 		case 'c': check = 1; break;
+		case 'y':
+			if(strncasecmp(optarg, "dl", 2) == 0)
+				policy = SCHED_DEADLINE;
+			else
+				policy = SCHED_FIFO;
+			break;
 		case '?':
 		case 'h':
 			usage(argv);
@@ -331,18 +352,41 @@ static unsigned long busy_loop(unsigned long long start_time)
 	do {
 		l++;
 		time = get_time();
-	} while ((time - start_time) < RUN_INTERVAL);
+	} while ((time - start_time) < run_interval);
 
 	return l;
+}
+
+static void timespec_add(struct timespec * a, const struct timespec * b)
+{
+	a->tv_nsec += b->tv_nsec;
+	a->tv_sec += b->tv_sec;
+	if(a->tv_nsec > 1000000000)
+	{
+		a->tv_nsec -= 1000000000;
+		a->tv_sec += 1;
+	}
+
 }
 
 void *start_task(void *data)
 {
 	long id = (long)data;
 	unsigned long long start_time;
+
+	
 	struct sched_param param = {
 		.sched_priority = id + prio_start,
 	};
+	
+	struct sched_param2 param2 = {
+		.sched_priority = 0,
+		.sched_runtime = 2*nano2usec(run_interval),
+		.sched_period = PERIOD,
+		.sched_deadline = PERIOD - (id+1)*nano2usec(run_interval),
+
+	};
+
 	int ret;
 	int high = 0;
 	cpu_set_t cpumask;
@@ -350,6 +394,7 @@ void *start_task(void *data)
 	int cpu = 0;
 	unsigned long l;
 	long pid;
+	struct timespec t_next, t_period;
 
 	ret = sched_getaffinity(0, sizeof(save_cpumask), &save_cpumask);
 	if (ret < 0)
@@ -361,10 +406,24 @@ void *start_task(void *data)
 	if (id == nr_tasks-1)
 		high = 1;
 
-	ret = sched_setscheduler(0, SCHED_FIFO, &param);
-	if (ret < 0 && !id)
-		fprintf(stderr, "Warning, can't set priorities\n");
+	if (policy == SCHED_DEADLINE)
+	{
+		ret = sched_setscheduler2(0, SCHED_DEADLINE, &param2);
+		if (ret < 0 && !id)
+			fprintf(stderr, "Warning, can't set priorities\n");
+	}
+	else
+	{
+		ret = sched_setscheduler(0, policy, &param);
+		if (ret < 0 && !id)
+			fprintf(stderr, "Warning, can't set priorities\n");
+	}
 
+	t_period.tv_sec = PERIOD / 1000000;
+	t_period.tv_nsec = usec2nano(PERIOD / 1000000);
+
+	pthread_barrier_wait(&start_barrier);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &t_next);
 	while (!done) {
 		if (high) {
 			/* rotate around the CPUS */
@@ -381,6 +440,8 @@ void *start_task(void *data)
 		l = busy_loop(start_time);
 		record_time(id, start_time, l);
 		pthread_barrier_wait(&end_barrier);
+		timespec_add(&t_next, &t_period);
+		clock_nanosleep(CLOCK_MONOTONIC_RAW, TIMER_ABSTIME, &t_next, NULL);
 	}
 
 	return (void*)pid;
@@ -461,7 +522,11 @@ int main (int argc, char **argv)
 	long i;
 	int ret;
 	struct timespec intv;
+	
 	struct sched_param param;
+	struct sched_param2 param2;
+
+	struct timespec t_next, t_period;
 
 	parse_options(argc, argv);
 
@@ -471,6 +536,7 @@ int main (int argc, char **argv)
 		nr_tasks = atoi(argv[optind]);
 	else
 		nr_tasks = count_cpus() + 1;
+
 
 	threads = malloc(sizeof(*threads) * nr_tasks);
 	if (!threads)
@@ -530,18 +596,33 @@ int main (int argc, char **argv)
 
 	/* up our prio above all tasks */
 	memset(&param, 0, sizeof(param));
-	param.sched_priority = nr_tasks + prio_start;
-	if (sched_setscheduler(0, SCHED_FIFO, &param))
-		fprintf(stderr, "Warning, can't set priority of main thread!\n");
+	if(policy == SCHED_DEADLINE)
+	{
+		param2.sched_priority = nr_tasks + prio_start;
+		param2.sched_runtime = 50000;
+		param2.sched_period = PERIOD;
+		param2.sched_deadline = PERIOD;
+		if (sched_setscheduler2(0, SCHED_DEADLINE, &param2))
+			fprintf(stderr, "Warning, can't set priority of main thread!\n");
+	}
+	else
+	{
+		param.sched_priority = nr_tasks + prio_start;
+		if (sched_setscheduler(0, policy, &param))
+			fprintf(stderr, "Warning, can't set priority of main thread!\n");
+	}
 		
 
 
-	intv.tv_sec = nano2sec(INTERVAL);
-	intv.tv_nsec = INTERVAL % sec2nano(1);
+	intv.tv_sec = nano2sec(interval);
+	intv.tv_nsec = interval % sec2nano(1);
 
 	print_progress_bar(0);
 
 	setup_ftrace_marker();
+
+	pthread_barrier_wait(&start_barrier);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &t_next);
 
 	for (loop=0; loop < nr_runs; loop++) {
 		unsigned long long end;
@@ -562,6 +643,9 @@ int main (int argc, char **argv)
 		ftrace_write("Loop %d end now=%lld diff=%lld\n", loop, end, end - now);
 
 		pthread_barrier_wait(&end_barrier);
+
+		timespec_add(&t_next, &t_period);
+		clock_nanosleep(CLOCK_MONOTONIC_RAW, TIMER_ABSTIME, &t_next, NULL);
 
 		if (stop || (check && check_times(loop))) {
 			loop++;

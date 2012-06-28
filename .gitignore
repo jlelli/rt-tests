@@ -3,6 +3,7 @@
 *.o
 *.tar.gz
 *.d
+*.a
 tmp
 patches
 ChangeLog

@@ -45,7 +45,8 @@ VPATH	+= src/sigwaittest:
 VPATH	+= src/svsematest:
 VPATH	+= src/pmqtest:
 VPATH	+= src/backfire:
-VPATH	+= src/lib
+VPATH	+= src/lib:
+VPATH	+= src/libdl:
 VPATH	+= src/hackbench
 
 %.o: %.c
@@ -61,7 +62,7 @@ all: $(TARGETS) hwlatdetect
 # Include dependency files, automatically generate them if needed.
 -include $(sources:.c=.d)
 
-cyclictest: cyclictest.o librttest.a
+cyclictest: cyclictest.o librttest.a dl_syscalls.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(NUMA_LIBS)
 
 signaltest: signaltest.o librttest.a
@@ -74,7 +75,7 @@ hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 	chmod +x src/hwlatdetect/hwlatdetect.py
 	ln -s src/hwlatdetect/hwlatdetect.py hwlatdetect
 
-rt-migrate-test: rt-migrate-test.o
+rt-migrate-test: rt-migrate-test.o dl_syscalls.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 ptsematest: ptsematest.o librttest.a
