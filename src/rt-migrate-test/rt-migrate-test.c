@@ -380,10 +380,10 @@ void *start_task(void *data)
 	};
 	
 	struct sched_param2 param2 = {
-		.sched_priority = id + prio_start,
+		.sched_priority = 0,
 		.sched_runtime = 2*nano2usec(run_interval),
 		.sched_period = PERIOD,
-		.sched_deadline = PERIOD,
+		.sched_deadline = PERIOD - (id+1)*nano2usec(run_interval),
 
 	};
 
