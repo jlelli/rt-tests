@@ -561,12 +561,12 @@ int main(int argc, char *argv[])
 					    receiver[i].samples) + 0.5),
 					    receiver[i].maxdiff);
 				if (receiver[i].error[0] != '\0') {
-					printf(receiver[i].error);
+					printf("%s", receiver[i].error);
 					receiver[i].error[0] = '\0';
 					errorlines++;
 				}
 				if (sender[i].error[0] != '\0') {
-					printf(sender[i].error);
+					printf("%s", sender[i].error);
 					sender[i].error[0] = '\0';
 					errorlines++;
 				}
