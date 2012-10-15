@@ -20,7 +20,8 @@ ifneq ($(filter x86_64 i386 ia64 mips powerpc,$(machinetype)),)
 NUMA 	:= 1
 endif
 
-CFLAGS ?= -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/include
+CFLAGS ?= -Wall -Wno-nonnull
+CPPFLAGS += -D_GNU_SOURCE -Isrc/include
 LDFLAGS ?=
 
 PYLIB  := $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
@@ -49,7 +50,7 @@ VPATH	+= src/lib
 VPATH	+= src/hackbench
 
 %.o: %.c
-	$(CC) -D VERSION_STRING=$(VERSION_STRING) -c $< $(CFLAGS)
+	$(CC) -D VERSION_STRING=$(VERSION_STRING) -c $< $(CFLAGS) $(CPPFLAGS)
 
 # Pattern rule to generate dependency files from .c files
 %.d: %.c
