@@ -150,6 +150,7 @@ struct thread_stat {
 	double avg;
 	long *values;
 	long *hist_array;
+        long *outliers;
 	pthread_t thread;
 	int threadstarted;
 	int tid;
@@ -157,6 +158,7 @@ struct thread_stat {
 	long redmax;
 	long cycleofmax;
 	long hist_overflow;
+        long num_outliers;
 };
 
 static int shutdown;
@@ -850,8 +852,11 @@ void *timerthread(void *param)
 
 		/* Update the histogram */
 		if (histogram) {
-			if (diff >= histogram)
+			if (diff >= histogram) {
 				stat->hist_overflow++;
+                                if (stat->num_outliers < histogram)
+					stat->outliers[stat->num_outliers++] = stat->cycles;
+			}
 			else
 				stat->hist_array[diff]++;
 		}
@@ -1401,6 +1406,17 @@ static void print_hist(struct thread_param *par[], int nthreads)
 	if (histofall && nthreads > 1)
 		printf(" %05lu", alloverflows);
 	printf("\n");
+
+	printf("# Histogram Overflow at cycle number:\n");
+	for (i = 0; i < nthreads; i++) {
+		printf("# Thread %d:", i);
+		for (j = 0; j < par[i]->stats->num_outliers; j++)
+			printf(" %05lu", par[i]->stats->outliers[j]);
+		if (par[i]->stats->num_outliers < par[i]->stats->hist_overflow)
+			printf(" # %05lu others", par[i]->stats->hist_overflow - par[i]->stats->num_outliers);
+		printf("\n");
+	}
+	printf("\n");
 }
 
 static void print_stat(struct thread_param *par, int index, int verbose)
@@ -1549,10 +1565,12 @@ int main(int argc, char **argv)
 			int bufsize = histogram * sizeof(long);
 
 			stat->hist_array = threadalloc(bufsize, node);
-			if (stat->hist_array == NULL)
+			stat->outliers = threadalloc(bufsize, node);
+			if (stat->hist_array == NULL || stat->outliers == NULL)
 				fatal("failed to allocate histogram of size %d on node %d\n",
 				      histogram, i);
 			memset(stat->hist_array, 0, bufsize);
+			memset(stat->outliers, 0, bufsize);
 		}
 
 		if (verbose) {
@@ -1668,8 +1686,10 @@ int main(int argc, char **argv)
 
 	if (histogram) {
 		print_hist(parameters, num_threads);
-		for (i = 0; i < num_threads; i++)
+		for (i = 0; i < num_threads; i++) {
 			threadfree(statistics[i]->hist_array, histogram*sizeof(long), parameters[i]->node);
+			threadfree(statistics[i]->outliers, histogram*sizeof(long), parameters[i]->node);
+		}
 	}
 
 	if (tracelimit) {
