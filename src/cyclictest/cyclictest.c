@@ -60,7 +60,7 @@
 #define CPUCLOCK_SCHED          2
 
 static int clock_nanosleep(clockid_t clock_id, int flags, const struct timespec *req,
-		struct timespec *rem)
+			   struct timespec *rem)
 {
 	if (clock_id == CLOCK_THREAD_CPUTIME_ID)
 		return -EINVAL;
@@ -71,7 +71,7 @@ static int clock_nanosleep(clockid_t clock_id, int flags, const struct timespec 
 }
 
 int sched_setaffinity (__pid_t __pid, size_t __cpusetsize,
-                              __const cpu_set_t *__cpuset)
+		       __const cpu_set_t *__cpuset)
 {
 	return -EINVAL;
 }
@@ -150,7 +150,7 @@ struct thread_stat {
 	double avg;
 	long *values;
 	long *hist_array;
-        long *outliers;
+	long *outliers;
 	pthread_t thread;
 	int threadstarted;
 	int tid;
@@ -158,7 +158,7 @@ struct thread_stat {
 	long redmax;
 	long cycleofmax;
 	long hist_overflow;
-        long num_outliers;
+	long num_outliers;
 };
 
 static int shutdown;
@@ -504,12 +504,12 @@ static void setup_tracer(void)
 				ret = event_enable("sched/sched_switch");
 			}
 			break;
-               case WAKEUP:
-                       ret = settracer("wakeup");
-                       break;
-               case WAKEUPRT:
-                       ret = settracer("wakeup_rt");
-                       break;
+		case WAKEUP:
+			ret = settracer("wakeup");
+			break;
+		case WAKEUPRT:
+			ret = settracer("wakeup_rt");
+			break;
 		default:
 			if (strlen(tracer)) {
 				ret = settracer(tracer);
@@ -596,8 +596,7 @@ static void setup_tracer(void)
  *
  * the return value is a value in seconds
  */
-int
-parse_time_string(char *val)
+int parse_time_string(char *val)
 {
 	char *end;
 	int t = strtol(val, &end, 10);
@@ -887,7 +886,7 @@ void *timerthread(void *param)
 		if (histogram) {
 			if (diff >= histogram) {
 				stat->hist_overflow++;
-                                if (stat->num_outliers < histogram)
+				if (stat->num_outliers < histogram)
 					stat->outliers[stat->num_outliers++] = stat->cycles;
 			}
 			else
@@ -1086,7 +1085,7 @@ static void process_options (int argc, char *argv[])
 	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
 
 	for (;;) {
- 		int option_index = 0;
+		int option_index = 0;
 		/*
 		 * Options for getopt
 		 * Ordered alphabetically by single letter name
@@ -1471,15 +1470,15 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 		if (quiet != 1) {
 			char *fmt;
 			if (use_nsecs)
-                                fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
 					"Min:%7ld Act:%8ld Avg:%8ld Max:%8ld\n";
 			else
-                                fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
 					"Min:%7ld Act:%5ld Avg:%5ld Max:%8ld\n";
-                        printf(fmt, index, stat->tid, par->prio,
-                               par->interval, stat->cycles, stat->min, stat->act,
-			       stat->cycles ?
-			       (long)(stat->avg/stat->cycles) : 0, stat->max);
+				printf(fmt, index, stat->tid, par->prio,
+				       par->interval, stat->cycles, stat->min, stat->act,
+				       stat->cycles ?
+				       (long)(stat->avg/stat->cycles) : 0, stat->max);
 		}
 	} else {
 		while (stat->cycles != stat->cyclesread) {
@@ -1724,9 +1723,9 @@ int main(int argc, char **argv)
 		}
 
 		par->prio = priority;
-                if (priority && (policy == SCHED_FIFO || policy == SCHED_RR))
+		if (priority && (policy == SCHED_FIFO || policy == SCHED_RR))
 			par->policy = policy;
-                else {
+		else {
 			par->policy = SCHED_OTHER;
 			force_sched_other = 1;
 		}
