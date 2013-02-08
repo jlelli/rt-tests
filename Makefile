@@ -113,7 +113,7 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	rm -rf BUILD RPMS SRPMS releases *.tar.gz rt-tests.spec
+	rm -rf BUILD RPMS SRPMS releases *.tar.gz rt-tests.spec tmp
 
 .PHONY: changelog
 changelog:
@@ -143,9 +143,9 @@ install: all
 	gzip src/hackbench/hackbench.8 -c >"$(DESTDIR)$(mandir)/man8/hackbench.8.gz"
 
 .PHONY: release
-release: clean changelog
+release: distclean changelog
 	mkdir -p releases
-	rm -rf tmp && mkdir -p tmp/rt-tests
+	mkdir -p tmp/rt-tests
 	cp -r Makefile COPYING ChangeLog src tmp/rt-tests
 	tar -C tmp -czf rt-tests-$(VERSION_STRING).tar.gz rt-tests
 	rm -f ChangeLog
