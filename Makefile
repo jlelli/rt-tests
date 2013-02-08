@@ -111,9 +111,10 @@ clean:
 	rm -f hwlatdetect
 	rm -f tags
 
+RPMDIRS = BUILD BUILDROOT RPMS SRPMS SPECS
 .PHONY: distclean
 distclean: clean
-	rm -rf BUILD RPMS SRPMS releases *.tar.gz rt-tests.spec tmp
+	rm -rf $(RPMDIRS) releases *.tar.gz rt-tests.spec tmp
 
 .PHONY: changelog
 changelog:
