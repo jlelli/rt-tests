@@ -192,4 +192,4 @@ help:
 
 .PHONY: tags
 tags:
-	ctags -R --extra=+f --c-kinds=+p *
+	ctags -R --extra=+f --c-kinds=+p --exclude=tmp *
