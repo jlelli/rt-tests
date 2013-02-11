@@ -162,6 +162,14 @@ pushtest: release
 
 rt-tests.spec: Makefile rt-tests.spec-in
 	sed s/__VERSION__/$(VERSION_STRING)/ <$@-in >$@
+ifeq ($(NUMA),1)
+	sed -i -e 's/__MAKE_NUMA__/NUMA=1/' $@
+	sed -i -e 's/__BUILDREQUIRES_NUMA__/numactl-devel/' $@
+else
+	sed -i -e 's/__MAKE_NUMA__//' $@
+	sed -i -e 's/__BUILDREQUIRES_NUMA__//' $@
+endif
+
 
 HERE	:=	$(shell pwd)
 RPMARGS	:=	--define "_topdir $(HERE)" 	\

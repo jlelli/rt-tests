@@ -2,6 +2,7 @@
 
 Summary: Programs that test various rt-features
 Name: rt-tests
+# __VERSION__ will be replaced by "make rpm"
 Version: __VERSION__
 Release: 1%{?dist}
 License: GPLv2
@@ -10,7 +11,8 @@ URL: git://git.kernel.org/pub/scm/linux/kernel/git/tglx/rt-tests.git
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 Obsoletes: cyclictest signaltest pi_tests
-BuildRequires: numactl-devel python
+# __BUILDREQUIRES__ will be replaced by "make rpm"
+BuildRequires: __BUILDREQUIRES_NUMA__ python
 
 %description
 rt-tests is a set of programs that test and measure various components of
@@ -21,7 +23,8 @@ latency. It also tests the functioning of priority-inheritance mutexes.
 %setup -qn rt-tests
 
 %build
-make NUMA=1
+# __MAKE_NUMA__ will be replaced by "make rpm"
+make __MAKE_NUMA__
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -64,7 +67,7 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Tue Nov 13 2012 Clark Williams <williams@redhat.com> - 0.85-1
 - [cyclictest] add tracemark function back to breaktrace logic
-- from Frank Rowland <frank.rowand@am.sony.com>:
+- from Frank Rowand <frank.rowand@am.sony.com>:
   - [cyclictest] report large measured clock latency
   - [cyclictest] cleanup getopt_long() parameters
 - from John Kacur <jkacur@redhat.com>:
