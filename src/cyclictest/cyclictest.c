@@ -774,17 +774,15 @@ void *timerthread(void *param)
 		if (par->timermode == TIMER_ABSTIME)
 			tspec.it_value = next;
 		else {
-			tspec.it_value.tv_nsec = 0;
-			tspec.it_value.tv_sec = 1;
+			tspec.it_value = interval;
 		}
 		timer_settime(timer, par->timermode, &tspec, NULL);
 	}
 
 	if (par->mode == MODE_SYS_ITIMER) {
-		itimer.it_value.tv_sec = 1;
-		itimer.it_value.tv_usec = 0;
 		itimer.it_interval.tv_sec = interval.tv_sec;
 		itimer.it_interval.tv_usec = interval.tv_nsec / 1000;
+		itimer.it_value = itimer.it_interval;
 		setitimer (ITIMER_REAL, &itimer, NULL);
 	}
 
