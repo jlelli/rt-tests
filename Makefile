@@ -201,4 +201,4 @@ help:
 
 .PHONY: tags
 tags:
-	ctags -R --extra=+f --c-kinds=+p --exclude=tmp *
+	ctags -R --extra=+f --c-kinds=+p --exclude=tmp --exclude=BUILD *
