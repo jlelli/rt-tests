@@ -1,6 +1,8 @@
 /*
  * High resolution timer test software
  *
+ * (C) 2013      Clark Williams <williams@redhat.com>
+ * (C) 2013      John Kacur <jkacur@redhat.com>
  * (C) 2008-2012 Clark Williams <williams@redhat.com>
  * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
  *
@@ -178,6 +180,8 @@ static int force_sched_other;
 static int priospread = 0;
 static int check_clock_resolution;
 static int ct_debug;
+static int use_fifo = 0;
+static pthread_t fifo_threadid;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -195,9 +199,15 @@ static struct kvars {
 static char *procfileprefix = "/proc/sys/kernel/";
 static char *fileprefix;
 static char tracer[MAX_PATH];
+static char fifopath[MAX_PATH];
 static char **traceptr;
 static int traceopt_count;
 static int traceopt_size;
+
+static struct thread_param **parameters;
+static struct thread_stat **statistics;
+
+static void print_stat(FILE *fp, struct thread_param *par, int index, int verbose, int quiet);
 
 static int latency_target_fd = -1;
 static int32_t latency_target_value = 0;
@@ -961,6 +971,7 @@ static void display_help(int error)
 	       "-e       --latency=PM_QOS  write PM_QOS to /dev/cpu_dma_latency\n"
 	       "-E       --event           event tracing (used with -b)\n"
 	       "-f       --ftrace          function trace (when -b is active)\n"
+	       "-F       --fifo=<path>     create a named pipe at path and write stats to it\n"
 	       "-h       --histogram=US    dump a latency histogram to stdout after the run\n"
 	       "                           (with same priority about many threads)\n"
 	       "                           US is the max time to be be tracked in microseconds\n"
@@ -1099,6 +1110,7 @@ static void process_options (int argc, char *argv[])
 			{"latency",          required_argument, NULL, 'e'},
 			{"event",            no_argument,       NULL, 'E'},
 			{"ftrace",           no_argument,       NULL, 'f'},
+			{"fifo",             required_argument, NULL, 'F'},
 			{"histogram",        required_argument, NULL, 'h'},
 			{"histofall",        required_argument, NULL, 'H'},
 			{"interval",         required_argument, NULL, 'i'},
@@ -1163,6 +1175,10 @@ static void process_options (int argc, char *argv[])
 			break;
 		case 'E': enable_events = 1; break;
 		case 'f': tracetype = FUNCTION; ftrace = 1; break;
+		case 'F': 
+			use_fifo = 1; 
+			strncpy(fifopath, optarg, strlen(optarg));
+			break;
 		case 'H': histofall = 1; /* fall through */
 		case 'h': histogram = atoi(optarg); break;
 		case 'i': interval = atoi(optarg); break;
@@ -1368,6 +1384,19 @@ static int check_timer(void)
 
 static void sighand(int sig)
 {
+	if (sig == SIGUSR1) {
+		int i;
+		int oldquiet = quiet;
+
+		quiet = 0;
+		printf("#---------------------------\n");
+		printf("# cyclictest current status:\n");
+		for (i = 0; i < num_threads; i++)
+			print_stat(stdout, parameters[i], i, 0, 0);
+		printf("#---------------------------\n");
+		quiet = oldquiet;
+		return;
+	}
 	shutdown = 1;
 	if (refresh_on_max)
 		pthread_cond_signal(&refresh_on_max_cond);
@@ -1460,7 +1489,7 @@ static void print_hist(struct thread_param *par[], int nthreads)
 	printf("\n");
 }
 
-static void print_stat(struct thread_param *par, int index, int verbose)
+static void print_stat(FILE *fp, struct thread_param *par, int index, int verbose, int quiet)
 {
 	struct thread_stat *stat = par->stats;
 
@@ -1473,10 +1502,10 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 			else
 				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
 					"Min:%7ld Act:%5ld Avg:%5ld Max:%8ld\n";
-				printf(fmt, index, stat->tid, par->prio,
-				       par->interval, stat->cycles, stat->min, stat->act,
-				       stat->cycles ?
-				       (long)(stat->avg/stat->cycles) : 0, stat->max);
+			fprintf(fp, fmt, index, stat->tid, par->prio,
+				par->interval, stat->cycles, stat->min, stat->act,
+				stat->cycles ?
+				(long)(stat->avg/stat->cycles) : 0, stat->max);
 		}
 	} else {
 		while (stat->cycles != stat->cyclesread) {
@@ -1488,8 +1517,8 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 				stat->cycleofmax = stat->cyclesread;
 			}
 			if (++stat->reduce == oscope_reduction) {
-				printf("%8d:%8lu:%8ld\n", index,
-				       stat->cycleofmax, stat->redmax);
+				fprintf(fp, "%8d:%8lu:%8ld\n", index,
+					stat->cycleofmax, stat->redmax);
 				stat->reduce = 0;
 				stat->redmax = 0;
 			}
@@ -1498,13 +1527,49 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 	}
 }
 
+
+/* 
+ * thread that creates a named fifo and hands out run stats when someone
+ * reads from the fifo.
+ */
+void *fifothread(void *param)
+{
+	int ret;
+	int fd;
+	FILE *fp;
+	int i;
+
+	if (use_fifo == 0)
+		return NULL;
+
+	unlink(fifopath);
+	ret = mkfifo(fifopath, 0666);
+	if (ret) {
+		fprintf(stderr, "Error creating fifo %s: %s\n", fifopath, strerror(errno));
+		return NULL;
+	}
+	while (!shutdown) {
+		fd = open(fifopath, O_WRONLY|O_NONBLOCK);
+		if (fd < 0) {
+			usleep(500000);
+			continue;
+		}
+		fp = fdopen(fd, "w");
+		for (i=0; i < num_threads; i++)
+			print_stat(fp, parameters[i], i, 0, 0);
+		fclose(fp);
+		usleep(250);
+	}
+	unlink(fifopath);
+	return NULL;
+}
+
+
 int main(int argc, char **argv)
 {
 	sigset_t sigset;
 	int signum = SIGALRM;
 	int mode;
-	struct thread_param **parameters;
-	struct thread_stat **statistics;
 	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
 	int i, ret = -1;
 	int status;
@@ -1642,6 +1707,7 @@ int main(int argc, char **argv)
 
 	signal(SIGINT, sighand);
 	signal(SIGTERM, sighand);
+	signal(SIGUSR1, sighand);
 
 	parameters = calloc(num_threads, sizeof(struct thread_param *));
 	if (!parameters)
@@ -1755,6 +1821,8 @@ int main(int argc, char **argv)
 			fatal("failed to create thread %d: %s\n", i, strerror(status));
 
 	}
+	if (use_fifo)
+		status = pthread_create(&fifo_threadid, NULL, fifothread, NULL);
 
 	while (!shutdown) {
 		char lavg[256];
@@ -1784,7 +1852,7 @@ int main(int argc, char **argv)
 
 		for (i = 0; i < num_threads; i++) {
 
-			print_stat(parameters[i], i, verbose);
+			print_stat(stdout, parameters[i], i, verbose, quiet);
 			if(max_cycles && statistics[i]->cycles >= max_cycles)
 				allstopped++;
 		}
@@ -1816,7 +1884,7 @@ int main(int argc, char **argv)
 		if (statistics[i]->threadstarted) {
 			pthread_join(statistics[i]->thread, NULL);
 			if (quiet && !histogram)
-				print_stat(parameters[i], i, 0);
+				print_stat(stdout, parameters[i], i, 0, 0);
 		}
 		if (statistics[i]->values)
 			threadfree(statistics[i]->values, VALBUF_SIZE*sizeof(long), parameters[i]->node);
