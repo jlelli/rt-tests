@@ -165,6 +165,7 @@ struct thread_stat {
 
 static int shutdown;
 static int tracelimit = 0;
+static int notrace = 0;
 static int ftrace = 0;
 static int kernelversion;
 static int verbose = 0;
@@ -446,7 +447,7 @@ static int settracer(char *tracer)
 
 static void setup_tracer(void)
 {
-	if (!tracelimit)
+	if (!tracelimit || notrace)
 		return;
 
 	if (mount_debugfs(NULL))
@@ -1101,6 +1102,7 @@ static void process_options (int argc, char *argv[])
 		 */
 		static struct option long_options[] = {
 			{"affinity",         optional_argument, NULL, 'a'},
+			{"notrace",          no_argument,       NULL, 'A'},
 			{"breaktrace",       required_argument, NULL, 'b'},
 			{"preemptirqs",      no_argument,       NULL, 'B'},
 			{"clock",            required_argument, NULL, 'c'},
@@ -1161,6 +1163,7 @@ static void process_options (int argc, char *argv[])
 				setaffinity = AFFINITY_USEALL;
 			}
 			break;
+		case 'A': notrace = 1; break;
 		case 'b': tracelimit = atoi(optarg); break;
 		case 'B': tracetype = PREEMPTIRQSOFF; break;
 		case 'c': clocksel = atoi(optarg); break;
@@ -1400,7 +1403,7 @@ static void sighand(int sig)
 	shutdown = 1;
 	if (refresh_on_max)
 		pthread_cond_signal(&refresh_on_max_cond);
-	if (tracelimit)
+	if (tracelimit && !notrace)
 		tracing(0);
 }
 
@@ -1921,7 +1924,7 @@ int main(int argc, char **argv)
 	}
  out:
 	/* ensure that the tracer is stopped */
-	if (tracelimit)
+	if (tracelimit && !notrace)
 		tracing(0);
 
 
@@ -1937,7 +1940,7 @@ int main(int argc, char **argv)
 
 	/* turn off the function tracer */
 	fileprefix = procfileprefix;
-	if (tracetype)
+	if (tracetype && !notrace)
 		setkernvar("ftrace_enabled", "0");
 	fileprefix = get_debugfileprefix();
 
