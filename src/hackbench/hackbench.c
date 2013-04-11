@@ -189,13 +189,14 @@ again:
 	return NULL;
 }
 
-childinfo_t create_worker(void *ctx, void *(*func)(void *))
+static childinfo_t create_worker(void *ctx, void *(*func)(void *))
 {
 	pthread_attr_t attr;
 	int err;
 	childinfo_t child;
 	pid_t childpid;
 
+	memset(&child, 0, sizeof(child));
 	switch (process_mode) {
 	case PROCESS_MODE: /* process mode */
 		/* Fork the sender/receiver child. */
