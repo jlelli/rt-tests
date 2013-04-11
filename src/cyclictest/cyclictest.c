@@ -1087,6 +1087,17 @@ static char *policyname(int policy)
 }
 
 
+enum option_values {
+	OPT_AFFINITY=1, OPT_NOTRACE, OPT_BREAKTRACE, OPT_PREEMPTIRQ, OPT_CLOCK,
+	OPT_CONTEXT, OPT_DISTANCE, OPT_DURATION, OPT_LATENCY, OPT_EVENT,
+	OPT_FTRACE, OPT_FIFO, OPT_HISTOGRAM, OPT_HISTOFALL, OPT_INTERVAL,
+	OPT_IRQSOFF, OPT_LOOPS, OPT_MLOCKALL, OPT_REFRESH, OPT_NANOSLEEP,
+	OPT_NSECS, OPT_OSCOPE, OPT_TRACEOPT, OPT_PRIORITY, OPT_PREEMPTOFF,
+	OPT_QUIET, OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION, OPT_SYSTEM,
+	OPT_SMP, OPT_THREADS, OPT_TRACER, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE,
+	OPT_WAKEUP, OPT_WAKEUPRT, OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
+};
+
 /* Process commandline options */
 static void process_options (int argc, char *argv[])
 {
@@ -1101,55 +1112,56 @@ static void process_options (int argc, char *argv[])
 		 * Ordered alphabetically by single letter name
 		 */
 		static struct option long_options[] = {
-			{"affinity",         optional_argument, NULL, 'a'},
-			{"notrace",          no_argument,       NULL, 'A'},
-			{"breaktrace",       required_argument, NULL, 'b'},
-			{"preemptirqs",      no_argument,       NULL, 'B'},
-			{"clock",            required_argument, NULL, 'c'},
-			{"context",          no_argument,       NULL, 'C'},
-			{"distance",         required_argument, NULL, 'd'},
-			{"duration",         required_argument, NULL, 'D'},
-			{"latency",          required_argument, NULL, 'e'},
-			{"event",            no_argument,       NULL, 'E'},
-			{"ftrace",           no_argument,       NULL, 'f'},
-			{"fifo",             required_argument, NULL, 'F'},
-			{"histogram",        required_argument, NULL, 'h'},
-			{"histofall",        required_argument, NULL, 'H'},
-			{"interval",         required_argument, NULL, 'i'},
-			{"irqsoff",          no_argument,       NULL, 'I'},
-			{"loops",            required_argument, NULL, 'l'},
-			{"mlockall",         no_argument,       NULL, 'm'},
-			{"refresh_on_max",   no_argument,       NULL, 'M'},
-			{"nanosleep",        no_argument,       NULL, 'n'},
-			{"nsecs",            no_argument,       NULL, 'N'},
-			{"oscope",           required_argument, NULL, 'o'},
-			{"traceopt",         required_argument, NULL, 'O'},
-			{"priority",         required_argument, NULL, 'p'},
-			{"preemptoff",       no_argument,       NULL, 'P'},
-			{"quiet",            no_argument,       NULL, 'q'},
-			{"priospread",       no_argument,       NULL, 'Q'},
-			{"relative",         no_argument,       NULL, 'r'},
-			{"resolution",       no_argument,       NULL, 'R'},
-			{"system",           no_argument,       NULL, 's'},
-			{"smp",              no_argument,       NULL, 'S'},
-			{"threads",          optional_argument, NULL, 't'},
-			{"tracer",           required_argument, NULL, 'T'},
-			{"unbuffered",       no_argument,       NULL, 'u'},
-			{"numa",             no_argument,       NULL, 'U'},
-			{"verbose",          no_argument,       NULL, 'v'},
-			{"wakeup",           no_argument,       NULL, 'w'},
-			{"wakeuprt",         no_argument,       NULL, 'W'},
-			{"dbg_cyclictest",   no_argument,       NULL, 'X'},
-			{"policy",           required_argument, NULL, 'y'},
-			{"help",             no_argument,       NULL, '?'},
+			{"affinity",         optional_argument, NULL, OPT_AFFINITY},
+			{"notrace",          no_argument,       NULL, OPT_NOTRACE },
+			{"breaktrace",       required_argument, NULL, OPT_BREAKTRACE },
+			{"preemptirqs",      no_argument,       NULL, OPT_PREEMPTIRQ },
+			{"clock",            required_argument, NULL, OPT_CLOCK },
+			{"context",          no_argument,       NULL, OPT_CONTEXT },
+			{"distance",         required_argument, NULL, OPT_DISTANCE },
+			{"duration",         required_argument, NULL, OPT_DURATION },
+			{"latency",          required_argument, NULL, OPT_LATENCY },
+			{"event",            no_argument,       NULL, OPT_EVENT },
+			{"ftrace",           no_argument,       NULL, OPT_FTRACE },
+			{"fifo",             required_argument, NULL, OPT_FIFO },
+			{"histogram",        required_argument, NULL, OPT_HISTOGRAM },
+			{"histofall",        required_argument, NULL, OPT_HISTOFALL },
+			{"interval",         required_argument, NULL, OPT_INTERVAL },
+			{"irqsoff",          no_argument,       NULL, OPT_IRQSOFF },
+			{"loops",            required_argument, NULL, OPT_LOOPS },
+			{"mlockall",         no_argument,       NULL, OPT_MLOCKALL },
+			{"refresh_on_max",   no_argument,       NULL, OPT_REFRESH },
+			{"nanosleep",        no_argument,       NULL, OPT_NANOSLEEP },
+			{"nsecs",            no_argument,       NULL, OPT_NSECS },
+			{"oscope",           required_argument, NULL, OPT_OSCOPE },
+			{"traceopt",         required_argument, NULL, OPT_TRACEOPT },
+			{"priority",         required_argument, NULL, OPT_PRIORITY },
+			{"preemptoff",       no_argument,       NULL, OPT_PREEMPTOFF },
+			{"quiet",            no_argument,       NULL, OPT_QUIET },
+			{"priospread",       no_argument,       NULL, OPT_PRIOSPREAD },
+			{"relative",         no_argument,       NULL, OPT_RELATIVE },
+			{"resolution",       no_argument,       NULL, OPT_RESOLUTION },
+			{"system",           no_argument,       NULL, OPT_SYSTEM },
+			{"smp",              no_argument,       NULL, OPT_SMP },
+			{"threads",          optional_argument, NULL, OPT_THREADS },
+			{"tracer",           required_argument, NULL, OPT_TRACER },
+			{"unbuffered",       no_argument,       NULL, OPT_UNBUFFERED },
+			{"numa",             no_argument,       NULL, OPT_NUMA },
+			{"verbose",          no_argument,       NULL, OPT_VERBOSE },
+			{"wakeup",           no_argument,       NULL, OPT_WAKEUP },
+			{"wakeuprt",         no_argument,       NULL, OPT_WAKEUPRT },
+			{"dbg_cyclictest",   no_argument,       NULL, OPT_DBGCYCLIC },
+			{"policy",           required_argument, NULL, OPT_POLICY },
+			{"help",             no_argument,       NULL, OPT_HELP },
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::b:Bc:Cd:D:e:Efh:H:i:Il:MnNo:O:p:PmqQrRsSt::uUvD:wWXT:y:",
+		int c = getopt_long(argc, argv, "a::b:Bc:Cd:D:Efh:H:i:Il:MnNo:O:p:PmqrRsSt::uUvD:wWT:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
 		case 'a':
+		case OPT_AFFINITY:
 			option_affinity = 1;
 			if (smp || numa)
 				break;
@@ -1163,29 +1175,47 @@ static void process_options (int argc, char *argv[])
 				setaffinity = AFFINITY_USEALL;
 			}
 			break;
-		case 'A': notrace = 1; break;
-		case 'b': tracelimit = atoi(optarg); break;
-		case 'B': tracetype = PREEMPTIRQSOFF; break;
-		case 'c': clocksel = atoi(optarg); break;
-		case 'C': tracetype = CTXTSWITCH; break;
-		case 'd': distance = atoi(optarg); break;
-		case 'D': duration = parse_time_string(optarg); break;
-		case 'e': /* power management latency target value */
-			  /* note: default is 0 (zero) */
-			latency_target_value = atoi(optarg);
-			if (latency_target_value < 0)
-				latency_target_value = 0;
-			break;
-		case 'E': enable_events = 1; break;
-		case 'f': tracetype = FUNCTION; ftrace = 1; break;
+		case 'b':
+		case OPT_BREAKTRACE:
+			tracelimit = atoi(optarg); break;
+		case 'B':
+		case OPT_PREEMPTIRQ:
+			tracetype = PREEMPTIRQSOFF; break;
+		case 'c':
+		case OPT_CLOCK:
+			clocksel = atoi(optarg); break;
+		case 'C':
+		case OPT_CONTEXT:
+			tracetype = CTXTSWITCH; break;
+		case 'd':
+		case OPT_DISTANCE:
+			distance = atoi(optarg); break;
+		case 'D':
+		case OPT_DURATION:
+			duration = parse_time_string(optarg); break;
+		case 'E':
+		case OPT_EVENT:
+			enable_events = 1; break;
+		case 'f':
+		case OPT_FTRACE:
+			tracetype = FUNCTION; ftrace = 1; break;
 		case 'F': 
+		case OPT_FIFO:
 			use_fifo = 1; 
 			strncpy(fifopath, optarg, strlen(optarg));
 			break;
-		case 'H': histofall = 1; /* fall through */
-		case 'h': histogram = atoi(optarg); break;
-		case 'i': interval = atoi(optarg); break;
+
+		case 'H':
+		case OPT_HISTOFALL:
+			histofall = 1; /* fall through */
+		case 'h':
+		case OPT_HISTOGRAM:
+			histogram = atoi(optarg); break;
+		case 'i':
+		case OPT_INTERVAL:
+			interval = atoi(optarg); break;
 		case 'I':
+		case OPT_IRQSOFF:
 			if (tracetype == PREEMPTOFF) {
 				tracetype = PREEMPTIRQSOFF;
 				strncpy(tracer, "preemptirqsoff", sizeof(tracer));
@@ -1194,19 +1224,35 @@ static void process_options (int argc, char *argv[])
 				strncpy(tracer, "irqsoff", sizeof(tracer));
 			}
 			break;
-		case 'l': max_cycles = atoi(optarg); break;
-		case 'm': lockall = 1; break;
-		case 'M': refresh_on_max = 1; break;
-		case 'n': use_nanosleep = MODE_CLOCK_NANOSLEEP; break;
-		case 'N': use_nsecs = 1; break;
-		case 'o': oscope_reduction = atoi(optarg); break;
-		case 'O': traceopt(optarg); break;
+		case 'l':
+		case OPT_LOOPS:
+			max_cycles = atoi(optarg); break;
+		case 'm':
+		case OPT_MLOCKALL:
+			lockall = 1; break;
+		case 'M':
+		case OPT_REFRESH:
+			refresh_on_max = 1; break;
+		case 'n':
+		case OPT_NANOSLEEP:
+			use_nanosleep = MODE_CLOCK_NANOSLEEP; break;
+		case 'N':
+		case OPT_NSECS:
+			use_nsecs = 1; break;
+		case 'o':
+		case OPT_OSCOPE:
+			oscope_reduction = atoi(optarg); break;
+		case 'O':
+		case OPT_TRACEOPT:
+			traceopt(optarg); break;
 		case 'p':
+		case OPT_PRIORITY:
 			priority = atoi(optarg);
 			if (policy != SCHED_FIFO && policy != SCHED_RR)
 				policy = SCHED_FIFO;
 			break;
 		case 'P':
+		case OPT_PREEMPTOFF:
 			if (tracetype == IRQSOFF) {
 				tracetype = PREEMPTIRQSOFF;
 				strncpy(tracer, "preemptirqsoff", sizeof(tracer));
@@ -1215,12 +1261,20 @@ static void process_options (int argc, char *argv[])
 				strncpy(tracer, "preemptoff", sizeof(tracer));
 			}
 			break;
-		case 'q': quiet = 1; break;
-		case 'Q': priospread = 1; break;
-		case 'r': timermode = TIMER_RELTIME; break;
-		case 'R': check_clock_resolution = 1; break;
-		case 's': use_system = MODE_SYS_OFFSET; break;
-		case 'S':  /* SMP testing */
+		case 'q':
+		case OPT_QUIET:
+			quiet = 1; break;
+		case 'r':
+		case OPT_RELATIVE:
+			timermode = TIMER_RELTIME; break;
+		case 'R':
+		case OPT_RESOLUTION:
+			check_clock_resolution = 1; break;
+		case 's':
+		case OPT_SYSTEM:
+			use_system = MODE_SYS_OFFSET; break;
+		case 'S':
+		case OPT_SMP: /* SMP testing */
 			if (numa)
 				fatal("numa and smp options are mutually exclusive\n");
 			smp = 1;
@@ -1229,6 +1283,7 @@ static void process_options (int argc, char *argv[])
 			use_nanosleep = MODE_CLOCK_NANOSLEEP;
 			break;
 		case 't':
+		case OPT_THREADS:
 			if (smp) {
 				warn("-t ignored due to --smp\n");
 				break;
@@ -1241,11 +1296,15 @@ static void process_options (int argc, char *argv[])
 				num_threads = max_cpus;
 			break;
 		case 'T':
+		case OPT_TRACER:
 			tracetype = CUSTOM;
 			strncpy(tracer, optarg, sizeof(tracer));
 			break;
-		case 'u': setvbuf(stdout, NULL, _IONBF, 0); break;
-		case 'U':  /* NUMA testing */
+		case 'u':
+		case OPT_UNBUFFERED:
+			setvbuf(stdout, NULL, _IONBF, 0); break;
+		case 'U':
+		case OPT_NUMA: /* NUMA testing */
 			if (smp)
 				fatal("numa and smp options are mutually exclusive\n");
 #ifdef NUMA
@@ -1260,13 +1319,34 @@ static void process_options (int argc, char *argv[])
 			warn("ignoring --numa or -U\n");
 #endif
 			break;
-		case 'v': verbose = 1; break;
-		case 'w': tracetype = WAKEUP; break;
-		case 'W': tracetype = WAKEUPRT; break;
-		case 'X': ct_debug = 1; break;
-		case 'y': handlepolicy(optarg); break;
+		case 'v':
+		case OPT_VERBOSE: verbose = 1; break;
+		case 'w':
+		case OPT_WAKEUP:
+			tracetype = WAKEUP; break;
+		case 'W':
+		case OPT_WAKEUPRT:
+			tracetype = WAKEUPRT; break;
+		case '?':
+		case OPT_HELP:
+			display_help(0); break;
 
-		case '?': display_help(0); break;
+		/* long only options */
+		case OPT_PRIOSPREAD:
+			priospread = 1; break;
+		case OPT_LATENCY:
+                          /* power management latency target value */
+			  /* note: default is 0 (zero) */
+			latency_target_value = atoi(optarg);
+			if (latency_target_value < 0)
+				latency_target_value = 0;
+			break;
+		case OPT_NOTRACE:
+			notrace = 1; break;
+		case OPT_POLICY:
+			handlepolicy(optarg); break;
+		case OPT_DBGCYCLIC:
+			ct_debug = 1; break;
 		}
 	}
 
