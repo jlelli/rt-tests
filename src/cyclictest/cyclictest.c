@@ -779,7 +779,6 @@ void *timerthread(void *param)
 		memset(&stop, 0, sizeof(stop)); /* grrr */
 		stop = now;
 		stop.tv_sec += duration;
-		tsnorm(&stop);
 	}
 	if (par->mode == MODE_CYCLIC) {
 		if (par->timermode == TIMER_ABSTIME)
