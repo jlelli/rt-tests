@@ -140,6 +140,7 @@ struct thread_param {
 	unsigned long interval;
 	int cpu;
 	int node;
+	int tnum;
 };
 
 /* Struct for statistics */
@@ -183,6 +184,8 @@ static int check_clock_resolution;
 static int ct_debug;
 static int use_fifo = 0;
 static pthread_t fifo_threadid;
+static int aligned = 0;
+static int disaligned = 0;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -190,6 +193,10 @@ static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t break_thread_id_lock = PTHREAD_MUTEX_INITIALIZER;
 static pid_t break_thread_id = 0;
 static uint64_t break_thread_value = 0;
+
+static pthread_barrier_t align_barr;
+static pthread_barrier_t globalt_barr;
+static struct timespec globalt;
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -768,7 +775,20 @@ void *timerthread(void *param)
 		fatal("timerthread%d: failed to set priority to %d\n", par->cpu, par->prio);
 
 	/* Get current time */
-	clock_gettime(par->clock, &now);
+	if(aligned){
+		pthread_barrier_wait(&globalt_barr);
+		if(par->tnum==0){
+			clock_gettime(par->clock, &globalt);
+		}
+		pthread_barrier_wait(&align_barr);
+		now = globalt;
+		if(disaligned){
+			now.tv_nsec += disaligned * par->tnum;
+			tsnorm(&now);
+		}
+	}
+	else
+		clock_gettime(par->clock, &now);
 
 	next = now;
 	next.tv_sec += interval.tv_sec;
@@ -958,6 +978,7 @@ static void display_help(int error)
 	       "cyclictest <options>\n\n"
 	       "-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
 	       "                           with NUM pin all threads to the processor NUM\n"
+	       "-A USEC  --aligned=USEC    align thread wakeups to a specific offset\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 	       "-B       --preemptirqs     both preempt and irqsoff tracing (used with -b)\n"
 	       "-c CLOCK --clock=CLOCK     select clock\n"
@@ -1095,6 +1116,7 @@ enum option_values {
 	OPT_QUIET, OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION, OPT_SYSTEM,
 	OPT_SMP, OPT_THREADS, OPT_TRACER, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE,
 	OPT_WAKEUP, OPT_WAKEUPRT, OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
+	OPT_ALIGNED,
 };
 
 /* Process commandline options */
@@ -1113,6 +1135,7 @@ static void process_options (int argc, char *argv[])
 		static struct option long_options[] = {
 			{"affinity",         optional_argument, NULL, OPT_AFFINITY},
 			{"notrace",          no_argument,       NULL, OPT_NOTRACE },
+			{"aligned",          optional_argument, NULL, OPT_ALIGNED },
 			{"breaktrace",       required_argument, NULL, OPT_BREAKTRACE },
 			{"preemptirqs",      no_argument,       NULL, OPT_PREEMPTIRQ },
 			{"clock",            required_argument, NULL, OPT_CLOCK },
@@ -1154,7 +1177,7 @@ static void process_options (int argc, char *argv[])
 			{"help",             no_argument,       NULL, OPT_HELP },
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::b:Bc:Cd:D:Efh:H:i:Il:MnNo:O:p:PmqrRsSt::uUvD:wWT:",
+		int c = getopt_long(argc, argv, "a::A:b:Bc:Cd:D:Efh:H:i:Il:MnNo:O:p:PmqrRsSt::uUvD:wWT:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1173,6 +1196,12 @@ static void process_options (int argc, char *argv[])
 			} else {
 				setaffinity = AFFINITY_USEALL;
 			}
+			break;
+		case 'A':
+		case OPT_ALIGNED:
+			aligned=1;
+			if (optarg != NULL)
+				disaligned = atoi(optarg);
 			break;
 		case 'b':
 		case OPT_BREAKTRACE:
@@ -1412,6 +1441,11 @@ static void process_options (int argc, char *argv[])
 
 	if (num_threads < 1)
 		error = 1;
+
+	if (aligned) {
+		pthread_barrier_init (&globalt_barr, NULL, num_threads);
+		pthread_barrier_init (&align_barr, NULL, num_threads);
+	}
 
 	if (error)
 		display_help(1);
@@ -1889,6 +1923,7 @@ int main(int argc, char **argv)
 		par->max_cycles = max_cycles;
 		par->stats = stat;
 		par->node = node;
+		par->tnum = i;
 		switch (setaffinity) {
 		case AFFINITY_UNSPECIFIED: par->cpu = -1; break;
 		case AFFINITY_SPECIFIED: par->cpu = affinity; break;
