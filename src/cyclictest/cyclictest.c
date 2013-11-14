@@ -185,7 +185,7 @@ static int ct_debug;
 static int use_fifo = 0;
 static pthread_t fifo_threadid;
 static int aligned = 0;
-static int disaligned = 0;
+static int offset = 0;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -777,13 +777,12 @@ void *timerthread(void *param)
 	/* Get current time */
 	if(aligned){
 		pthread_barrier_wait(&globalt_barr);
-		if(par->tnum==0){
+		if(par->tnum==0)
 			clock_gettime(par->clock, &globalt);
-		}
 		pthread_barrier_wait(&align_barr);
 		now = globalt;
-		if(disaligned){
-			now.tv_nsec += disaligned * par->tnum;
+		if(offset) {
+			now.tv_nsec += offset * par->tnum;
 			tsnorm(&now);
 		}
 	}
@@ -1177,7 +1176,7 @@ static void process_options (int argc, char *argv[])
 			{"help",             no_argument,       NULL, OPT_HELP },
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::A:b:Bc:Cd:D:Efh:H:i:Il:MnNo:O:p:PmqrRsSt::uUvD:wWT:",
+		int c = getopt_long(argc, argv, "a::A::b:Bc:Cd:D:Efh:H:i:Il:MnNo:O:p:PmqrRsSt::uUvD:wWT:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1201,7 +1200,11 @@ static void process_options (int argc, char *argv[])
 		case OPT_ALIGNED:
 			aligned=1;
 			if (optarg != NULL)
-				disaligned = atoi(optarg);
+				offset = atoi(optarg);
+			else if (optind<argc && atoi(argv[optind]))
+				offset = atoi(argv[optind]);
+			else
+				offset = 0;
 			break;
 		case 'b':
 		case OPT_BREAKTRACE:
@@ -1443,8 +1446,8 @@ static void process_options (int argc, char *argv[])
 		error = 1;
 
 	if (aligned) {
-		pthread_barrier_init (&globalt_barr, NULL, num_threads);
-		pthread_barrier_init (&align_barr, NULL, num_threads);
+		pthread_barrier_init(&globalt_barr, NULL, num_threads);
+		pthread_barrier_init(&align_barr, NULL, num_threads);
 	}
 
 	if (error)
