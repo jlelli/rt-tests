@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# script to automate pushing rt-tests tarball and git branch to 
+# script to automate pushing rt-tests tarball and git branch to
 # kernel.org.
 #
 # This won't work if you aren't me :)
@@ -28,7 +28,7 @@ fi
 
 version=$1
 accnt=clrkwllms@master.kernel.org
-destpath=/pub/linux/kernel/people/clrkwllms/rt-tests
+destpath=/pub/linux/kernel/people/clrkwllms/
 branch=$(git symbolic-ref -q HEAD)
 
 if [ $testing -eq 1 ]; then
@@ -88,6 +88,8 @@ fi
 
 # copy the tarball if it isn't already there
 tar=rt-tests-$version.tar.gz
+asc=rt-tests-$version.tar.asc
+
 if [ ! -e $tar ];
 then
     echo "Generating tarfile $tar"
@@ -96,20 +98,18 @@ else
     echo "Using existing tarfile $tar"
 fi
 
-if ssh $accnt ls $destpath/$tar >/dev/null 2>&1
+if kup ls $destpath | grep $tar > /dev/null 2>&1
 then
-    echo "Tarfile $tar already on kernel.org"
+    echo "Tarfile $tar is already on kernel.org"
 else
-    echo "Copying tarball $tar to kernel.org"
+    echo "Copying tarfile $tar to kernel.org"
     if [ $testing -eq 0 ]; then
-	scp $tar $accnt:$destpath
+	kup put $tar $asc $destpath/$tar
     else
-	echo "testing: copy tarball"
+	echo "testing: copy tarfile"
     fi
 fi
 
 [ $testing -eq 1 ] && dryrun=--dry-run
 echo "Pushing master and tags to kernel.org"
 git push $dryrun --tags origin master
-
-

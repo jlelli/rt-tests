@@ -148,9 +148,12 @@ release: distclean changelog
 	mkdir -p releases
 	mkdir -p tmp/rt-tests
 	cp -r Makefile COPYING ChangeLog src tmp/rt-tests
-	tar -C tmp -czf rt-tests-$(VERSION_STRING).tar.gz rt-tests
+	rm -f rt-tests-$(VERSION_STRING).tar rt-tests-$(VERSION_STRING).tar.asc
+	tar -C tmp -cf rt-tests-$(VERSION_STRING).tar rt-tests
+	gpg2 --default-key clrkwllms@kernel.org --detach-sign --armor rt-tests-$(VERSION_STRING).tar
+	gzip rt-tests-$(VERSION_STRING).tar
 	rm -f ChangeLog
-	cp rt-tests-$(VERSION_STRING).tar.gz releases
+	cp rt-tests-$(VERSION_STRING).tar.gz rt-tests-$(VERSION_STRING).tar.asc releases
 
 .PHONY: push
 push:	release
