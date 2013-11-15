@@ -17,7 +17,7 @@ BuildRequires: __BUILDREQUIRES_NUMA__ python
 %description
 rt-tests is a set of programs that test and measure various components of
 real-time kernel behavior. This package measures timer, signal, and hardware
-latency. It also tests the functioning of priority-inheritance mutexes. 
+latency. It also tests the functioning of priority-inheritance mutexes.
 
 %prep
 %setup -qn rt-tests
@@ -65,6 +65,26 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Fri Nov 15 2013 Clark Williams <williams@redhat.com> - 0.86-1
+- cyclictest: allow break threshold without doing any tracing
+- cyclictest: add named fifo for statistics
+- from  John Kacur <jkacur@redhat.com>:
+  - cyclictest: Align option fixes
+  - Makefile: Don't tag files in dir BUILD from rpm builds
+  - Makefile: Add BUILDROOT and SPECS to the dirs to remove for distclean
+  - Makefile: Add tmp dir to distclean and "make release" call distclean
+  - Makefile: Don't tag tmp files created when making a release
+- from Nicholas Mc Guire <der.herr@hofr.at>:
+  - cyclictest: add align thread wakeup times option
+- cyclictest: modify option handling to use enumerated types
+- from Sebastian Andrzej Siewior <bigeasy@linutronix.de>:
+  - hackbench: init child's struct before using it
+- from Jim Somerville <Jim.Somerville@windriver.com>:
+  - cyclictest: finish removal of 1 second first loops
+- from Frank Rowand <frank.rowand@am.sony.com>:
+  - rt-tests: NUMA optional for make rpm
+  - cyclictest: white space cleanup
+
 * Tue Nov 13 2012 Clark Williams <williams@redhat.com> - 0.85-1
 - [cyclictest] add tracemark function back to breaktrace logic
 - from Frank Rowand <frank.rowand@am.sony.com>:
@@ -81,7 +101,7 @@ rm -rf $RPM_BUILD_ROOT
   - cyclictest: whitespace cleanup
 
 * Wed May  9 2012 Clark Williams <williams@redhat.com> - 0.84-1
-- [cyclictest] added -Q/--priospread option to 
+- [cyclictest] added -Q/--priospread option to
 - from Markus Kohlhase <mail@markus-kohlhase.de>
   - [docs] added description from osadl.org
 - from Darren Hart <dvhart@linux.intel.com>
@@ -130,7 +150,7 @@ rm -rf $RPM_BUILD_ROOT
 - only turn on /proc/sys/kernel/ftrace_enabled for a tracer that
   needs it
 - make sure to set current_tracer to function for -f switch
-  
+
 * Fri Sep  2 2011 Clark Williams <williams@redhat.com> - 0.75-1
 - added utility routines for mounting debugfs and event/tracing manipulation
 - from Steven Rostedt <srostedt@redhat.com>:
@@ -200,7 +220,7 @@ rm -rf $RPM_BUILD_ROOT
   - changed default scheduling policy to SCHED_FIFO
   - fixed spelling mistake on cyclictest man page
   - use symbolic names for scheduling policy
-  - reverted commit 582be2a52c43801a10d318de7491f1cc7243d5cf to 
+  - reverted commit 582be2a52c43801a10d318de7491f1cc7243d5cf to
     deal with bug in priority distribution
 - from Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
   - renamed pip to pip_stress
@@ -228,7 +248,7 @@ rm -rf $RPM_BUILD_ROOT
 
 * Tue Jan 26 2010 Clark Williams <williams@redhat.com> - 0.62-1
 - added NUMA option
-- patch from Uwe Kleine-König <u.kleine-koenig@pengutronix.de> 
+- patch from Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
   to clarify source copyrights
 - moved hwlatdetect to python site-library
 
@@ -249,7 +269,7 @@ rm -rf $RPM_BUILD_ROOT
 - David Sommerseth <davids@redhat.com>:
   - added help text for -M (refresh-on-max) option for cyclictest
   - fixed parsing of --mlockall in signaltest
-- Carsten Emde <C.Emde@osadl.org> provided a better explaination 
+- Carsten Emde <C.Emde@osadl.org> provided a better explaination
   for using the kernel module with the backfire program
 - John Kacur <jkacur@redhat.com> cleaned up the trailing comments
   on the guard macros in src/lib/rt-utils.h
@@ -299,14 +319,14 @@ rm -rf $RPM_BUILD_ROOT
 
 * Thu Sep  3 2009 Clark Williams <williams@redhat.com> - 0.51-1
 - two manpage fixes from Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
-- added -M option from Arnaldo Carvahlo de Melo <acme@redhat.com> 
+- added -M option from Arnaldo Carvahlo de Melo <acme@redhat.com>
   (for use on low-bandwidth connections, defer's update until new max hit)
 
 * Fri Jul 24 2009 Clark Williams <williams@redhat.com> - 0.50-2
 - minor patch to fix reporting option of hwlatdetect
 
 * Thu Jul 16 2009 Clark Williams <williams@redhat.com> - 0.50-1
-- patch to cyclictest from Sebastian Andrzej Siewior <bigeasy@linutronix.de> 
+- patch to cyclictest from Sebastian Andrzej Siewior <bigeasy@linutronix.de>
   to process options before checking for root user
 - patch to cyclictest from Sebastian Andrzej Siewior <bigeasy@linutronix.de>
   to exit with proper error code on exit
@@ -347,4 +367,3 @@ rm -rf $RPM_BUILD_ROOT
 
 * Thu Jan 03 2008 Clark Williams <williams@redhat.com> - 0.18-1
 - Initial build.
-
