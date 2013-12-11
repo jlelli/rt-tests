@@ -985,8 +985,8 @@ static void display_help(int error)
 #else
 	       "-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
 	       "                           with NUM pin all threads to the processor NUM\n"
-	       "-A USEC  --aligned=USEC    align thread wakeups to a specific offset\n"
 #endif
+	       "-A USEC  --aligned=USEC    align thread wakeups to a specific offset\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 	       "-B       --preemptirqs     both preempt and irqsoff tracing (used with -b)\n"
 	       "-c CLOCK --clock=CLOCK     select clock\n"
@@ -1102,14 +1102,14 @@ static int cpu_for_thread(int thread_num, int max_cpus)
 static void parse_cpumask(const char *option, const int max_cpus)
 {
 	affinity_mask = rt_numa_parse_cpustring(option, max_cpus);
-	if (affinity_mask) { 
+	if (affinity_mask) {
 		if (is_cpumask_zero(affinity_mask)) {
 			rt_bitmask_free(affinity_mask);
 			affinity_mask = NULL;
 		}
 	}
 	if (!affinity_mask)
-		display_help(1);	
+		display_help(1);
 
 	if (verbose) {
 		printf("%s: Using %u cpus.\n", __func__,
@@ -1282,9 +1282,9 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case 'f':
 		case OPT_FTRACE:
 			tracetype = FUNCTION; ftrace = 1; break;
-		case 'F': 
+		case 'F':
 		case OPT_FIFO:
-			use_fifo = 1; 
+			use_fifo = 1;
 			strncpy(fifopath, optarg, strlen(optarg));
 			break;
 
@@ -1694,7 +1694,7 @@ static void print_stat(FILE *fp, struct thread_param *par, int index, int verbos
 }
 
 
-/* 
+/*
  * thread that creates a named fifo and hands out run stats when someone
  * reads from the fifo.
  */
