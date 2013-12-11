@@ -65,6 +65,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Wed Dec 11 2013 Clark Williams <williams@redhat.com> - 0.87-1
+- From Aaron Fabbri <ajfabbri@gmail.com>:
+  - cyclictest: CPU affinity now takes arbitrary set of cpus
+
 * Fri Nov 15 2013 Clark Williams <williams@redhat.com> - 0.86-1
 - cyclictest: allow break threshold without doing any tracing
 - cyclictest: add named fifo for statistics
