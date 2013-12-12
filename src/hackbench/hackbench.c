@@ -443,6 +443,7 @@ int main(int argc, char *argv[])
 	struct timeval start, stop, diff;
 	int readyfds[2], wakefds[2];
 	char dummy;
+	int timer_started = 0;
 	struct sched_param sp;
 
 	process_options (argc, argv);
@@ -489,9 +490,10 @@ int main(int argc, char *argv[])
 				reap_workers(child_tab, total_children, 1);
 				barf("Reading for readyfds");
 			}
-		
+
 		gettimeofday(&start, NULL);
-		
+		timer_started = 1;
+
 		/* Kick them off */
 		if (write(wakefds[1], &dummy, 1) != 1) {
 			reap_workers(child_tab, total_children, 1);
@@ -510,8 +512,12 @@ int main(int argc, char *argv[])
 	gettimeofday(&stop, NULL);
 
 	/* Print time... */
-	timersub(&stop, &start, &diff);
-	printf("Time: %lu.%03lu\n", diff.tv_sec, diff.tv_usec/1000);
+	if (timer_started) {
+		timersub(&stop, &start, &diff);
+		printf("Time: %lu.%03lu\n", diff.tv_sec, diff.tv_usec/1000);
+	}
+	else
+		fprintf(stderr, "No measurements available\n");
 	free(child_tab);
 	exit(0);
 }
