@@ -400,6 +400,7 @@ static int trace_file_exists(char *name)
 #define TRACEBUFSIZ 1024
 static __thread char tracebuf[TRACEBUFSIZ];
 
+static void tracemark(char *fmt, ...) __attribute__((format(printf, 1, 2)));
 static void tracemark(char *fmt, ...)
 {
 	va_list ap;
@@ -895,7 +896,8 @@ void *timerthread(void *param)
 
 		if (!stopped && tracelimit && (diff > tracelimit)) {
 			stopped++;
-			tracemark("hit latency threshold (%d > %d)", diff, tracelimit);
+			tracemark("hit latency threshold (%llu > %d)",
+				  (unsigned long long) diff, tracelimit);
 			tracing(0);
 			shutdown++;
 			pthread_mutex_lock(&break_thread_id_lock);
