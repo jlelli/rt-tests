@@ -1034,8 +1034,10 @@ static void display_help(int error)
 	       "-T TRACE --tracer=TRACER   set tracing function\n"
 	       "    configured tracers: %s\n"
 	       "-u       --unbuffered      force unbuffered output for live processing\n"
+#ifdef NUMA
 	       "-U       --numa            Standard NUMA testing (similar to SMP option)\n"
 	       "                           thread data structures allocated from local node\n"
+#endif
 	       "-v       --verbose         output values on stdout for statistics\n"
 	       "                           format: n:c:v n=tasknum c=count v=value in us\n"
 	       "-w       --wakeup          task wakeup tracing (used with -b)\n"
@@ -1113,10 +1115,10 @@ static void parse_cpumask(const char *option, const int max_cpus)
 	if (!affinity_mask)
 		display_help(1);
 
-	if (verbose) {
+//	if (verbose) {
 		printf("%s: Using %u cpus.\n", __func__,
 			rt_numa_bitmask_count(affinity_mask));
-	}
+//	}
 }
 
 
@@ -1241,9 +1243,11 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			if (smp || numa)
 				break;
 			if (optarg != NULL) {
+				printf("optarg != NULL!\n");
 				parse_cpumask(optarg, max_cpus);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else if (optind<argc && atoi(argv[optind])) {
+				printf("optind < argc\n");
 				parse_cpumask(argv[optind], max_cpus);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else {
@@ -1983,7 +1987,7 @@ int main(int argc, char **argv)
 		case AFFINITY_UNSPECIFIED: par->cpu = -1; break;
 		case AFFINITY_SPECIFIED:
 			par->cpu = cpu_for_thread(i, max_cpus);
-			if (verbose)
+			//if (verbose)
 				printf("Thread %d using cpu %d.\n", i,
 					par->cpu);
 			break;
