@@ -1115,10 +1115,10 @@ static void parse_cpumask(const char *option, const int max_cpus)
 	if (!affinity_mask)
 		display_help(1);
 
-//	if (verbose) {
+	if (verbose) {
 		printf("%s: Using %u cpus.\n", __func__,
 			rt_numa_bitmask_count(affinity_mask));
-//	}
+	}
 }
 
 
@@ -1243,11 +1243,9 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			if (smp || numa)
 				break;
 			if (optarg != NULL) {
-				printf("optarg != NULL!\n");
 				parse_cpumask(optarg, max_cpus);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else if (optind<argc && atoi(argv[optind])) {
-				printf("optind < argc\n");
 				parse_cpumask(argv[optind], max_cpus);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else {
