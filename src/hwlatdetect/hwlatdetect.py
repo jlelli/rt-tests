@@ -53,7 +53,7 @@ class DebugFS(object):
         cmd = ['/bin/mount', '-t', 'debugfs', 'none', path]
         self.mounted = (subprocess.call(cmd) == 0)
         if not self.mounted:
-            raise RuntimeError, "Failed to mount debugfs"
+            raise RuntimeError("Failed to mount debugfs")
         return self.mounted
 
     def umount(self):
@@ -64,7 +64,7 @@ class DebugFS(object):
         cmd = ['/bin/umount', self.mountpoint]
         self.mounted = not (subprocess.call(cmd) == 0)
         if self.mounted:
-            raise RuntimeError, "Failed to umount debugfs"
+            raise RuntimeError("Failed to umount debugfs")
         return not self.mounted
 
     def getval(self, item, nonblocking=False):
@@ -77,7 +77,7 @@ class DebugFS(object):
             fd = os.open(path, os.O_RDONLY|os.O_NONBLOCK)
             try:
                 val = os.read(fd, 256)
-            except OSError, e:
+            except OSError as e:
                 if e.errno == errno.EAGAIN:
                     val = None
                 else:
@@ -116,7 +116,7 @@ class Kmod(object):
             debug("checking %s" % mpath)
             if os.path.exists(mpath):
                 return m
-        raise RuntimeError, "no detector module found!"
+        raise RuntimeError("no detector module found!")
             
     def __init__(self):
         self.preloaded = False
@@ -153,7 +153,7 @@ class Detector(object):
     '''wrapper class for managing detector modules'''
     def __init__(self):
         if os.getuid() != 0:
-            raise RuntimeError, "Must be root"
+            raise RuntimeError("Must be root")
         self.debugfs = DebugFS()
         self.kmod = Kmod()
         self.setup()
@@ -175,15 +175,15 @@ class Detector(object):
 
     def setup(self):
         if not self.debugfs.mount():
-            raise RuntimeError, "Failed to mount debugfs"
+            raise RuntimeError("Failed to mount debugfs")
         if not self.kmod.load():
-            raise RuntimeError, "Failed to unload hwlat"
+            raise RuntimeError("Failed to unload hwlat")
 
     def cleanup(self):
         if not self.kmod.unload():
-            raise RuntimeError, "Failed to unload hwlat"
+            raise RuntimeError("Failed to unload hwlat")
         if not self.debugfs.umount():
-            raise RuntimeError, "Failed to unmount debugfs"
+            raise RuntimeError("Failed to unmount debugfs")
 
     def get(self, field):
         return self.detector.get(field)
@@ -261,8 +261,8 @@ class Hwlat(object):
                     debug("got a latency sample: %s" % val.strip())
                     val = self.get_sample()
                 time.sleep(0.1)
-        except KeyboardInterrupt, e:
-            print "interrupted"
+        except KeyboardInterrupt as e:
+            print("interrupted")
             sys.exit(1)
         return self.samples
 #
@@ -298,7 +298,7 @@ class Smi(object):
         debug("__set: %s <-- %d" % (field, value))
         self.debugfs.putval(os.path.join("smi_detector", field), str(value))
         if self.__get(field) != value:
-            raise RuntimeError, "Error setting %s to %d (%d)" % (field, value, self.__get(field))
+            raise RuntimeError("Error setting %s to %d (%d)" % (field, value, self.__get(field)))
 
     def get(self, field):
         name = Smi.field_translate[field]
@@ -320,7 +320,7 @@ class Smi(object):
         width = ms2us(int(self.__get('ms_per_sample')))
         interval = window - width
         if interval <= 0:
-            raise RuntimeError, "Smi: invalid width/interval values (%d/%d (%d))" % (width, interval, window)
+            raise RuntimeError("Smi: invalid width/interval values (%d/%d (%d))" % (width, interval, window))
         self.__set('ms_between_samples', us2ms(interval))
 
     def set(self, field, val):
@@ -354,8 +354,8 @@ class Smi(object):
                     self.samples.append(val.strip())
                     debug("got a latency sample: %s (threshold: %d)" % (val.strip(), self.get("threshold")))
                 time.sleep(0.1)
-        except KeyboardInterrupt, e:
-            print "interrupted"
+        except KeyboardInterrupt as e:
+            print("interrupted")
             sys.exit(1)
         return self.samples
 
@@ -371,7 +371,7 @@ def seconds(str):
     if str.isdigit():
         return int(str)
     elif str[-2].isalpha():
-        raise RuntimeError, "illegal suffix for seconds: '%s'" % str[-2:-1]
+        raise RuntimeError("illegal suffix for seconds: '%s'" % str[-2:-1])
     elif str[-1:] == 's':
         return int(str[0:-1])
     elif str[-1:] == 'm':
@@ -383,7 +383,7 @@ def seconds(str):
     elif str[-1:] == 'w':
         return int(str[0:-1]) * 86400 * 7
     else:
-        raise RuntimeError, "invalid input for seconds: '%s'" % str
+        raise RuntimeError("invalid input for seconds: '%s'" % str)
 
 def milliseconds(str):
     "convert input string to millsecond value"
@@ -398,7 +398,7 @@ def milliseconds(str):
     elif str[-1] == 'h':
         return int(str[0:-1]) * 1000 * 60 * 60
     else:
-        raise RuntimeError, "invalid input for milliseconds: %s" % str
+        raise RuntimeError("invalid input for milliseconds: %s" % str)
 
 
 def microseconds(str):
@@ -412,7 +412,7 @@ def microseconds(str):
     elif str[-1:] == 's':
         return (int(str[0:-1]) * 1000 * 1000)
     else:
-        raise RuntimeError, "invalid input for microseconds: '%s'" % str
+        raise RuntimeError("invalid input for microseconds: '%s'" % str)
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -528,7 +528,7 @@ if __name__ == '__main__':
         info("sample data (%d samples) written to %s" % (count, reportfile))
     else:
         for s in detect.samples:
-            print "%s" % s
+            print("%s" % s)
 
     detect.cleanup()
     sys.exit(exceeding)
