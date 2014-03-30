@@ -65,6 +65,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+* Sun Mar 30 2014 Clark Williams <williams@redhat.com> - 0.89-1
+- clean up debugging comments and printfs from last release
+- ran hwlatdetect.py through 2to3, works for both python2 and 3
+
 * Fri Mar 28 2014 Clark Williams <williams@redhat.com> - 0.88-1
 - From Uwe Kleine-König <u.kleine-koenig@pengutronix.de>:
   - cyclictest: Fix tracemark output when the latency threshold is hit on ARM
