@@ -1985,7 +1985,7 @@ int main(int argc, char **argv)
 		case AFFINITY_UNSPECIFIED: par->cpu = -1; break;
 		case AFFINITY_SPECIFIED:
 			par->cpu = cpu_for_thread(i, max_cpus);
-			//if (verbose)
+			if (verbose)
 				printf("Thread %d using cpu %d.\n", i,
 					par->cpu);
 			break;
