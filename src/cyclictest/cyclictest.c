@@ -669,7 +669,7 @@ static int raise_soft_prio(int policy, const struct sched_param *param)
 	err = getrlimit(RLIMIT_RTPRIO, &rlim);
 	if (err) {
 		err = errno;
-		err_msg_n(err, "WARN: getrlimit failed\n");
+		err_msg_n(err, "WARN: getrlimit failed");
 		return err;
 	}
 
@@ -681,7 +681,7 @@ static int raise_soft_prio(int policy, const struct sched_param *param)
 		err = setrlimit(RLIMIT_RTPRIO, &rlim);
 		if (err) {
 			err = errno;
-			err_msg_n(err, "WARN: setrlimit failed\n");
+			err_msg_n(err, "WARN: setrlimit failed");
 			/* return err; */
 		}
 	} else {
