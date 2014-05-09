@@ -101,7 +101,7 @@ static inline struct bitmask* rt_numa_parse_cpustring(const char* s,
 	 * libnuma do not have this function.  A work around should be to run
 	 * your command with e.g. taskset -c 9-15 <command>
 	 */
-	return numa_parse_cpustring(s);
+	return numa_parse_cpustring((char *)s);
 #endif
 }
 
