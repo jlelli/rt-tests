@@ -1763,7 +1763,7 @@ int main(int argc, char **argv)
 	sigset_t sigset;
 	int signum = SIGALRM;
 	int mode;
-	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	int i, ret = -1;
 	int status;
 
