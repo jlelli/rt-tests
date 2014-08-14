@@ -233,20 +233,30 @@ static int32_t latency_target_value = 0;
 static void set_latency_target(void)
 {
 	struct stat s;
-	int ret;
+	int err;
 
-	if (stat("/dev/cpu_dma_latency", &s) == 0) {
-		latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR);
-		if (latency_target_fd == -1)
-			return;
-		ret = write(latency_target_fd, &latency_target_value, 4);
-		if (ret == 0) {
-			printf("# error setting cpu_dma_latency to %d!: %s\n", latency_target_value, strerror(errno));
-			close(latency_target_fd);
-			return;
-		}
-		printf("# /dev/cpu_dma_latency set to %dus\n", latency_target_value);
+	errno = 0;
+	err = stat("/dev/cpu_dma_latency", &s);
+	if (err == -1) {
+		err_msg_n(errno, "WARN: stat /dev/cpu_dma_latency failed");
+		return;
 	}
+
+	errno = 0;
+	latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR);
+	if (latency_target_fd == -1) {
+		err_msg_n(errno, "WARN: open /dev/cpu_dma_latency");
+		return;
+	}
+
+	errno = 0;
+	err = write(latency_target_fd, &latency_target_value, 4);
+	if (err < 1) {
+		err_msg_n(errno, "# error setting cpu_dma_latency to %d!", latency_target_value);
+		close(latency_target_fd);
+		return;
+	}
+	printf("# /dev/cpu_dma_latency set to %dus\n", latency_target_value);
 }
 
 
