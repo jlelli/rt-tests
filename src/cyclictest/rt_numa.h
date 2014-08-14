@@ -128,7 +128,7 @@ static int rt_numa_numa_node_of_cpu(int cpu)
 	int max_node, max_cpus;
 
 	max_node = numa_max_node();
-	max_cpus = sysconf(_SC_NPROCESSORS_CONF);
+	max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
 	if (cpu > max_cpus) {
 		errno = EINVAL;
