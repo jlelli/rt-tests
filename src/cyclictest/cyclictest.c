@@ -1569,11 +1569,11 @@ static void sighand(int sig)
 		int oldquiet = quiet;
 
 		quiet = 0;
-		printf("#---------------------------\n");
-		printf("# cyclictest current status:\n");
+		fprintf(stderr, "#---------------------------\n");
+		fprintf(stderr, "# cyclictest current status:\n");
 		for (i = 0; i < num_threads; i++)
-			print_stat(stdout, parameters[i], i, 0, 0);
-		printf("#---------------------------\n");
+			print_stat(stderr, parameters[i], i, 0, 0);
+		fprintf(stderr, "#---------------------------\n");
 		quiet = oldquiet;
 		return;
 	}
