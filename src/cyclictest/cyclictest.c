@@ -186,6 +186,7 @@ static int use_fifo = 0;
 static pthread_t fifo_threadid;
 static int aligned = 0;
 static int offset = 0;
+static int laptop = 0;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -234,6 +235,11 @@ static void set_latency_target(void)
 {
 	struct stat s;
 	int err;
+
+	if (laptop) {
+		warn("not setting cpu_dma_latency to save battery power\n");
+		return;
+	}
 
 	errno = 0;
 	err = stat("/dev/cpu_dma_latency", &s);
@@ -1020,6 +1026,9 @@ static void display_help(int error)
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-I       --irqsoff         Irqsoff tracing (used with -b)\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+	       "	 --laptop	   Save battery when running cyclictest\n"
+	       "			   This will give you poorer realtime results\n"
+	       "			   but will not drain your battery so quickly\n"
 	       "-m       --mlockall        lock current and future memory allocations\n"
 	       "-M       --refresh_on_max  delay updating the screen until a new max latency is hit\n"
 	       "-n       --nanosleep       use clock_nanosleep\n"
@@ -1183,7 +1192,7 @@ enum option_values {
 	OPT_QUIET, OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION, OPT_SYSTEM,
 	OPT_SMP, OPT_THREADS, OPT_TRACER, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE,
 	OPT_WAKEUP, OPT_WAKEUPRT, OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
-	OPT_ALIGNED,
+	OPT_ALIGNED, OPT_LAPTOP,
 };
 
 /* Process commandline options */
@@ -1216,6 +1225,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"histofall",        required_argument, NULL, OPT_HISTOFALL },
 			{"interval",         required_argument, NULL, OPT_INTERVAL },
 			{"irqsoff",          no_argument,       NULL, OPT_IRQSOFF },
+			{"laptop",	     no_argument,	NULL, OPT_LAPTOP },
 			{"loops",            required_argument, NULL, OPT_LOOPS },
 			{"mlockall",         no_argument,       NULL, OPT_MLOCKALL },
 			{"refresh_on_max",   no_argument,       NULL, OPT_REFRESH },
@@ -1445,6 +1455,8 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			handlepolicy(optarg); break;
 		case OPT_DBGCYCLIC:
 			ct_debug = 1; break;
+		case OPT_LAPTOP:
+			laptop = 1; break;
 		}
 	}
 
