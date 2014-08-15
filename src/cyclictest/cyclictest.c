@@ -186,6 +186,7 @@ static int use_fifo = 0;
 static pthread_t fifo_threadid;
 static int aligned = 0;
 static int offset = 0;
+static int laptop = 0;
 
 static pthread_cond_t refresh_on_max_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t refresh_on_max_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -233,20 +234,35 @@ static int32_t latency_target_value = 0;
 static void set_latency_target(void)
 {
 	struct stat s;
-	int ret;
+	int err;
 
-	if (stat("/dev/cpu_dma_latency", &s) == 0) {
-		latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR);
-		if (latency_target_fd == -1)
-			return;
-		ret = write(latency_target_fd, &latency_target_value, 4);
-		if (ret == 0) {
-			printf("# error setting cpu_dma_latency to %d!: %s\n", latency_target_value, strerror(errno));
-			close(latency_target_fd);
-			return;
-		}
-		printf("# /dev/cpu_dma_latency set to %dus\n", latency_target_value);
+	if (laptop) {
+		warn("not setting cpu_dma_latency to save battery power\n");
+		return;
 	}
+
+	errno = 0;
+	err = stat("/dev/cpu_dma_latency", &s);
+	if (err == -1) {
+		err_msg_n(errno, "WARN: stat /dev/cpu_dma_latency failed");
+		return;
+	}
+
+	errno = 0;
+	latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR);
+	if (latency_target_fd == -1) {
+		err_msg_n(errno, "WARN: open /dev/cpu_dma_latency");
+		return;
+	}
+
+	errno = 0;
+	err = write(latency_target_fd, &latency_target_value, 4);
+	if (err < 1) {
+		err_msg_n(errno, "# error setting cpu_dma_latency to %d!", latency_target_value);
+		close(latency_target_fd);
+		return;
+	}
+	printf("# /dev/cpu_dma_latency set to %dus\n", latency_target_value);
 }
 
 
@@ -669,7 +685,7 @@ static int raise_soft_prio(int policy, const struct sched_param *param)
 	err = getrlimit(RLIMIT_RTPRIO, &rlim);
 	if (err) {
 		err = errno;
-		err_msg_n(err, "WARN: getrlimit failed\n");
+		err_msg_n(err, "WARN: getrlimit failed");
 		return err;
 	}
 
@@ -681,7 +697,7 @@ static int raise_soft_prio(int policy, const struct sched_param *param)
 		err = setrlimit(RLIMIT_RTPRIO, &rlim);
 		if (err) {
 			err = errno;
-			err_msg_n(err, "WARN: setrlimit failed\n");
+			err_msg_n(err, "WARN: setrlimit failed");
 			/* return err; */
 		}
 	} else {
@@ -999,7 +1015,7 @@ static void display_help(int error)
 	       "-D       --duration=t      specify a length for the test run\n"
 	       "                           default is in seconds, but 'm', 'h', or 'd' maybe added\n"
 	       "                           to modify value to minutes, hours or days\n"
-	       "-e       --latency=PM_QOS  write PM_QOS to /dev/cpu_dma_latency\n"
+	       "	 --latency=PM_QOS  write PM_QOS to /dev/cpu_dma_latency\n"
 	       "-E       --event           event tracing (used with -b)\n"
 	       "-f       --ftrace          function trace (when -b is active)\n"
 	       "-F       --fifo=<path>     create a named pipe at path and write stats to it\n"
@@ -1010,16 +1026,20 @@ static void display_help(int error)
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-I       --irqsoff         Irqsoff tracing (used with -b)\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+	       "	 --laptop	   Save battery when running cyclictest\n"
+	       "			   This will give you poorer realtime results\n"
+	       "			   but will not drain your battery so quickly\n"
 	       "-m       --mlockall        lock current and future memory allocations\n"
 	       "-M       --refresh_on_max  delay updating the screen until a new max latency is hit\n"
 	       "-n       --nanosleep       use clock_nanosleep\n"
+	       "	 --notrace	   suppress tracing\n"
 	       "-N       --nsecs           print results in ns instead of us (default us)\n"
 	       "-o RED   --oscope=RED      oscilloscope mode, reduce verbose output by RED\n"
 	       "-O TOPT  --traceopt=TOPT   trace option\n"
 	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 	       "-P       --preemptoff      Preempt off tracing (used with -b)\n"
 	       "-q       --quiet           print only a summary on exit\n"
-	       "-Q       --priospread       spread priority levels starting at specified value\n"
+	       "	 --priospread       spread priority levels starting at specified value\n"
 	       "-r       --relative        use relative timer instead of absolute\n"
 	       "-R       --resolution      check clock resolution, calling clock_gettime() many\n"
 	       "                           times.  list of clock_gettime() values will be\n"
@@ -1042,8 +1062,8 @@ static void display_help(int error)
 	       "                           format: n:c:v n=tasknum c=count v=value in us\n"
 	       "-w       --wakeup          task wakeup tracing (used with -b)\n"
 	       "-W       --wakeuprt        rt task wakeup tracing (used with -b)\n"
-	       "-X       --dbg_cyclictest  print info useful for debugging cyclictest\n"
-	       "-y POLI  --policy=POLI     policy of realtime thread, POLI may be fifo(default) or rr\n"
+	       "	 --dbg_cyclictest  print info useful for debugging cyclictest\n"
+	       "	 --policy=POLI     policy of realtime thread, POLI may be fifo(default) or rr\n"
 	       "                           format: --policy=fifo(default) or --policy=rr\n",
 	       tracers
 		);
@@ -1172,7 +1192,7 @@ enum option_values {
 	OPT_QUIET, OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION, OPT_SYSTEM,
 	OPT_SMP, OPT_THREADS, OPT_TRACER, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE,
 	OPT_WAKEUP, OPT_WAKEUPRT, OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
-	OPT_ALIGNED,
+	OPT_ALIGNED, OPT_LAPTOP,
 };
 
 /* Process commandline options */
@@ -1205,6 +1225,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"histofall",        required_argument, NULL, OPT_HISTOFALL },
 			{"interval",         required_argument, NULL, OPT_INTERVAL },
 			{"irqsoff",          no_argument,       NULL, OPT_IRQSOFF },
+			{"laptop",	     no_argument,	NULL, OPT_LAPTOP },
 			{"loops",            required_argument, NULL, OPT_LOOPS },
 			{"mlockall",         no_argument,       NULL, OPT_MLOCKALL },
 			{"refresh_on_max",   no_argument,       NULL, OPT_REFRESH },
@@ -1434,6 +1455,8 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			handlepolicy(optarg); break;
 		case OPT_DBGCYCLIC:
 			ct_debug = 1; break;
+		case OPT_LAPTOP:
+			laptop = 1; break;
 		}
 	}
 
@@ -1559,11 +1582,11 @@ static void sighand(int sig)
 		int oldquiet = quiet;
 
 		quiet = 0;
-		printf("#---------------------------\n");
-		printf("# cyclictest current status:\n");
+		fprintf(stderr, "#---------------------------\n");
+		fprintf(stderr, "# cyclictest current status:\n");
 		for (i = 0; i < num_threads; i++)
-			print_stat(stdout, parameters[i], i, 0, 0);
-		printf("#---------------------------\n");
+			print_stat(stderr, parameters[i], i, 0, 0);
+		fprintf(stderr, "#---------------------------\n");
 		quiet = oldquiet;
 		return;
 	}

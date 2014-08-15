@@ -79,8 +79,8 @@ void fatal(char *fmt, ...)
 
 void err_doit(int err, const char *fmt, va_list ap)
 {
-	if (err)
-		fprintf(stderr, "%s\n", strerror(err));
 	vfprintf(stderr, fmt, ap);
+	if (err)
+		fprintf(stderr, ": %s\n", strerror(err));
 	return;
 }
