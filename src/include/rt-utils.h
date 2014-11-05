@@ -22,4 +22,6 @@ int event_disable_all(void);
 const char *policy_to_string(int policy);
 uint32_t string_to_policy(const char *str);
 
+pid_t gettid(void);
+
 #endif	/* __RT_UTILS.H */

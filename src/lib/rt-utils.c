@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/syscall.h> /* For SYS_gettid definitions */
 #include "rt-utils.h"
 #include "rt-sched.h"
 #include "error.h"
@@ -310,4 +311,9 @@ uint32_t string_to_policy(const char *str)
 		return SCHED_DEADLINE;
 
 	return 0;
+}
+
+pid_t gettid(void)
+{
+	return syscall(SYS_gettid);
 }
