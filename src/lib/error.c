@@ -46,6 +46,16 @@ void err_quit(char *fmt, ...)
 	exit(1);
 }
 
+void debug(char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	fputs("DEBUG: ", stderr);
+	err_doit(0, fmt, ap);
+	va_end(ap);
+}
+
 void info(char *fmt, ...)
 {
 	va_list ap;

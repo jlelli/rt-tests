@@ -10,6 +10,7 @@ void err_exit(int err, char *fmt, ...);
 void err_msg(char *fmt, ...);
 void err_msg_n(int err, char *fmt, ...);
 void err_quit(char *fmt, ...);
+void debug(char *fmt, ...);
 void info(char *fmt, ...);
 void warn(char *fmt, ...);
 void fatal(char *fmt, ...);
