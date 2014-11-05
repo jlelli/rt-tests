@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "rt-utils.h"
+#include "rt-sched.h"
 #include "error.h"
 
 static char debugfileprefix[MAX_PATH];
@@ -273,3 +274,40 @@ int check_privs(void)
 	return sched_setscheduler(0, policy, &old_param);
 }
 
+const char *policy_to_string(int policy)
+{
+	switch (policy) {
+	case SCHED_OTHER:
+		return "SCHED_OTHER";
+	case SCHED_FIFO:
+		return "SCHED_FIFO";
+	case SCHED_RR:
+		return "SCHED_RR";
+	case SCHED_BATCH:
+		return "SCHED_BATCH";
+	case SCHED_IDLE:
+		return "SCHED_IDLE";
+	case SCHED_DEADLINE:
+		return "SCHED_DEADLINE";
+	}
+
+	return "unknown";
+}
+
+uint32_t string_to_policy(const char *str)
+{
+	if (!strcmp(str, "other"))
+		return SCHED_OTHER;
+	else if (!strcmp(str, "fifo"))
+		return SCHED_FIFO;
+	else if (!strcmp(str, "rr"))
+		return SCHED_RR;
+	else if (!strcmp(str, "batch"))
+		return SCHED_BATCH;
+	else if (!strcmp(str, "idle"))
+		return SCHED_IDLE;
+	else if (!strcmp(str, "deadline"))
+		return SCHED_DEADLINE;
+
+	return 0;
+}
