@@ -99,8 +99,8 @@ pip_stress: pip_stress.o librttest.a
 hackbench: hackbench.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-librttest.a: rt-utils.o error.o rt-get_cpu.o
-	$(AR) rcs librttest.a rt-utils.o error.o rt-get_cpu.o
+librttest.a: rt-utils.o error.o rt-get_cpu.o rt-sched.o
+	$(AR) rcs librttest.a $^
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec *.d *.a
 CLEANUP += $(if $(wildcard .git), ChangeLog)
