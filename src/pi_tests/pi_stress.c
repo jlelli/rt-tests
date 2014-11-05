@@ -157,8 +157,6 @@ int prio_min;
 #define NUM_TEST_THREADS 3
 #define NUM_ADMIN_THREADS 1
 
-#define TIMER_SIGNAL	(SIGRTMIN+1)
-
 pthread_barrier_t all_threads_ready;
 pthread_barrier_t all_threads_done;
 
