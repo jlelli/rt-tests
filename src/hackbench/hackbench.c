@@ -326,12 +326,12 @@ static unsigned int group(childinfo_t *child,
 			close(fds[0]);
 	}
 
+	snd_ctx->ready_out = ready_out;
+	snd_ctx->wakefd = wakefd;
+	snd_ctx->num_fds = num_fds;
+
 	/* Now we have all the fds, fork the senders */
 	for (i = 0; i < num_fds; i++) {
-		snd_ctx->ready_out = ready_out;
-		snd_ctx->wakefd = wakefd;
-		snd_ctx->num_fds = num_fds;
-
 		child[tab_offset+num_fds+i] = create_worker(snd_ctx, (void *)(void *)sender);
 		if( child[tab_offset+num_fds+i].error < 0 ) {
 			return (num_fds+i)-1;
