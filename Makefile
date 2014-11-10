@@ -1,8 +1,13 @@
 VERSION_STRING = 0.89
 
-sources = cyclictest.c signaltest.c pi_stress.c rt-migrate-test.c	\
-	  ptsematest.c sigwaittest.c svsematest.c pmqtest.c sendme.c 	\
-	  pip_stress.c hackbench.c
+HAVE_NPTL ?= yes
+
+ifeq ($(HAVE_NPTL),yes)
+sources = cyclictest.c pi_stress.c pip_stress.c pmqtest.c rt-migrate-test.c
+endif
+
+sources += signaltest.c ptsematest.c sigwaittest.c svsematest.c sendme.c \
+	  hackbench.c
 
 TARGETS = $(sources:.c=)
 
