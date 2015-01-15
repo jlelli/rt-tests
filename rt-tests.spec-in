@@ -2,7 +2,11 @@
 
 Summary: Programs that test various rt-features
 Name: rt-tests
-# __VERSION__ will be replaced by "make rpm"
+# These will be setup by the "make rpm" logic
+# Version:  __VERSION__
+# BuildRequires: __BUILDREQUIRES_NUMA__
+# Numa argument to make:  __MAKE_NUMA__
+#
 Version: __VERSION__
 Release: 1%{?dist}
 License: GPLv2
@@ -11,7 +15,7 @@ URL: git://git.kernel.org/pub/scm/linux/kernel/git/tglx/rt-tests.git
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 Obsoletes: cyclictest signaltest pi_tests
-# __BUILDREQUIRES__ will be replaced by "make rpm"
+ExclusiveArch: x86_64
 BuildRequires: __BUILDREQUIRES_NUMA__ python
 
 %description
@@ -23,7 +27,6 @@ latency. It also tests the functioning of priority-inheritance mutexes.
 %setup -qn rt-tests
 
 %build
-# __MAKE_NUMA__ will be replaced by "make rpm"
 make __MAKE_NUMA__
 
 %install
