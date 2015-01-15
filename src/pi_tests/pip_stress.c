@@ -56,6 +56,12 @@
 
 #include "pip_stress.h"
 
+#include <unistd.h>
+#include <getopt.h>
+
+/* default time for low priority thread usleep */
+useconds_t usleep_val = 500;
+
 pthread_mutex_t *resource;
 
 /* This records the state to determine whether a priority inversion occured */
@@ -73,6 +79,11 @@ struct State *statep;
 const int policy = SCHED_FIFO;
 const int prio_min;	/* Initialized for the minimum priority of policy */
 
+struct option long_options[] = {
+    { "usleep", required_argument, 0, 0 },
+    { 0,        0,                 0, 0 },
+};
+
 int main(void)
 {
 	void *mptr;	/* memory pointer */
@@ -80,6 +91,7 @@ int main(void)
 	cpu_set_t set, *setp = &set;
 	int res;
 	int *minimum_priority = (int*)&prio_min;
+	int c;
 
 	*minimum_priority = sched_get_priority_min(policy);
 
@@ -162,7 +174,7 @@ void low(pid_t pid)
 				statep->inversion = 0;
 			}
 		Pthread_mutex_unlock(statep->mutex);
-		usleep(500);
+		usleep(usleep_val);
 	Pthread_mutex_unlock(resource);
 	waitpid(pid, &status, 0);
 }
