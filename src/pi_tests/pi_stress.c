@@ -1343,7 +1343,6 @@ void process_command_line(int argc, char **argv)
 			break;
 		case 'V':
 			printf("pi_stress v%1.2f ", VERSION_STRING);
-			printf("(%s %s)\n", __DATE__, __TIME__);
 			exit(0);
 		case 'u':
 			uniprocessor = 1;
