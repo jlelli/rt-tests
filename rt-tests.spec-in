@@ -68,6 +68,15 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+ * Tue Feb 17 2015 Clark Williams <williams@redhat.com> - 0.91-1
+- From Boris Egorov <egorov@linux.com>
+  - rt-migrate-test: exit early if nr_runs is non-positive
+  - rt-migrate-test: use variables instead of macros
+- From Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
+  - pi_stress: remove timestamp of compilation from version output
+- rt-migrate-test: make sure input parameters are converted to correct units
+- rt-migrate-test: sanity check --prio value
+
 * Tue Jan 27 2015 Clark Williams <williams@redhat.com> - 0.90-1
 - pip_stress: parameterize usleep value to work-around platform issues
 - From Daniel Wagner <daniel.wagner@bmw-carit.de>:
