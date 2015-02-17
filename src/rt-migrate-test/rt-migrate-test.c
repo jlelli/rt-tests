@@ -227,7 +227,11 @@ static void parse_options (int argc, char *argv[])
 		}
 	}
 	if (nr_runs <= 0) {
-		fprintf(stderr, "Warning, --loops argument is non-positive.  Exiting.\n");
+		fprintf(stderr, "Error: --loops argument is non-positive.  Exiting.\n");
+		exit(-1);
+	}
+	if (prio_start < 1 || prio_start > 99) {
+		fprintf(stderr, "Error: invalid value for --prio: %d (valid: 1-99)\n", prio_start);
 		exit(-1);
 	}
 }
