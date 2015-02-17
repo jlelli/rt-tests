@@ -226,7 +226,10 @@ static void parse_options (int argc, char *argv[])
 			break;
 		}
 	}
-
+	if (nr_runs <= 0) {
+		fprintf(stderr, "Warning, --loops argument is non-positive.  Exiting.\n");
+		exit(-1);
+	}
 }
 
 static unsigned long long get_time(void)
