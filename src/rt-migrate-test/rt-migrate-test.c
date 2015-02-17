@@ -214,9 +214,9 @@ static void parse_options (int argc, char *argv[])
 		switch (c) {
 		case 'p': prio_start = atoi(optarg); break;
 		case 'r':
-			run_interval = atoi(optarg);
+			run_interval = ms2nano(atoi(optarg));
 			break;
-		case 's': interval = atoi(optarg); break;
+		case 's': interval = ms2nano(atoi(optarg)); break;
 		case 'l': nr_runs = atoi(optarg); break;
 		case 'm': max_err = usec2nano(atoi(optarg)); break;
 		case 'c': check = 1; break;
@@ -536,7 +536,7 @@ int main (int argc, char **argv)
 	param.sched_priority = nr_tasks + prio_start;
 	if (sched_setscheduler(0, SCHED_FIFO, &param))
 		fprintf(stderr, "Warning, can't set priority of main thread!\n");
-		
+
 
 
 	intv.tv_sec = nano2sec(interval);
