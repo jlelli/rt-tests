@@ -334,7 +334,7 @@ static unsigned long busy_loop(unsigned long long start_time)
 	do {
 		l++;
 		time = get_time();
-	} while ((time - start_time) < RUN_INTERVAL);
+	} while ((time - start_time) < run_interval);
 
 	return l;
 }
@@ -539,8 +539,8 @@ int main (int argc, char **argv)
 		
 
 
-	intv.tv_sec = nano2sec(INTERVAL);
-	intv.tv_nsec = INTERVAL % sec2nano(1);
+	intv.tv_sec = nano2sec(interval);
+	intv.tv_nsec = interval % sec2nano(1);
 
 	print_progress_bar(0);
 
