@@ -882,8 +882,21 @@ void *high_priority(void *arg)
 	pthread_barrier_t *loop_barr = &p->loop_barr;
 	pthread_mutex_t *loop_mtx = &p->loop_mtx;
 	int *loop = &p->loop;
+	cpu_set_t cpu_mask;
+	int i;
 
 	if (high_sa.sched_policy == SCHED_DEADLINE) {
+		CPU_ZERO(&cpu_mask);
+		for (i = 0; i < num_processors; i++)
+			CPU_SET(i, &cpu_mask);
+		status = sched_setaffinity(0, sizeof(cpu_set_t), &cpu_mask);
+		if (status < 0) {
+			pi_error
+			    ("high_priority[%d]: set cpu affinity*dl): %x\n",
+			    p->id, status);
+			return NULL;
+		}
+
 		status = sched_setattr(gettid(), &high_sa, 0);
 		if (status < 0) {
 			pi_error
