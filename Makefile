@@ -73,7 +73,7 @@ cyclictest: cyclictest.o librttest.a
 signaltest: signaltest.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-pi_stress: pi_stress.o
+pi_stress: pi_stress.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 hwlatdetect:  src/hwlatdetect/hwlatdetect.py
