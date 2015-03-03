@@ -186,7 +186,7 @@ static void usage(char **argv)
 	       "-s time --sleep-time time   Sleep time (ms) between intervals (100)\n"
 	       "-m time --maxerr time       Max allowed error (microsecs)\n"
 	       "-l loops --loops loops      Number of iterations to run (50)\n"
-	       "-c    --check               Stop if lower prio task is quick than higher (off)\n"
+	       "-c    --check               Stop if lower prio task is quicker than higher (off)\n"
 	       "  () above are defaults \n",
 		p);
 	exit(0);
