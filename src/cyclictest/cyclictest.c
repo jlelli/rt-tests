@@ -1554,7 +1554,7 @@ static int check_kernel(void)
 			strcpy(functiontracer, "function");
 			strcpy(traceroptions, "trace_options");
 		}
-	} else if (maj == 3) {
+	} else if (maj >= 3) {
 		kv = KV_30;
 		strcpy(functiontracer, "function");
 		strcpy(traceroptions, "trace_options");
