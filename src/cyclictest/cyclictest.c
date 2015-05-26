@@ -369,6 +369,12 @@ static inline void tsnorm(struct timespec *ts)
 	}
 }
 
+static inline int tsgreater(struct timespec *a, struct timespec *b)
+{
+	return ((a->tv_sec > b->tv_sec) ||
+		(a->tv_sec == b->tv_sec && a->tv_nsec > b->tv_nsec));
+}
+
 static inline int64_t calcdiff(struct timespec t1, struct timespec t2)
 {
 	int64_t diff;
@@ -948,6 +954,12 @@ void *timerthread(void *param)
 			next.tv_nsec += overrun_count * interval.tv_nsec;
 		}
 		tsnorm(&next);
+
+		while (tsgreater(&now, &next)) {
+			next.tv_sec += interval.tv_sec;
+			next.tv_nsec += interval.tv_nsec;
+			tsnorm(&next);
+		}
 
 		if (par->max_cycles && par->max_cycles == stat->cycles)
 			break;
