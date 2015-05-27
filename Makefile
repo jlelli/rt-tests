@@ -22,13 +22,17 @@ srcdir	?= $(prefix)/src
 
 machinetype = $(shell $(CC) -dumpmachine | \
     sed -e 's/-.*//' -e 's/i.86/i386/' -e 's/mips.*/mips/' -e 's/ppc.*/powerpc/')
-ifneq ($(filter x86_64 i386 ia64 mips powerpc,$(machinetype)),)
-NUMA 	:= 1
-endif
 
 CFLAGS ?= -Wall -Wno-nonnull
 CPPFLAGS += -D_GNU_SOURCE -Isrc/include
 LDFLAGS ?=
+
+ifneq ($(filter x86_64 i386 ia64 mips powerpc,$(machinetype)),)
+NUMA 	:= 1
+ifdef HAVE_PARSE_CPUSTRING_ALL
+	CFLAGS += -DHAVE_PARSE_CPUSTRING_ALL
+endif
+endif
 
 PYLIB  := $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 
