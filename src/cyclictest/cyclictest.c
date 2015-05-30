@@ -1289,9 +1289,9 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case OPT_ALIGNED:
 			aligned=1;
 			if (optarg != NULL)
-				offset = atoi(optarg);
+				offset = atoi(optarg) * 1000;
 			else if (optind<argc && atoi(argv[optind]))
-				offset = atoi(argv[optind]);
+				offset = atoi(argv[optind]) * 1000;
 			else
 				offset = 0;
 			break;
