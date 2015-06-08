@@ -185,6 +185,7 @@ static int ct_debug;
 static int use_fifo = 0;
 static pthread_t fifo_threadid;
 static int aligned = 0;
+static int secaligned = 0;
 static int offset = 0;
 static int laptop = 0;
 
@@ -798,14 +799,27 @@ void *timerthread(void *param)
 		fatal("timerthread%d: failed to set priority to %d\n", par->cpu, par->prio);
 
 	/* Get current time */
-	if(aligned){
+	if (aligned || secaligned) {
 		pthread_barrier_wait(&globalt_barr);
-		if(par->tnum==0)
+		if (par->tnum == 0) {
 			clock_gettime(par->clock, &globalt);
+			if (secaligned) {
+				/* Ensure that the thread start timestamp is not
+				   in the past */
+				if (globalt.tv_nsec > 900000000)
+					globalt.tv_sec += 2;
+				else
+					globalt.tv_sec++;
+				globalt.tv_nsec = 0;
+			}
+		}
 		pthread_barrier_wait(&align_barr);
 		now = globalt;
 		if(offset) {
-			now.tv_nsec += offset * par->tnum;
+			if (aligned)
+				now.tv_nsec += offset * par->tnum;
+			else
+				now.tv_nsec += offset;
 			tsnorm(&now);
 		}
 	}
@@ -1056,6 +1070,8 @@ static void display_help(int error)
 	       "-R       --resolution      check clock resolution, calling clock_gettime() many\n"
 	       "                           times.  list of clock_gettime() values will be\n"
 	       "                           reported with -X\n"
+	       "         --secaligned [USEC] align thread wakeups to the next full second,\n"
+	       "                           and apply the optional offset\n"
 	       "-s       --system          use sys_nanosleep and sys_setitimer\n"
 	       "-S       --smp             Standard SMP testing: options -a -t -n and\n"
 	       "                           same priority of all threads\n"
@@ -1204,7 +1220,7 @@ enum option_values {
 	OPT_QUIET, OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION, OPT_SYSTEM,
 	OPT_SMP, OPT_THREADS, OPT_TRACER, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE,
 	OPT_WAKEUP, OPT_WAKEUPRT, OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
-	OPT_ALIGNED, OPT_LAPTOP,
+	OPT_ALIGNED, OPT_LAPTOP, OPT_SECALIGNED,
 };
 
 /* Process commandline options */
@@ -1251,6 +1267,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"priospread",       no_argument,       NULL, OPT_PRIOSPREAD },
 			{"relative",         no_argument,       NULL, OPT_RELATIVE },
 			{"resolution",       no_argument,       NULL, OPT_RESOLUTION },
+			{"secaligned",       optional_argument, NULL, OPT_SECALIGNED },
 			{"system",           no_argument,       NULL, OPT_SYSTEM },
 			{"smp",              no_argument,       NULL, OPT_SMP },
 			{"threads",          optional_argument, NULL, OPT_THREADS },
@@ -1391,6 +1408,15 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case OPT_RESOLUTION:
 			check_clock_resolution = 1; break;
 		case 's':
+		case OPT_SECALIGNED:
+			secaligned = 1;
+			if (optarg != NULL)
+				offset = atoi(optarg) * 1000;
+			else if (optind < argc && atoi(argv[optind]))
+				offset = atoi(argv[optind]) * 1000;
+			else
+				offset = 0;
+			break;
 		case OPT_SYSTEM:
 			use_system = MODE_SYS_OFFSET; break;
 		case 'S':
@@ -1528,7 +1554,10 @@ static void process_options (int argc, char *argv[], int max_cpus)
 	if (num_threads < 1)
 		error = 1;
 
-	if (aligned) {
+	if (aligned && secaligned)
+		error = 1;
+
+	if (aligned || secaligned) {
 		pthread_barrier_init(&globalt_barr, NULL, num_threads);
 		pthread_barrier_init(&align_barr, NULL, num_threads);
 	}
