@@ -68,6 +68,23 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+ * Tue Jun 09 2015 John Kacur <jkacur@redhat.com> - 0.92-1 
+Anna-Maria Gleixner (2):
+  cyclictest: Convert the offset of the alignment option to microseconds
+  cyclictest: Align measurement threads to the next full second
+  cyclictest: Ensure that next wakeup time is never in the past
+Daniel Wagner (1):
+  pi_stress: Clear affinity for DEADLINE tasks
+John Kacur (3):
+  Fix minor grammar mistake in the help output
+  Allow building with -DHAVE_PARSE_CPUSTRING_ALL
+  Add a MAINTAINERS file
+Michael Olbrich (2):
+  Makefile: pi_stress need librttest.a so it should depend on it
+  Makefile: cleanup linking to librttest.a
+Sebastian Andrzej Siewior (1):
+  cyclictest: consider the 4 as the major version
+
  * Tue Feb 17 2015 Clark Williams <williams@redhat.com> - 0.91-1
 - From Boris Egorov <egorov@linux.com>
   - rt-migrate-test: exit early if nr_runs is non-positive
