@@ -727,17 +727,24 @@ void *low_priority(void *arg)
 		status = pthread_barrier_wait(&p->locked_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 			pi_error
-			    ("low_priority[%d]: pthread_barrier_wait(locked): %x\n",
-			     p->id, status);
+				("low_priority[%d]: pthread_barrier_wait(locked): %x\n",
+				 p->id, status);
+			/* release the mutex */
+			pi_debug("low_priority[%d]: unlocking mutex\n", p->id);
+			pthread_mutex_unlock(&p->mutex);
 			return NULL;
 		}
+
 		/* wait for priority boost */
 		pi_debug("low_priority[%d]: entering elevated wait\n", p->id);
 		status = pthread_barrier_wait(&p->elevate_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 			pi_error
-			    ("low_priority[%d]: pthread_barrier_wait(elevate): %x\n",
-			     p->id, status);
+				("low_priority[%d]: pthread_barrier_wait(elevate): %x\n",
+				 p->id, status);
+			/* release the mutex */
+			pi_debug("low_priority[%d]: unlocking mutex\n", p->id);
+			pthread_mutex_unlock(&p->mutex);
 			return NULL;
 		}
 
