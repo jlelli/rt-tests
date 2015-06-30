@@ -91,7 +91,6 @@ int main(void)
 	cpu_set_t set, *setp = &set;
 	int res;
 	int *minimum_priority = (int*)&prio_min;
-	int c;
 
 	*minimum_priority = sched_get_priority_min(policy);
 
