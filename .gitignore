@@ -2,6 +2,7 @@
 .*
 *.o
 *.tar.gz
+*.tar
 *.d
 *.patch
 *.a
