@@ -1362,7 +1362,7 @@ void process_command_line(int argc, char **argv)
 			debugging = 1;
 			break;
 		case 'V':
-			printf("pi_stress v%1.2f ", VERSION_STRING);
+			printf("pi_stress v%1.2f ", VERSION);
 			exit(0);
 		case 'u':
 			uniprocessor = 1;

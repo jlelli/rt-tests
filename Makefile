@@ -1,4 +1,4 @@
-VERSION_STRING = 0.92
+VERSION = 0.92
 
 HAVE_NPTL ?= yes
 
@@ -60,7 +60,7 @@ VPATH	+= src/lib
 VPATH	+= src/hackbench
 
 %.o: %.c
-	$(CC) -D VERSION_STRING=$(VERSION_STRING) -c $< $(CFLAGS) $(CPPFLAGS)
+	$(CC) -D VERSION=$(VERSION) -c $< $(CFLAGS) $(CPPFLAGS)
 
 # Pattern rule to generate dependency files from .c files
 %.d: %.c
@@ -158,23 +158,23 @@ release: distclean changelog
 	mkdir -p releases
 	mkdir -p tmp/rt-tests
 	cp -r Makefile COPYING ChangeLog MAINTAINERS doc README.markdown src tmp/rt-tests
-	rm -f rt-tests-$(VERSION_STRING).tar rt-tests-$(VERSION_STRING).tar.asc
-	tar -C tmp -cf rt-tests-$(VERSION_STRING).tar rt-tests
-	gpg2 --default-key clrkwllms@kernel.org --detach-sign --armor rt-tests-$(VERSION_STRING).tar
-	gzip rt-tests-$(VERSION_STRING).tar
+	rm -f rt-tests-$(VERSION).tar rt-tests-$(VERSION).tar.asc
+	tar -C tmp -cf rt-tests-$(VERSION).tar rt-tests
+	gpg2 --default-key clrkwllms@kernel.org --detach-sign --armor rt-tests-$(VERSION).tar
+	gzip rt-tests-$(VERSION).tar
 	rm -f ChangeLog
-	cp rt-tests-$(VERSION_STRING).tar.gz rt-tests-$(VERSION_STRING).tar.asc releases
+	cp rt-tests-$(VERSION).tar.gz rt-tests-$(VERSION).tar.asc releases
 
 .PHONY: push
 push:	release
-	scripts/do-git-push $(VERSION_STRING)
+	scripts/do-git-push $(VERSION)
 
 .PHONY: pushtest
 pushtest: release
-	scripts/do-git-push --test $(VERSION_STRING)
+	scripts/do-git-push --test $(VERSION)
 
 rt-tests.spec: Makefile rt-tests.spec-in
-	sed s/__VERSION__/$(VERSION_STRING)/ <$@-in >$@
+	sed s/__VERSION__/$(VERSION)/ <$@-in >$@
 ifeq ($(NUMA),1)
 	sed -i -e 's/__MAKE_NUMA__/NUMA=1/' $@
 	sed -i -e 's/__BUILDREQUIRES_NUMA__/numactl-devel/' $@

@@ -162,7 +162,7 @@ void *semathread(void *param)
 
 static void display_help(void)
 {
-	printf("ptsematest V %1.2f\n", VERSION_STRING);
+	printf("ptsematest V %1.2f\n", VERSION);
 	puts("Usage: ptsematest <options>");
 	puts("Function: test POSIX threads mutex latency");
 	puts(

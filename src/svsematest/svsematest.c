@@ -236,7 +236,7 @@ union semun {
 
 static void display_help(void)
 {
-	printf("svsematest V %1.2f\n", VERSION_STRING);
+	printf("svsematest V %1.2f\n", VERSION);
 	puts("Usage: svsematest <options>");
 	puts("Function: test SYSV semaphore latency");
 	puts(

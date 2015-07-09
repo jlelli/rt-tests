@@ -202,7 +202,7 @@ out:
 /* Print usage information */
 static void display_help(void)
 {
-	printf("signaltest V %1.2f\n", VERSION_STRING);
+	printf("signaltest V %1.2f\n", VERSION);
 	printf("Usage:\n"
 	       "signaltest <options>\n\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"

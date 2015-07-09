@@ -1016,7 +1016,7 @@ static void display_help(int error)
 			strcpy(tracers, "none");
 	}
 
-	printf("cyclictest V %1.2f\n", VERSION_STRING);
+	printf("cyclictest V %1.2f\n", VERSION);
 	printf("Usage:\n"
 	       "cyclictest <options>\n\n"
 #if LIBNUMA_API_VERSION >= 2

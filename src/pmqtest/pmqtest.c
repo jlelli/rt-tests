@@ -240,7 +240,7 @@ void *pmqthread(void *param)
 
 static void display_help(void)
 {
-	printf("pmqtest V %1.2f\n", VERSION_STRING);
+	printf("pmqtest V %1.2f\n", VERSION);
 	puts("Usage: pmqtest <options>");
 	puts("Function: test POSIX message queue latency");
 	puts(

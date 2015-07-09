@@ -210,7 +210,7 @@ void *semathread(void *param)
 
 static void display_help(void)
 {
-	printf("sigwaittest V %1.2f\n", VERSION_STRING);
+	printf("sigwaittest V %1.2f\n", VERSION);
 	puts("Usage: sigwaittest <options>");
 	puts("Function: test sigwait() latency");
 	puts(

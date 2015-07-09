@@ -108,7 +108,7 @@ void stop_tracing(void)
 
 static void display_help(void)
 {
-	printf("sendme V %1.2f\n", VERSION_STRING);
+	printf("sendme V %1.2f\n", VERSION);
 	puts("Usage: sendme <options>");
 	puts("Function: send a signal from driver to userspace");
 	puts(
