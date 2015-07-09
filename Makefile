@@ -118,6 +118,7 @@ CLEANUP += $(if $(wildcard .git), ChangeLog)
 .PHONY: clean
 clean:
 	for F in $(CLEANUP); do find -type f -name $$F | xargs rm -f; done
+	rm -f rt-tests-*.tar
 	rm -f hwlatdetect
 	rm -f tags
 
@@ -164,6 +165,10 @@ release: distclean changelog
 	gzip rt-tests-$(VERSION).tar
 	rm -f ChangeLog
 	cp rt-tests-$(VERSION).tar.gz rt-tests-$(VERSION).tar.asc releases
+
+.PHONY: tarball
+tarball:
+	git archive --worktree-attributes --prefix=rt-tests-${VERSION}/ -o rt-tests-${VERSION}.tar v${VERSION}
 
 .PHONY: push
 push:	release
