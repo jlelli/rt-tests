@@ -1062,7 +1062,7 @@ static void display_help(int error)
 	       "-N       --nsecs           print results in ns instead of us (default us)\n"
 	       "-o RED   --oscope=RED      oscilloscope mode, reduce verbose output by RED\n"
 	       "-O TOPT  --traceopt=TOPT   trace option\n"
-	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
+	       "-p PRIO  --priority=PRIO   priority of highest prio thread\n"
 	       "-P       --preemptoff      Preempt off tracing (used with -b)\n"
 	       "-q       --quiet           print only a summary on exit\n"
 	       "	 --priospread       spread priority levels starting at specified value\n"
