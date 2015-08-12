@@ -15,6 +15,7 @@ import errno
 version = "0.6"
 debugging = False
 quiet = False
+watch = False
 
 def debug(str):
     if debugging: print(str)
@@ -25,7 +26,7 @@ def info(str):
 #
 # Class used to manage mounting and umounting the debugfs
 # filesystem. Note that if an instance of this class mounts
-# the debufs, it will unmount when cleaning up, but if it 
+# the debugfs, it will unmount when cleaning up, but if it
 # discovers that debugfs is already mounted, it will leave
 # it mounted.
 #
@@ -96,8 +97,8 @@ class DebugFS(object):
         return os.path.join(self.mountpoint, item)
 
 #
-# Class used to manage loading and unloading of the 
-# hwlat kernel module. Like the debugfs class 
+# Class used to manage loading and unloading of the
+# hwlat kernel module. Like the debugfs class
 # above, if the module is already loaded, this class will
 # leave it alone when cleaning up.
 #
@@ -107,7 +108,7 @@ class Kmod(object):
     names = ("hwlat_detector", "smi_detector")
     def __find_modname(self):
         debug("looking for modules")
-        path = os.path.join("/lib/modules", 
+        path = os.path.join("/lib/modules",
                             os.uname()[2],
                             "kernel/drivers/misc")
         debug("module path: %s" % path)
@@ -117,7 +118,7 @@ class Kmod(object):
             if os.path.exists(mpath):
                 return m
         raise RuntimeError("no detector module found!")
-            
+
     def __init__(self):
         self.preloaded = False
         f = open ('/proc/modules')
@@ -257,8 +258,10 @@ class Hwlat(object):
                 pollcnt += 1
                 val = self.get_sample()
                 while val:
-                    self.samples.append(val.strip())
-                    debug("got a latency sample: %s" % val.strip())
+                    val = val.strip()
+                    self.samples.append(val)
+                    if watch: print val
+                    debug("got a latency sample: %s" % val)
                     val = self.get_sample()
                 time.sleep(0.1)
         except KeyboardInterrupt as e:
@@ -266,12 +269,12 @@ class Hwlat(object):
             sys.exit(1)
         return self.samples
 #
-# the old smi_detector.ko module has different debugfs entries than the modern 
+# the old smi_detector.ko module has different debugfs entries than the modern
 # hwlat_detector.ko module; this object translates the current entries into the
 # old style ones. The only real issue is that the smi_detector module doesn't
 # have the notion of width/window, it has the sample time and the interval
 # between samples. Of course window == sample time + interval, but you have to
-# have them both to calculate the window. 
+# have them both to calculate the window.
 #
 
 class Smi(object):
@@ -285,7 +288,7 @@ class Smi(object):
         "width" : "ms_per_sample",
         "window" : "ms_between_sample",
         }
-        
+
     def __init__(self, debugfs):
         self.width = 0
         self.window = 0
@@ -350,9 +353,11 @@ class Smi(object):
             while time.time() < testend:
                 pollcnt += 1
                 val = self.get_sample()
+                val = val.strip()
                 if int(val) >= threshold:
-                    self.samples.append(val.strip())
-                    debug("got a latency sample: %s (threshold: %d)" % (val.strip(), self.get("threshold")))
+                    self.samples.append(val)
+                    if watch: print val
+                    debug("got a latency sample: %s (threshold: %d)" % (val, self.get("threshold")))
                 time.sleep(0.1)
         except KeyboardInterrupt as e:
             print("interrupted")
@@ -450,10 +455,14 @@ if __name__ == '__main__':
                       dest="quiet",
                       help="turn off all screen output")
 
+    parser.add_option("--watch", action="store_true", default=False,
+                      dest="watch",
+                      help="print sample data to stdout as it arrives")
+
     (o, a) = parser.parse_args()
 
     # need these before creating detector instance
-    if o.debug: 
+    if o.debug:
         debugging = True
         quiet = False
         debug("debugging prints turned on")
@@ -497,6 +506,9 @@ if __name__ == '__main__':
     else:
         detect.testduration = 120 # 2 minutes
     debug("test duration is %ds" % detect.testduration)
+
+    if o.watch:
+        watch = True
 
     reportfile = o.report
 
