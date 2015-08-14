@@ -47,10 +47,6 @@
 
 #define gettid() syscall(__NR_gettid)
 
-#ifndef VERSION_STRING
-#define VERSION_STRING 0.3
-#endif
-
 int nr_tasks;
 int lfd;
 
@@ -178,7 +174,7 @@ static void usage(char **argv)
 		p--;
 	p++;
 
-	printf("%s %1.2f\n", p, VERSION_STRING);
+	printf("%s %1.2f\n", p, VERSION);
 	printf("Usage:\n"
 	       "%s <options> nr_tasks\n\n"
 	       "-p prio --prio  prio        base priority to start RT tasks with (2) \n"
@@ -187,6 +183,7 @@ static void usage(char **argv)
 	       "-m time --maxerr time       Max allowed error (microsecs)\n"
 	       "-l loops --loops loops      Number of iterations to run (50)\n"
 	       "-c    --check               Stop if lower prio task is quicker than higher (off)\n"
+	       "-h    --help\n"
 	       "  () above are defaults \n",
 		p);
 	exit(0);
