@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+# (C) 2015 Clark Williams <williams@redhat.com>
 # (C) 2009 Clark Williams <williams@redhat.com>
 #
 # This program is free software; you can redistribute it and/or
@@ -11,6 +12,7 @@ import os
 import time
 import subprocess
 import errno
+import os.path
 
 version = "0.6"
 debugging = False
@@ -164,6 +166,19 @@ class Detector(object):
             self.detector = Smi(self.debugfs)
         self.samples = []
         self.testduration = 10 # ten seconds
+        self.have_msr = False
+        self.initsmi = []
+        if os.path.exists('/usr/sbin/rdmsr'):
+            self.have_msr = True
+            self.initsmi = self.getsmicounts()
+
+    def getsmicounts(self):
+        counts = []
+        if self.have_msr:
+            p = subprocess.Popen(['/usr/sbin/rdmsr', '-a', '-d', '0x34'], stdout=subprocess.PIPE)
+            p.wait()
+            counts = [ int(x.strip()) for x in p.stdout.readlines()]
+        return counts
 
     def force_cleanup(self):
         debug("forcing unload of hwlat module")
@@ -529,6 +544,16 @@ if __name__ == '__main__':
     info("Max Latency: %dus" % detect.get("max"))
     info("Samples recorded: %d" % len(detect.samples))
     info("Samples exceeding threshold: %d" % exceeding)
+
+    if detect.have_msr:
+        finishsmi = detect.getsmicounts()
+        total_smis = 0
+        for i,count in enumerate(finishsmi):
+            if count > detect.initsmi[i]:
+                smis = count - detect.initsmi[i]
+                total_smis += smis
+                print "%d SMIs occured on cpu %d" % (smis, i)
+        info("SMIs during run: %d" % total_smis)
 
     if reportfile:
         count = 0
