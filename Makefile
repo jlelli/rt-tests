@@ -34,7 +34,7 @@ ifdef HAVE_PARSE_CPUSTRING_ALL
 endif
 endif
 
-PYLIB  := $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
+PYLIB  ?= $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 
 ifndef DEBUG
 	CFLAGS	+= -O2
