@@ -112,6 +112,7 @@ static int nr_runs = NR_RUNS;
 static int prio_start = PRIO_START;
 static int check;
 static int stop;
+static int equal;
 
 static unsigned long long now;
 
@@ -182,6 +183,7 @@ static void usage(char **argv)
 	       "-s time --sleep-time time   Sleep time (ms) between intervals (100)\n"
 	       "-m time --maxerr time       Max allowed error (microsecs)\n"
 	       "-l loops --loops loops      Number of iterations to run (50)\n"
+	       "-e                          Use equal prio for #CPU-1 tasks (requires > 2 CPUS)\n"
 	       "-c    --check               Stop if lower prio task is quicker than higher (off)\n"
 	       "-h    --help\n"
 	       "  () above are defaults \n",
@@ -204,18 +206,19 @@ static void parse_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "p:r:s:m:l:ch",
+		int c = getopt_long (argc, argv, "p:r:s:m:l:ech",
 			long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
 		case 'p': prio_start = atoi(optarg); break;
 		case 'r':
-			run_interval = ms2nano(atoi(optarg));
+			run_interval = atoi(optarg);
 			break;
-		case 's': interval = ms2nano(atoi(optarg)); break;
+		case 's': interval = atoi(optarg); break;
 		case 'l': nr_runs = atoi(optarg); break;
 		case 'm': max_err = usec2nano(atoi(optarg)); break;
+		case 'e': equal = 1; break;
 		case 'c': check = 1; break;
 		case '?':
 		case 'h':
@@ -223,14 +226,7 @@ static void parse_options (int argc, char *argv[])
 			break;
 		}
 	}
-	if (nr_runs <= 0) {
-		fprintf(stderr, "Error: --loops argument is non-positive.  Exiting.\n");
-		exit(-1);
-	}
-	if (prio_start < 1 || prio_start > 99) {
-		fprintf(stderr, "Error: invalid value for --prio: %d (valid: 1-99)\n", prio_start);
-		exit(-1);
-	}
+
 }
 
 static unsigned long long get_time(void)
@@ -258,6 +254,12 @@ static void record_time(int id, unsigned long long time, unsigned long l)
 	intervals[loop][id] = time;
 	intervals_length[loop][id] = ltime;
 	intervals_loops[loop][id] = l;
+}
+
+static int calc_prio(int id)
+{
+	int prio = equal && id && (id < nr_tasks - 1) ? 1 : id;
+	return prio + prio_start;
 }
 
 static void print_results(void)
@@ -310,7 +312,7 @@ static void print_results(void)
 	printf("Parent pid: %d\n", getpid());
 
 	for (t=0; t < nr_tasks; t++) {
-		printf(" Task %d (prio %d) (pid %ld):\n", t, t + prio_start,
+		printf(" Task %d (prio %d) (pid %ld):\n", t, calc_prio(t),
 			thread_pids[t]);
 		printf("   Max: %lld us\n", nano2usec(tasks_max[t]));
 		printf("   Min: %lld us\n", nano2usec(tasks_min[t]));
@@ -335,7 +337,7 @@ static unsigned long busy_loop(unsigned long long start_time)
 	do {
 		l++;
 		time = get_time();
-	} while ((time - start_time) < run_interval);
+	} while ((time - start_time) < RUN_INTERVAL);
 
 	return l;
 }
@@ -344,8 +346,9 @@ void *start_task(void *data)
 {
 	long id = (long)data;
 	unsigned long long start_time;
+	int prio = calc_prio(id);
 	struct sched_param param = {
-		.sched_priority = id + prio_start,
+		.sched_priority = prio,
 	};
 	int ret;
 	int high = 0;
@@ -360,6 +363,7 @@ void *start_task(void *data)
 		perr("getting affinity");
 
 	pid = gettid();
+	thread_pids[id] = pid;
 
 	/* Check if we are the highest prio task */
 	if (id == nr_tasks-1)
@@ -410,6 +414,7 @@ static int check_times(int l)
 			    intervals[l][i] > last_length ||
 			    (intervals_length[l][i] > last_length &&
 			     intervals_length[l][i] - last_length > max_err)) {
+				ftrace_write("Task %d FAILED\n", thread_pids[i]);
 				check = -1;
 				return 1;
 			}
@@ -540,8 +545,8 @@ int main (int argc, char **argv)
 
 
 
-	intv.tv_sec = nano2sec(interval);
-	intv.tv_nsec = interval % sec2nano(1);
+	intv.tv_sec = nano2sec(INTERVAL);
+	intv.tv_nsec = INTERVAL % sec2nano(1);
 
 	print_progress_bar(0);
 
@@ -549,6 +554,9 @@ int main (int argc, char **argv)
 
 	for (loop=0; loop < nr_runs; loop++) {
 		unsigned long long end;
+
+		/* Release the CPU so all can get to the next barrier */
+		nanosleep(&intv, NULL);
 
 		now = get_time();
 
