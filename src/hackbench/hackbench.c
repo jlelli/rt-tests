@@ -64,7 +64,6 @@ struct receiver_context {
 typedef union {
 	pthread_t threadid;
 	pid_t	  pid;
-	long long error;
 } childinfo_t;
 
 childinfo_t *child_tab = NULL;
@@ -189,52 +188,44 @@ again:
 	return NULL;
 }
 
-static childinfo_t create_worker(void *ctx, void *(*func)(void *))
+static int create_worker(childinfo_t *child, void *ctx, void *(*func)(void *))
 {
 	pthread_attr_t attr;
 	int err;
-	childinfo_t child;
-	pid_t childpid;
 
-	memset(&child, 0, sizeof(child));
 	switch (process_mode) {
 	case PROCESS_MODE: /* process mode */
 		/* Fork the sender/receiver child. */
-		switch ((childpid = fork())) {
+		switch ((child->pid = fork())) {
 			case -1:
 				sneeze("fork()");
-				child.error = -1;
-				return child;
+				return -1;
 			case 0:
 				(*func) (ctx);
 				exit(0);
 		}
-		child.pid = childpid;
 		break;
 
 	case THREAD_MODE: /* threaded mode */
 		if (pthread_attr_init(&attr) != 0) {
 			sneeze("pthread_attr_init()");
-			child.error = -1;
-			return child;
+			return -1;
 		}
 
 #ifndef __ia64__
 		if (pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN) != 0) {
 			sneeze("pthread_attr_setstacksize()");
-			child.error = -1;
-			return child;
+			return -1;
 		}
 #endif
 
-		if ((err=pthread_create(&child.threadid, &attr, func, ctx)) != 0) {
+		if ((err=pthread_create(&child->threadid, &attr, func, ctx)) != 0) {
 			sneeze("pthread_create failed()");
-			child.error = -1;
-			return child;
+			return -1;
 		}
 		break;
 	}
-	return child;
+	return 0;
 }
 
 void signal_workers(childinfo_t *children, unsigned int num_children)
@@ -291,6 +282,7 @@ static unsigned int group(childinfo_t *child,
 	unsigned int i;
 	struct sender_context* snd_ctx = malloc (sizeof(struct sender_context)
 			+num_fds*sizeof(int));
+	int err;
 
 	if (!snd_ctx) {
 		sneeze("malloc() [sender ctx]");
@@ -317,8 +309,9 @@ static unsigned int group(childinfo_t *child,
 		ctx->ready_out = ready_out;
 		ctx->wakefd = wakefd;
 
-		child[tab_offset+i] = create_worker(ctx, (void *)(void *)receiver);
-		if( child[tab_offset+i].error < 0 ) {
+		err = create_worker(&child[tab_offset+i], ctx,
+				    (void *)(void *)receiver);
+		if(err) {
 			return (i > 0 ? i-1 : 0);
 		}
 		snd_ctx->out_fds[i] = fds[1];
@@ -332,8 +325,9 @@ static unsigned int group(childinfo_t *child,
 
 	/* Now we have all the fds, fork the senders */
 	for (i = 0; i < num_fds; i++) {
-		child[tab_offset+num_fds+i] = create_worker(snd_ctx, (void *)(void *)sender);
-		if( child[tab_offset+num_fds+i].error < 0 ) {
+		err = create_worker(&child[tab_offset+num_fds+i], snd_ctx,
+				    (void *)(void *)sender);
+		if(err) {
 			return (num_fds+i)-1;
 		}
 	}
