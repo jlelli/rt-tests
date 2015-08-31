@@ -392,7 +392,7 @@ static inline int64_t calcdiff_ns(struct timespec t1, struct timespec t2)
 	return diff;
 }
 
-void traceopt(char *option)
+static void traceopt(char *option)
 {
 	char *ptr;
 	if (traceopt_count + 1 > traceopt_size) {
@@ -442,7 +442,7 @@ static void tracemark(char *fmt, ...)
 
 
 
-void tracing(int on)
+static void tracing(int on)
 {
 	if (on) {
 		switch (kernelversion) {
@@ -638,7 +638,7 @@ static void setup_tracer(void)
  *
  * the return value is a value in seconds
  */
-int parse_time_string(char *val)
+static int parse_time_string(char *val)
 {
 	char *end;
 	int t = strtol(val, &end, 10);
@@ -749,7 +749,7 @@ try_again:
  * - CLOCK_REALTIME
  *
  */
-void *timerthread(void *param)
+static void *timerthread(void *param)
 {
 	struct thread_param *par = param;
 	struct sched_param schedp;
@@ -1766,7 +1766,7 @@ static void print_stat(FILE *fp, struct thread_param *par, int index, int verbos
  * thread that creates a named fifo and hands out run stats when someone
  * reads from the fifo.
  */
-void *fifothread(void *param)
+static void *fifothread(void *param)
 {
 	int ret;
 	int fd;
