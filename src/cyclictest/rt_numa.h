@@ -235,7 +235,7 @@ static inline struct bitmask* rt_numa_parse_cpustring(const char* s,
 			 * max_cpus bits */
 			int nlongs = (max_cpus+BITS_PER_LONG-1)/BITS_PER_LONG;
 
-			mask->maskp = calloc(nlongs, sizeof(long));
+			mask->maskp = calloc(nlongs, sizeof(unsigned long));
 			if (mask->maskp) {
 				mask->maskp[cpu/BITS_PER_LONG] |=
 					(1UL << (cpu % BITS_PER_LONG));
