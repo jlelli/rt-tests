@@ -1772,9 +1772,6 @@ static void *fifothread(void *param)
 	FILE *fp;
 	int i;
 
-	if (use_fifo == 0)
-		return NULL;
-
 	unlink(fifopath);
 	ret = mkfifo(fifopath, 0666);
 	if (ret) {
