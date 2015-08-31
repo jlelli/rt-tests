@@ -2058,8 +2058,11 @@ int main(int argc, char **argv)
 			fatal("failed to create thread %d: %s\n", i, strerror(status));
 
 	}
-	if (use_fifo)
+	if (use_fifo) {
 		status = pthread_create(&fifo_threadid, NULL, fifothread, NULL);
+		if (status)
+			fatal("failed to create fifo thread: %s\n", strerror(status));
+	}
 
 	while (!shutdown) {
 		char lavg[256];
