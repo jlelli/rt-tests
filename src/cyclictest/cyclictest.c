@@ -1451,12 +1451,11 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			setvbuf(stdout, NULL, _IONBF, 0); break;
 		case 'U':
 		case OPT_NUMA: /* NUMA testing */
+			numa = 1;	/* Turn numa on */
 			if (smp)
 				fatal("numa and smp options are mutually exclusive\n");
+			numa_on_and_available();
 #ifdef NUMA
-			if (numa_available() == -1)
-				fatal("NUMA functionality not available!");
-			numa = 1;
 			num_threads = max_cpus;
 			setaffinity = AFFINITY_USEALL;
 			use_nanosleep = MODE_CLOCK_NANOSLEEP;
@@ -1816,8 +1815,6 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("Max CPUs = %d\n", max_cpus);
 
-	/* Checks if numa is on, program exits if numa on but not available */
-	numa_on_and_available();
 
 	/* lock all memory (prevent swapping) */
 	if (lockall)
