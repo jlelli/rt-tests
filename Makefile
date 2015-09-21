@@ -129,6 +129,11 @@ RPMDIRS = BUILD BUILDROOT RPMS SRPMS SPECS
 distclean: clean
 	rm -rf $(RPMDIRS) releases *.tar.gz rt-tests.spec tmp
 
+.PHONY: rebuild
+rebuild:
+	$(MAKE) clean
+	$(MAKE) all
+
 .PHONY: changelog
 changelog:
 	git log >ChangeLog
