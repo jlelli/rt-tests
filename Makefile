@@ -1,4 +1,6 @@
 VERSION = 0.93
+CC=$(CROSS_COMPILE)gcc
+AR=$(CROSS_COMPILE)ar
 
 HAVE_NPTL ?= yes
 
