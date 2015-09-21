@@ -47,6 +47,11 @@
 #define __NR_sched_getattr		381
 #endif
 
+#ifdef __tilegx__
+#define __NR_sched_setattr		274
+#define __NR_sched_getattr		275
+#endif
+
 struct sched_attr {
 	uint32_t size;
 	uint32_t sched_policy;
