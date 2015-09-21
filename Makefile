@@ -87,8 +87,8 @@ hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 	chmod +x src/hwlatdetect/hwlatdetect.py
 	ln -s src/hwlatdetect/hwlatdetect.py hwlatdetect
 
-rt-migrate-test: rt-migrate-test.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS)
+rt-migrate-test: rt-migrate-test.o librttest.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
 ptsematest: ptsematest.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(EXTRA_LIBS)
