@@ -11,7 +11,6 @@
  * 2 as published by the Free Software Foundation.
  *
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -36,6 +35,7 @@
 #include <sys/resource.h>
 #include <sys/utsname.h>
 #include <sys/mman.h>
+#include <sys/syscall.h>
 #include "rt_numa.h"
 
 #include "rt-utils.h"
@@ -76,6 +76,15 @@ int sched_setaffinity (__pid_t __pid, size_t __cpusetsize,
 		       __const cpu_set_t *__cpuset)
 {
 	return -EINVAL;
+}
+
+#endif
+
+#ifdef NO_PTHREAD_SETAFFINITY
+static inline int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize,
+                                         const cpu_set_t *cpuset)
+{
+    return sched_setaffinity(0, cpusetsize, cpuset);
 }
 
 #undef CPU_SET
@@ -184,9 +193,6 @@ static int check_clock_resolution;
 static int ct_debug;
 static int use_fifo = 0;
 static pthread_t fifo_threadid;
-static int aligned = 0;
-static int secaligned = 0;
-static int offset = 0;
 static int laptop = 0;
 static int use_histfile = 0;
 
@@ -197,9 +203,14 @@ static pthread_mutex_t break_thread_id_lock = PTHREAD_MUTEX_INITIALIZER;
 static pid_t break_thread_id = 0;
 static uint64_t break_thread_value = 0;
 
+#ifndef NO_PTHREAD_BARRIER
+static int aligned = 0;
+static int secaligned = 0;
+static int offset = 0;
 static pthread_barrier_t align_barr;
 static pthread_barrier_t globalt_barr;
 static struct timespec globalt;
+#endif
 
 /* Backup of kernel variables that we modify */
 static struct kvars {
@@ -801,7 +812,8 @@ static void *timerthread(void *param)
 		fatal("timerthread%d: failed to set priority to %d\n", par->cpu, par->prio);
 
 	/* Get current time */
-	if (aligned || secaligned) {
+#ifndef NO_PTHREAD_BARRIER
+	if(aligned || secaligned){
 		pthread_barrier_wait(&globalt_barr);
 		if (par->tnum == 0) {
 			clock_gettime(par->clock, &globalt);
@@ -826,6 +838,7 @@ static void *timerthread(void *param)
 		}
 	}
 	else
+#endif
 		clock_gettime(par->clock, &now);
 
 	next = now;
@@ -1032,7 +1045,9 @@ static void display_help(int error)
 	       "-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
 	       "                           with NUM pin all threads to the processor NUM\n"
 #endif
+#ifndef NO_PTHREAD_BARRIER
 	       "-A USEC  --aligned=USEC    align thread wakeups to a specific offset\n"
+#endif
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 	       "-B       --preemptirqs     both preempt and irqsoff tracing (used with -b)\n"
 	       "-c CLOCK --clock=CLOCK     select clock\n"
@@ -1073,7 +1088,9 @@ static void display_help(int error)
 	       "-R       --resolution      check clock resolution, calling clock_gettime() many\n"
 	       "                           times.  list of clock_gettime() values will be\n"
 	       "                           reported with -X\n"
+#ifndef NO_PTHREAD_BARRIER
 	       "         --secaligned [USEC] align thread wakeups to the next full second,\n"
+#endif
 	       "                           and apply the optional offset\n"
 	       "-s       --system          use sys_nanosleep and sys_setitimer\n"
 	       "-S       --smp             Standard SMP testing: options -a -t -n and\n"
@@ -1222,8 +1239,11 @@ enum option_values {
 	OPT_NSECS, OPT_OSCOPE, OPT_TRACEOPT, OPT_PRIORITY, OPT_PREEMPTOFF, OPT_QUIET,
 	OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION, OPT_SYSTEM, OPT_SMP, OPT_THREADS,
 	OPT_TRACER, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE, OPT_WAKEUP, OPT_WAKEUPRT,
-	OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS, OPT_ALIGNED, OPT_LAPTOP,
-	OPT_SECALIGNED,
+	OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
+#ifndef NO_PTHREAD_BARRIER
+	OPT_ALIGNED, OPT_SECALIGNED,
+#endif
+        OPT_LAPTOP,
 };
 
 /* Process commandline options */
@@ -1241,7 +1261,9 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		static struct option long_options[] = {
 			{"affinity",         optional_argument, NULL, OPT_AFFINITY},
 			{"notrace",          no_argument,       NULL, OPT_NOTRACE },
+#ifndef NO_PTHREAD_BARRIER
 			{"aligned",          optional_argument, NULL, OPT_ALIGNED },
+#endif
 			{"breaktrace",       required_argument, NULL, OPT_BREAKTRACE },
 			{"preemptirqs",      no_argument,       NULL, OPT_PREEMPTIRQ },
 			{"clock",            required_argument, NULL, OPT_CLOCK },
@@ -1271,7 +1293,9 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"priospread",       no_argument,       NULL, OPT_PRIOSPREAD },
 			{"relative",         no_argument,       NULL, OPT_RELATIVE },
 			{"resolution",       no_argument,       NULL, OPT_RESOLUTION },
+#ifndef NO_PTHREAD_BARRIER
 			{"secaligned",       optional_argument, NULL, OPT_SECALIGNED },
+#endif
 			{"system",           no_argument,       NULL, OPT_SYSTEM },
 			{"smp",              no_argument,       NULL, OPT_SMP },
 			{"threads",          optional_argument, NULL, OPT_THREADS },
@@ -1306,6 +1330,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 				setaffinity = AFFINITY_USEALL;
 			}
 			break;
+#ifndef NO_PTHREAD_BARRIER
 		case 'A':
 		case OPT_ALIGNED:
 			aligned=1;
@@ -1316,6 +1341,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			else
 				offset = 0;
 			break;
+#endif
 		case 'b':
 		case OPT_BREAKTRACE:
 			tracelimit = atoi(optarg); break;
@@ -1416,6 +1442,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case OPT_RESOLUTION:
 			check_clock_resolution = 1; break;
 		case 's':
+#ifndef NO_PTHREAD_BARRIER
 		case OPT_SECALIGNED:
 			secaligned = 1;
 			if (optarg != NULL)
@@ -1425,6 +1452,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			else
 				offset = 0;
 			break;
+#endif
 		case OPT_SYSTEM:
 			use_system = MODE_SYS_OFFSET; break;
 		case 'S':
@@ -1561,6 +1589,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 	if (num_threads < 1)
 		error = 1;
 
+#ifndef NO_PTHREAD_BARRIER
 	if (aligned && secaligned)
 		error = 1;
 
@@ -1568,7 +1597,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		pthread_barrier_init(&globalt_barr, NULL, num_threads);
 		pthread_barrier_init(&align_barr, NULL, num_threads);
 	}
-
+#endif
 	if (error) {
 		if (affinity_mask)
 			rt_bitmask_free(affinity_mask);

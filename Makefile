@@ -49,6 +49,32 @@ ifeq ($(NUMA),1)
 	NUMA_LIBS = -lnuma
 endif
 
+# Bionic (android) does not have:
+# - pthread barriers
+# - pthread_[gs]etaffinity
+#
+# Typically see something like "aarch64-linux-android"
+
+ifneq ($(shell $(CC) -dumpmachine | grep -i android),)
+	USE_BIONIC := 1
+	CFLAGS += -DNO_PTHREAD_BARRIER
+	CFLAGS += -DNO_PTHREAD_SETAFFINITY
+
+	LDFLAGS += -pie
+# -lrt and -lpthread is in standard bionic library, no standalone library
+	LIBS := $(filter-out -lrt,$(LIBS))
+	LIBS := $(filter-out -lpthread,$(LIBS))
+
+# BIONIC does not support PI, barriers and have different files in
+# include/. This means that currently, only these binaries will compile
+# and link properly:
+# - cyclictest
+# - hackbench
+# - hwlatdetect
+	sources := cyclictest.c hackbench.c hwlatdetect.c
+	TARGETS = $(sources:.c=)
+endif
+
 VPATH	= src/cyclictest:
 VPATH	+= src/signaltest:
 VPATH	+= src/pi_tests:
@@ -164,7 +190,6 @@ install_hwlatdetect: hwlatdetect
 		ln -s $(PYLIB)/hwlatdetect.py "$(DESTDIR)$(bindir)/hwlatdetect" ; \
 		gzip -c src/hwlatdetect/hwlatdetect.8 >"$(DESTDIR)$(mandir)/man8/hwlatdetect.8.gz" ; \
 	fi
-
 .PHONY: release
 release: distclean changelog
 	mkdir -p releases
