@@ -2,6 +2,8 @@ VERSION = 0.94
 CC=$(CROSS_COMPILE)gcc
 AR=$(CROSS_COMPILE)ar
 
+OBJDIR = bld
+
 HAVE_NPTL ?= yes
 
 ifeq ($(HAVE_NPTL),yes)
@@ -14,7 +16,7 @@ sources += signaltest.c ptsematest.c sigwaittest.c svsematest.c sendme.c \
 TARGETS = $(sources:.c=)
 
 LIBS	= -lrt -lpthread
-RTTESTLIB = -lrttest -L.
+RTTESTLIB = -lrttest -L$(OBJDIR)
 EXTRA_LIBS ?= -ldl	# for get_cpu
 DESTDIR	?=
 prefix  ?= /usr/local
@@ -87,58 +89,59 @@ VPATH	+= src/backfire:
 VPATH	+= src/lib:
 VPATH	+= src/hackbench:
 
-%.o: %.c
-	$(CC) -D VERSION=$(VERSION) -c $< $(CFLAGS) $(CPPFLAGS)
+$(OBJDIR)/%.o: %.c
+	$(CC) -D VERSION=$(VERSION) -c $< $(CFLAGS) $(CPPFLAGS) -o $@
 
 # Pattern rule to generate dependency files from .c files
-%.d: %.c
+$(OBJDIR)/%.d: %.c
 	@$(CC) -MM $(CFLAGS) $(CPPFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@ || rm -f $@
 
 .PHONY: all
 all: $(TARGETS) hwlatdetect
 
 # Include dependency files, automatically generate them if needed.
--include $(sources:.c=.d)
+-include $(addprefix $(OBJDIR)/,$(sources:.c=.d))
 
-cyclictest: cyclictest.o librttest.a
+cyclictest: $(OBJDIR)/cyclictest.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(NUMA_LIBS)
 
-signaltest: signaltest.o librttest.a
+signaltest: $(OBJDIR)/signaltest.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
-pi_stress: pi_stress.o librttest.a
+pi_stress: $(OBJDIR)/pi_stress.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
 hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 	chmod +x src/hwlatdetect/hwlatdetect.py
 	ln -s src/hwlatdetect/hwlatdetect.py hwlatdetect
 
-rt-migrate-test: rt-migrate-test.o librttest.a
+rt-migrate-test: $(OBJDIR)/rt-migrate-test.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
-ptsematest: ptsematest.o librttest.a
+ptsematest: $(OBJDIR)/ptsematest.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(EXTRA_LIBS)
 
-sigwaittest: sigwaittest.o librttest.a
+sigwaittest: $(OBJDIR)/sigwaittest.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(EXTRA_LIBS)
 
-svsematest: svsematest.o librttest.a
+svsematest: $(OBJDIR)/svsematest.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(EXTRA_LIBS)
 
-pmqtest: pmqtest.o librttest.a
+pmqtest: $(OBJDIR)/pmqtest.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(EXTRA_LIBS)
 
-sendme: sendme.o librttest.a
+sendme: $(OBJDIR)/sendme.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(EXTRA_LIBS)
 
-pip_stress: pip_stress.o librttest.a
+pip_stress: $(OBJDIR)/pip_stress.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
-hackbench: hackbench.o
+hackbench: $(OBJDIR)/hackbench.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS)
 
-librttest.a: rt-utils.o error.o rt-get_cpu.o rt-sched.o
-	$(AR) rcs librttest.a $^
+LIBOBJS =$(addprefix $(OBJDIR)/,error.o rt-get_cpu.o rt-sched.o rt-utils.o)
+$(OBJDIR)/librttest.a: $(LIBOBJS)
+	$(AR) rcs $@ $^
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej rt-tests.spec *.d *.a
 CLEANUP += $(if $(wildcard .git), ChangeLog)
