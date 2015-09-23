@@ -84,8 +84,8 @@ VPATH	+= src/sigwaittest:
 VPATH	+= src/svsematest:
 VPATH	+= src/pmqtest:
 VPATH	+= src/backfire:
-VPATH	+= src/lib
-VPATH	+= src/hackbench
+VPATH	+= src/lib:
+VPATH	+= src/hackbench:
 
 %.o: %.c
 	$(CC) -D VERSION=$(VERSION) -c $< $(CFLAGS) $(CPPFLAGS)
