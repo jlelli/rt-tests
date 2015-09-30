@@ -49,9 +49,9 @@ char *get_debugfileprefix(void)
 		strcpy(debugfileprefix, "/debug/tracing/");
 		goto out;
 	}
-	
+
 	/* oh well, parse /proc/mounts and see if it's there */
-	if ((fp = fopen("/proc/mounts","r")) == NULL)
+	if ((fp = fopen("/proc/mounts", "r")) == NULL)
 		goto out;
 
 	while (fscanf(fp, "%*s %"
@@ -98,15 +98,15 @@ int mount_debugfs(char *path)
 	}
 	if (!mountpoint)
 		mountpoint = "/sys/kernel/debug";
-	
+
 	sprintf(cmd, "mount -t debugfs debugfs %s", mountpoint);
 	ret = system(cmd);
 	if (ret != 0) {
-		fprintf(stderr, "Error mounting debugfs at %s: %s\n", mountpoint, strerror(errno));
+		fprintf(stderr, "Error mounting debugfs at %s: %s\n",
+			mountpoint, strerror(errno));
 		return -1;
 	}
 	return 0;
-		
 }
 
 static char **tracer_list;
@@ -137,7 +137,7 @@ int get_tracers(char ***list)
 	/* open the tracing file available_tracers */
 	sprintf(buffer, "%savailable_tracers", prefix);
 	if ((fp = fopen(buffer, "r")) == NULL)
-		fatal ("Can't open %s for reading\n", buffer);
+		fatal("Can't open %s for reading\n", buffer);
 
 	/* allocate initial buffer */
 	ptr = tmpbuf = malloc(CHUNKSZ);
@@ -145,7 +145,7 @@ int get_tracers(char ***list)
 		fatal("error allocating initial space for tracer list\n");
 
 	/* read in the list of available tracers */
-	while((ret = fread(buffer, sizeof(char), CHUNKSZ, fp))) {
+	while ((ret = fread(buffer, sizeof(char), CHUNKSZ, fp))) {
 		if ((ptr+ret+1) > (tmpbuf+tmpsz)) {
 			tmpbuf = realloc(tmpbuf, tmpsz + CHUNKSZ);
 			if (tmpbuf == NULL)
@@ -158,12 +158,12 @@ int get_tracers(char ***list)
 	fclose(fp);
 	if (tmpsz == 0)
 		fatal("error reading available tracers\n");
-	
+
 	tracer_buffer = tmpbuf;
 
 	/* get a buffer for the pointers to tracers */
 	if (!(tracer_list = malloc(sizeof(char *))))
-		fatal ("error allocatinging tracer list buffer\n");
+		fatal("error allocatinging tracer list buffer\n");
 
 	/* parse the buffer */
 	ptr = strtok(tmpbuf, " \t\n\r");
@@ -179,8 +179,8 @@ int get_tracers(char ***list)
 }
 
 
-/* 
- * return zero if tracername is not a valid tracer, non-zero if it is 
+/*
+ * return zero if tracername is not a valid tracer, non-zero if it is
  */
 
 int valid_tracer(char *tracername)
@@ -232,9 +232,10 @@ int event_disable_all(void)
 	return setevent("events/enable", "0");
 }
 
-int event_enable(char *event) 
+int event_enable(char *event)
 {
 	char path[MAX_PATH];
+
 	sprintf(path, "events/%s/enable", event);
 	return setevent(path, "1");
 }
@@ -242,10 +243,11 @@ int event_enable(char *event)
 int event_disable(char *event)
 {
 	char path[MAX_PATH];
+
 	sprintf(path, "events/%s/enable", event);
 	return setevent(path, "0");
 }
-	
+
 int check_privs(void)
 {
 	int policy = sched_getscheduler(0);
