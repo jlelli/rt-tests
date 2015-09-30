@@ -317,10 +317,10 @@ int main(int argc, char **argv)
 	struct thread_stat *stat;
 	int i, ret = -1;
 
+	process_options(argc, argv);
+
 	if (check_privs())
 		exit(-1);
-
-	process_options(argc, argv);
 
 	/* lock all memory (prevent paging) */
 	if (lockall)
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 			perror("mlockall");
 			goto out;
 		}
-		
+
 	check_kernel();
 
 	sigemptyset(&sigset);
