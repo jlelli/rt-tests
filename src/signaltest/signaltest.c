@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 
+#include "error.h"
 #include "rt-utils.h"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -316,6 +317,7 @@ int main(int argc, char **argv)
 	struct thread_param *par;
 	struct thread_stat *stat;
 	int i, ret = -1;
+	int status;
 
 	process_options(argc, argv);
 
@@ -366,7 +368,11 @@ int main(int argc, char **argv)
 		stat[i].max = -1000000;
 		stat[i].avg = 0.0;
 		stat[i].threadstarted = 1;
-		pthread_create(&stat[i].thread, NULL, signalthread, &par[i]);
+		status = pthread_create(&stat[i].thread, NULL, signalthread,
+					&par[i]);
+		if (status)
+			fatal("failed to create thread %d: %s\n", i,
+			      strerror(status));
 	}
 
 	while (!shutdown) {
