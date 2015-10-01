@@ -205,15 +205,16 @@ static void display_help(void)
 {
 	printf("signaltest V %1.2f\n", VERSION);
 	printf("Usage:\n"
-	       "signaltest <options>\n\n"
-	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
-	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
-	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
-	       "-q       --quiet           print only a summary on exit\n"
-	       "-t NUM   --threads=NUM     number of threads: default=2\n"
-	       "-m       --mlockall        lock current and future memory allocations\n"
-	       "-v       --verbose         output values on stdout for statistics\n"
-	       "                           format: n:c:v n=tasknum c=count v=value in us\n");
+		"signaltest <options>\n\n"
+		"-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
+		"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+		"-p PRIO  --prio=PRIO       priority of highest prio thread\n"
+		"-q       --quiet           print a summary only on exit\n"
+		"-t NUM   --threads=NUM     number of threads: default=2\n"
+		"-m       --mlockall        lock current and future memory allocations\n"
+		"-v       --verbose         output values on stdout for statistics\n"
+		"                           format: n:c:v n=tasknum c=count v=value in us\n"
+		"--help			    display usage information\n");
 	exit(0);
 }
 
