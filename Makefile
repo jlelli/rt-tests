@@ -40,8 +40,13 @@ else
 endif
 
 # We make some gueses on how to compile rt-tests based on the machine type
-# These can often be overridden
-machinetype = $(shell $(CC) -dumpmachine | \
+# and the ostype. These can often be overridden.
+dumpmachine := $(shell $(CC) -dumpmachine)
+
+# The ostype is typically something like linux or android
+ostype := $(lastword $(subst -, ,$(dumpmachine)))
+
+machinetype := $(shell echo $(dumpmachine)| \
     sed -e 's/-.*//' -e 's/i.86/i386/' -e 's/mips.*/mips/' -e 's/ppc.*/powerpc/')
 
 # The default is to assume you have libnuma installed, which is fine to do
@@ -70,8 +75,7 @@ endif
 # - pthread_[gs]etaffinity
 #
 # Typically see something like "aarch64-linux-android"
-
-ifneq ($(shell $(CC) -dumpmachine | grep -i android),)
+ifeq (android,$(ostype))
 	USE_BIONIC := 1
 	CFLAGS += -DNO_PTHREAD_BARRIER
 	CFLAGS += -DNO_PTHREAD_SETAFFINITY
