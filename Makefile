@@ -24,19 +24,9 @@ bindir  ?= $(prefix)/bin
 mandir	?= $(prefix)/share/man
 srcdir	?= $(prefix)/src
 
-machinetype = $(shell $(CC) -dumpmachine | \
-    sed -e 's/-.*//' -e 's/i.86/i386/' -e 's/mips.*/mips/' -e 's/ppc.*/powerpc/')
-
 CFLAGS ?= -Wall -Wno-nonnull
 CPPFLAGS += -D_GNU_SOURCE -Isrc/include
 LDFLAGS ?=
-
-ifneq ($(filter x86_64 i386 ia64 mips powerpc,$(machinetype)),)
-NUMA 	:= 1
-ifdef HAVE_PARSE_CPUSTRING_ALL
-	CFLAGS += -DHAVE_PARSE_CPUSTRING_ALL
-endif
-endif
 
 PYLIB  ?= $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 
@@ -46,9 +36,30 @@ else
 	CFLAGS	+= -O0 -g
 endif
 
+# We make some gueses on how to compile rt-tests based on the machine type
+# These can often be overridden
+machinetype = $(shell $(CC) -dumpmachine | \
+    sed -e 's/-.*//' -e 's/i.86/i386/' -e 's/mips.*/mips/' -e 's/ppc.*/powerpc/')
+
+# The default is to assume you have libnuma installed, which is fine to do
+# even on non-numa machines. If you don't want to install the numa libs, for
+# example, they might not be available in an embedded environment, then
+# compile with
+# make NUMA=0
+ifneq ($(filter x86_64 i386 ia64 mips powerpc,$(machinetype)),)
+NUMA 	:= 1
+endif
+
+# The default is to assume that you only have numa_parse_cpustring
+# If you are sure you have a version of libnuma with numa_parse_cpustring_all
+# then compile with
+# make HAVE_PARSE_CPUSTRING_ALL=1
 ifeq ($(NUMA),1)
 	CFLAGS += -DNUMA
 	NUMA_LIBS = -lnuma
+ifdef HAVE_PARSE_CPUSTRING_ALL
+	CFLAGS += -DHAVE_PARSE_CPUSTRING_ALL
+endif
 endif
 
 # Bionic (android) does not have:
