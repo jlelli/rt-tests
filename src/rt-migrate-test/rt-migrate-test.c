@@ -178,7 +178,7 @@ static void usage(char **argv)
 	printf("%s %1.2f\n", p, VERSION);
 	printf("Usage:\n"
 	       "%s <options> nr_tasks\n\n"
-	       "-p prio --prio  prio        base priority to start RT tasks with (2) \n"
+	       "-p prio --prio  prio        base priority to start RT tasks with (2)\n"
 	       "-r time --run-time time     Run time (ms) to busy loop the threads (20)\n"
 	       "-s time --sleep-time time   Sleep time (ms) between intervals (100)\n"
 	       "-m time --maxerr time       Max allowed error (microsecs)\n"
