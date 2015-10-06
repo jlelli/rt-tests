@@ -4,14 +4,17 @@ AR=$(CROSS_COMPILE)ar
 
 OBJDIR = bld
 
-HAVE_NPTL ?= yes
-
-ifeq ($(HAVE_NPTL),yes)
-sources = cyclictest.c pi_stress.c pip_stress.c pmqtest.c rt-migrate-test.c
-endif
-
-sources += signaltest.c ptsematest.c sigwaittest.c svsematest.c sendme.c \
-	  hackbench.c
+sources = cyclictest.c \
+	  hackbench.c \
+	  pip_stress.c \
+	  pi_stress.c \
+	  pmqtest.c \
+	  ptsematest.c \
+	  rt-migrate-test.c \
+	  sendme.c \
+	  signaltest.c \
+	  sigwaittest.c \
+	  svsematest.c
 
 TARGETS = $(sources:.c=)
 
