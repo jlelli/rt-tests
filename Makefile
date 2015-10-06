@@ -16,8 +16,6 @@ sources = cyclictest.c \
 	  sigwaittest.c \
 	  svsematest.c
 
-TARGETS = $(sources:.c=)
-
 LIBS	= -lrt -lpthread
 RTTESTLIB = -lrttest -L$(OBJDIR)
 EXTRA_LIBS ?= -ldl	# for get_cpu
@@ -70,30 +68,10 @@ ifdef HAVE_PARSE_CPUSTRING_ALL
 endif
 endif
 
-# Bionic (android) does not have:
-# - pthread barriers
-# - pthread_[gs]etaffinity
-#
-# Typically see something like "aarch64-linux-android"
-ifeq (android,$(ostype))
-	USE_BIONIC := 1
-	CFLAGS += -DNO_PTHREAD_BARRIER
-	CFLAGS += -DNO_PTHREAD_SETAFFINITY
-
-	LDFLAGS += -pie
-# -lrt and -lpthread is in standard bionic library, no standalone library
-	LIBS := $(filter-out -lrt,$(LIBS))
-	LIBS := $(filter-out -lpthread,$(LIBS))
-
-# BIONIC does not support PI, barriers and have different files in
-# include/. This means that currently, only these binaries will compile
-# and link properly:
-# - cyclictest
-# - hackbench
-# - hwlatdetect
-	sources := cyclictest.c hackbench.c hwlatdetect.c
-	TARGETS = $(sources:.c=)
-endif
+# Include any arch specific makefiles here. Make sure that TARGETS aren't
+# evaluated until AFTER this include
+include src/arch/bionic/Makefile
+TARGETS = $(sources:.c=)
 
 VPATH	= src/cyclictest:
 VPATH	+= src/signaltest:
