@@ -68,22 +68,86 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/hackbench.8.gz
 
 %changelog
+ * Wed Oct 07 2015 John Kacur <jkacur@redhat.com> - 0.95-1
+- Henrik Austad
+  - cyclictest: move redefine of CPUSET back to uclib
+- John Kacur
+  - Explicitly separate VPATH paths with a colon
+  - build: Generate .o, .a, and .d files in bld dir
+  - signaltest: call process_options before calling check_privs
+  - signaltest: Check the status of pthread_create
+  - rt-utils: Add John Kacur to the copyright
+  - rt-utils: Fix some checkpatch errors in rt-utils.c
+  - signaltest: Add a man page to signaltest
+  - Makefile: Document certain compiling options
+  - Makefile: Only call cc -dumpmachine once in the makefile
+  - Bionic: Move android functionality into it's own arch Makefile
+- Uwe Kleine-König
+  - backfire: remove unused header file
+  - remove several unused Makefiles
+  - rt-migrate-test: remove space before \n
+  - drop compiling without NPTL support
+
+ * Mon Sep 21 2015 John Kacur <jkacur@redhat.com> - 0.94-1
+- Clark Williams
+  - hwlatdetect: initial cut at tracking the amount of SMIs that occurred
+    during a run
+  - rt-migrate-test: updated to latest code from rostedt
+- Darren Hart
+  - rt-tests: Allow for user-specified PYLIB
+  - rt-tests: Break out install_hwlatdetect
+- Henrik Austad
+  - Add CROSS_COMPILE-switch to CC and AR
+  - Add syscall-number for sched_(gs)etattr() for tile
+  - Add a rebuild-switch to Makefile
+  - Makefile: add librttest to rt-migrate-test
+  - android: adjust target for android
+- John Kacur
+  - Fix VERSION in rt-migrate-test
+  - numa_on_and_available: Remove from main in cyclictest
+- Josh Cartwright
+  - rt-tests: workaround poor gzip implementations
+  - hackbench: cleanup error handling in create_worker
+  - cyclictest: consistently make all functions 'static'
+  - cyclictest: use correct type when allocating cpu bitmask size
+  - cyclictest: drop impossible use_fifo conditional
+  - cyclictest: fail if use_fifo && thread creation failed
+  - error: mark fatal, err_exit, err_quit as being noreturn
+  - cyclictest: add option for dumping the histogram in a file
+
+ * Thu Aug 13 2015 John Kacur <jkacur@redhat.com> - 0.93-1
+- Alexander Stein
+  - cyclictest: Fix long priority help text option
+  - cyclictest: Fix long priority help text option
+- Clark Williams
+  - makefile: fixed release target
+  - hwlatdetect: added --watch option to watch output in realtime
+  - doc: fix VERSION in release-checklist.txt
+- John Kacur
+  - Fix warning: unused variable ‘c’
+  - Fix possible exit on error without releasing mutex
+  - Create a .gitattribute file to specify what files git-archive should
+    ignore
+  - Add .tar files to .gitignore
+  - Change VERSION_STRING to VERSION
+  - Create an rt-tests.tar file using git-archive
+
  * Tue Jun 09 2015 John Kacur <jkacur@redhat.com> - 0.92-1 
-Anna-Maria Gleixner (2):
-  cyclictest: Convert the offset of the alignment option to microseconds
-  cyclictest: Align measurement threads to the next full second
-  cyclictest: Ensure that next wakeup time is never in the past
-Daniel Wagner (1):
-  pi_stress: Clear affinity for DEADLINE tasks
-John Kacur (3):
-  Fix minor grammar mistake in the help output
-  Allow building with -DHAVE_PARSE_CPUSTRING_ALL
-  Add a MAINTAINERS file
-Michael Olbrich (2):
-  Makefile: pi_stress need librttest.a so it should depend on it
-  Makefile: cleanup linking to librttest.a
-Sebastian Andrzej Siewior (1):
-  cyclictest: consider the 4 as the major version
+- Anna-Maria Gleixner (2):
+  - cyclictest: Convert the offset of the alignment option to microseconds
+  - cyclictest: Align measurement threads to the next full second
+  - cyclictest: Ensure that next wakeup time is never in the past
+- Daniel Wagner (1):
+  - pi_stress: Clear affinity for DEADLINE tasks
+- John Kacur (3):
+  - Fix minor grammar mistake in the help output
+  - Allow building with -DHAVE_PARSE_CPUSTRING_ALL
+  - Add a MAINTAINERS file
+- Michael Olbrich (2):
+  - Makefile: pi_stress need librttest.a so it should depend on it
+  - Makefile: cleanup linking to librttest.a
+- Sebastian Andrzej Siewior (1):
+  - cyclictest: consider the 4 as the major version
 
  * Tue Feb 17 2015 Clark Williams <williams@redhat.com> - 0.91-1
 - From Boris Egorov <egorov@linux.com>
