@@ -155,7 +155,7 @@ clean:
 RPMDIRS = BUILD BUILDROOT RPMS SRPMS SPECS
 .PHONY: distclean
 distclean: clean
-	rm -rf $(RPMDIRS) releases *.tar.gz rt-tests.spec tmp
+	rm -rf $(RPMDIRS) releases *.tar.gz *.tar.asc rt-tests.spec tmp
 
 .PHONY: rebuild
 rebuild:
