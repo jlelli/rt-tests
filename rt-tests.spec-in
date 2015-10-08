@@ -66,6 +66,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/svsematest.8.gz
 /usr/share/man/man8/pmqtest.8.gz
 /usr/share/man/man8/hackbench.8.gz
+/usr/share/man/man8/signaltest.8.gz
 
 %changelog
  * Wed Oct 07 2015 John Kacur <jkacur@redhat.com> - 0.95-1
@@ -132,7 +133,7 @@ rm -rf $RPM_BUILD_ROOT
   - Change VERSION_STRING to VERSION
   - Create an rt-tests.tar file using git-archive
 
- * Tue Jun 09 2015 John Kacur <jkacur@redhat.com> - 0.92-1 
+ * Tue Jun 09 2015 John Kacur <jkacur@redhat.com> - 0.92-1
 - Anna-Maria Gleixner (2):
   - cyclictest: Convert the offset of the alignment option to microseconds
   - cyclictest: Align measurement threads to the next full second
