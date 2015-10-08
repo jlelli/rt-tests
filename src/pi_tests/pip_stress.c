@@ -64,7 +64,7 @@ useconds_t usleep_val = 500;
 
 pthread_mutex_t *resource;
 
-/* This records the state to determine whether a priority inversion occured */
+/* This records the state to determine whether a priority inversion occurred */
 struct State {
 	int low_owns_resource;
 	int high_started;

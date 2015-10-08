@@ -18,7 +18,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
    USA */
 
-/* This program tests Priority Inheritence mutexes and their ability
+/* This program tests Priority Inheritance mutexes and their ability
    to avoid Priority Inversion deadlocks
   
    The basic premise here is to set up a deadlock scenario and confirm that PI

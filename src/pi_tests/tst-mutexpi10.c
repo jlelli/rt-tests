@@ -21,7 +21,7 @@
    Boston, MA 02111-1307, USA.  */
 
 
-/* This program tests Priority Inheritence mutexes and their ability
+/* This program tests Priority Inheritance mutexes and their ability
    to avoid Priority Inversion deadlocks
   
    The basic premise here is to set up a deadlock scenario and confirm that PI

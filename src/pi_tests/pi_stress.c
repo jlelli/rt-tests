@@ -132,7 +132,7 @@ unsigned long report_interval = (unsigned long)SEC_TO_USEC(0.75);
 int shutdown = 0;		/* global indicating we should shut down */
 pthread_mutex_t shutdown_mtx;	/* associated mutex */
 
-/* indicate if errors have occured */
+/* indicate if errors have occurred */
 int have_errors = 0;
 
 /* indicated that keyboard interrupt has happened */
@@ -1025,7 +1025,7 @@ void usage(void)
 	printf("usage: pi_stress <options>\n");
 	printf("    options:\n");
 	printf("\t--verbose\t- lots of output\n");
-	printf("\t--quiet\t\t- surpress running output\n");
+	printf("\t--quiet\t\t- suppress running output\n");
 	printf
 	    ("\t--duration=<n>- length of the test run in seconds [infinite]\n");
 	printf("\t--groups=<n>\t- set the number of inversion groups [%d]\n",
