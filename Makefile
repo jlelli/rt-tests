@@ -93,7 +93,10 @@ $(OBJDIR)/%.d: %.c
 	@$(CC) -MM $(CFLAGS) $(CPPFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@ || rm -f $@
 
 .PHONY: all
-all: $(TARGETS) hwlatdetect
+all: $(OBJDIR) $(TARGETS) hwlatdetect
+
+$(OBJDIR):
+	mkdir $(OBJDIR)
 
 # Include dependency files, automatically generate them if needed.
 -include $(addprefix $(OBJDIR)/,$(sources:.c=.d))
