@@ -16,6 +16,7 @@ sources = cyclictest.c \
 	  sigwaittest.c \
 	  svsematest.c
 
+TARGETS = $(sources:.c=)
 LIBS	= -lrt -lpthread
 RTTESTLIB = -lrttest -L$(OBJDIR)
 EXTRA_LIBS ?= -ldl	# for get_cpu
@@ -68,10 +69,8 @@ ifdef HAVE_PARSE_CPUSTRING_ALL
 endif
 endif
 
-# Include any arch specific makefiles here. Make sure that TARGETS aren't
-# evaluated until AFTER this include
+# Include any arch specific makefiles here.
 include src/arch/bionic/Makefile
-TARGETS = $(sources:.c=)
 
 VPATH	= src/cyclictest:
 VPATH	+= src/signaltest:
