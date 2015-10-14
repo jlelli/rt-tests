@@ -85,15 +85,15 @@ VPATH	+= src/backfire:
 VPATH	+= src/lib:
 VPATH	+= src/hackbench:
 
-$(OBJDIR)/%.o: %.c
+$(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) -D VERSION=$(VERSION) -c $< $(CFLAGS) $(CPPFLAGS) -o $@
 
 # Pattern rule to generate dependency files from .c files
-$(OBJDIR)/%.d: %.c
+$(OBJDIR)/%.d: %.c | $(OBJDIR)
 	@$(CC) -MM $(CFLAGS) $(CPPFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@ || rm -f $@
 
 .PHONY: all
-all: $(OBJDIR) $(TARGETS) hwlatdetect
+all: $(TARGETS) hwlatdetect | $(OBJDIR)
 
 $(OBJDIR):
 	mkdir $(OBJDIR)
