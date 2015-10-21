@@ -83,6 +83,10 @@ int sched_setaffinity (__pid_t __pid, size_t __cpusetsize,
 #define CPU_SET(cpu, cpusetp)
 #define CPU_ZERO(cpusetp)
 
+#else
+extern int clock_nanosleep(clockid_t __clock_id, int __flags,
+			   __const struct timespec *__req,
+			   struct timespec *__rem);
 #endif
 
 #ifdef NO_PTHREAD_SETAFFINITY
@@ -91,11 +95,6 @@ static inline int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize,
 {
     return sched_setaffinity(0, cpusetsize, cpuset);
 }
-
-#else
-extern int clock_nanosleep(clockid_t __clock_id, int __flags,
-			   __const struct timespec *__req,
-			   struct timespec *__rem);
 #endif
 
 #define USEC_PER_SEC		1000000
