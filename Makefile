@@ -69,8 +69,7 @@ ifdef HAVE_PARSE_CPUSTRING_ALL
 endif
 endif
 
-# Include any arch specific makefiles here.
-include src/arch/bionic/Makefile
+include src/arch/android/Makefile
 
 VPATH	= src/cyclictest:
 VPATH	+= src/signaltest:
