@@ -6,8 +6,7 @@
 # Typically see something like "aarch64-linux-android"
 ifeq (android,$(ostype))
 	USE_BIONIC := 1
-	CFLAGS += -DNO_PTHREAD_BARRIER
-	CFLAGS += -DNO_PTHREAD_SETAFFINITY
+	CFLAGS += -DPTHREAD_BIONIC
 
 	LDFLAGS += -pie
 # -lrt and -lpthread is in standard bionic library, no standalone library
@@ -19,7 +18,5 @@ ifeq (android,$(ostype))
 # and link properly:
 # - cyclictest
 # - hackbench
-# - hwlatdetect
-	sources := cyclictest.c hackbench.c hwlatdetect.c
+	sources := cyclictest.c hackbench.c
 endif
-
