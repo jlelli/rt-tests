@@ -166,6 +166,29 @@ struct thread_stat {
 	long num_outliers;
 };
 
+static pthread_mutex_t trigger_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static int trigger = 0;	/* Record spikes > trigger, 0 means don't record */
+static int trigger_list_size = 1024;	/* Number of list nodes */
+
+/* Info to store when the diff is greater than the trigger */
+struct thread_trigger {
+	int cpu;
+	int tnum;	/* thread number */
+	int64_t  ts;	/* time-stamp */
+	int diff;
+	struct thread_trigger *next;
+};
+
+struct thread_trigger *head = NULL;
+struct thread_trigger *tail = NULL;
+struct thread_trigger *current = NULL;
+static int spikes;	/* count of the number of spikes */
+
+static int trigger_init();
+static void trigger_print();
+static void trigger_update(struct thread_param *par, int diff, int64_t ts);
+
 static int shutdown;
 static int tracelimit = 0;
 static int notrace = 0;
@@ -394,6 +417,14 @@ static inline int64_t calcdiff_ns(struct timespec t1, struct timespec t2)
 	diff = NSEC_PER_SEC * (int64_t)((int) t1.tv_sec - (int) t2.tv_sec);
 	diff += ((int) t1.tv_nsec - (int) t2.tv_nsec);
 	return diff;
+}
+
+static inline int64_t calctime(struct timespec t)
+{
+	int64_t time;
+	time = USEC_PER_SEC * t.tv_sec;
+	time += ((int) t.tv_nsec) / 1000;
+	return time;
 }
 
 static void traceopt(char *option)
@@ -939,6 +970,10 @@ static void *timerthread(void *param)
 		}
 		stat->avg += (double) diff;
 
+		if (trigger && (diff > trigger)) {
+			trigger_update(par, diff, calctime(now));
+		}
+
 		if (duration && (calcdiff(now, stop) >= 0))
 			shutdown++;
 
@@ -1088,6 +1123,9 @@ static void display_help(int error)
 	       "-s       --system          use sys_nanosleep and sys_setitimer\n"
 	       "-S       --smp             Standard SMP testing: options -a -t -n and\n"
 	       "                           same priority of all threads\n"
+	       "	--spike=trigger	   record all spikes > trigger\n"
+	       "	--spike-nodes	   these are the number of spikes we can record\n"
+	       "			   the default is 1024 if not specified\n"
 	       "-t       --threads         one thread per available processor\n"
 	       "-t [NUM] --threads=NUM     number of threads:\n"
 	       "                           without NUM, threads = max_cpus\n"
@@ -1228,11 +1266,12 @@ enum option_values {
 	OPT_AFFINITY=1, OPT_NOTRACE, OPT_BREAKTRACE, OPT_PREEMPTIRQ, OPT_CLOCK,
 	OPT_CONTEXT, OPT_DISTANCE, OPT_DURATION, OPT_LATENCY, OPT_EVENT,
 	OPT_FTRACE, OPT_FIFO, OPT_HISTOGRAM, OPT_HISTOFALL, OPT_HISTFILE,
-	OPT_INTERVAL, OPT_IRQSOFF, OPT_LOOPS, OPT_MLOCKALL, OPT_REFRESH, OPT_NANOSLEEP,
-	OPT_NSECS, OPT_OSCOPE, OPT_TRACEOPT, OPT_PRIORITY, OPT_PREEMPTOFF, OPT_QUIET,
-	OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION, OPT_SYSTEM, OPT_SMP, OPT_THREADS,
-	OPT_TRACER, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE, OPT_WAKEUP, OPT_WAKEUPRT,
-	OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
+	OPT_INTERVAL, OPT_IRQSOFF, OPT_LOOPS, OPT_MLOCKALL, OPT_REFRESH,
+	OPT_NANOSLEEP, OPT_NSECS, OPT_OSCOPE, OPT_TRACEOPT, OPT_PRIORITY,
+	OPT_PREEMPTOFF, OPT_QUIET, OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION,
+	OPT_SYSTEM, OPT_SMP, OPT_THREADS, OPT_TRACER, OPT_TRIGGER,
+	OPT_TRIGGER_NODES, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE, OPT_WAKEUP,
+	OPT_WAKEUPRT, OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
 	OPT_ALIGNED, OPT_SECALIGNED, OPT_LAPTOP,
 };
 
@@ -1284,6 +1323,8 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"secaligned",       optional_argument, NULL, OPT_SECALIGNED },
 			{"system",           no_argument,       NULL, OPT_SYSTEM },
 			{"smp",              no_argument,       NULL, OPT_SMP },
+			{"spike",	     required_argument, NULL, OPT_TRIGGER },
+			{"spike-nodes",	     required_argument, NULL, OPT_TRIGGER_NODES },
 			{"threads",          optional_argument, NULL, OPT_THREADS },
 			{"tracer",           required_argument, NULL, OPT_TRACER },
 			{"unbuffered",       no_argument,       NULL, OPT_UNBUFFERED },
@@ -1458,6 +1499,13 @@ static void process_options (int argc, char *argv[], int max_cpus)
 				num_threads = atoi(argv[optind]);
 			else
 				num_threads = max_cpus;
+			break;
+		case OPT_TRIGGER:
+			trigger = atoi(optarg);
+			break;
+		case OPT_TRIGGER_NODES:
+			if (trigger)
+				trigger_list_size = atoi(optarg);
 			break;
 		case 'T':
 		case OPT_TRACER:
@@ -1825,6 +1873,58 @@ static void *fifothread(void *param)
 	return NULL;
 }
 
+static int trigger_init()
+{
+	int i;
+	int size = trigger_list_size;
+	struct thread_trigger *trig = NULL;
+	for(i=0; i<size; i++) {
+		trig = malloc(sizeof(struct thread_trigger));
+		if (trig != NULL) {
+			if  (head == NULL) {
+				head = trig;
+				tail = trig;
+			} else {
+				tail->next = trig;
+				tail = trig;
+			}
+			trig->tnum = i;
+			trig->next = NULL;
+		} else {
+			return -1;
+		}
+	}
+	current = head;
+	return 0;
+}
+
+static void trigger_print()
+{
+	struct thread_trigger *trig = head;
+	char *fmt = "T:%2d Spike:%8ld: TS: %12ld\n";
+
+	if (current == head) return;
+	printf("\n");
+	while (trig->next != current) {
+		fprintf(stdout, fmt,  trig->tnum, trig->diff, trig->ts);
+		trig = trig->next;
+	}
+		fprintf(stdout, fmt,  trig->tnum, trig->diff, trig->ts);
+		printf("spikes = %d\n\n", spikes);
+}
+
+static void trigger_update(struct thread_param *par, int diff, int64_t ts)
+{
+	pthread_mutex_lock(&trigger_lock);
+	if (current != NULL) {
+		current->tnum = par->tnum;
+		current->ts = ts;
+		current->diff = diff;
+		current = current->next;
+	}
+	spikes++;
+	pthread_mutex_unlock(&trigger_lock);
+}
 
 int main(int argc, char **argv)
 {
@@ -1843,6 +1943,14 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("Max CPUs = %d\n", max_cpus);
 
+	if (trigger) {
+		int retval;
+		retval = trigger_init();
+		if (retval != 0) {
+			fprintf(stderr, "trigger_init() failed\n");
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	/* lock all memory (prevent swapping) */
 	if (lockall)
@@ -2160,6 +2268,9 @@ int main(int argc, char **argv)
 		if (statistics[i]->values)
 			threadfree(statistics[i]->values, VALBUF_SIZE*sizeof(long), parameters[i]->node);
 	}
+
+	if (trigger)
+		trigger_print();
 
 	if (histogram) {
 		print_hist(parameters, num_threads);
