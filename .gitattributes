@@ -1,4 +1,4 @@
 .gitattributes export-ignore
 .gitignore export-ignore
-rt-tests.spec-in export-ignore
+doc export-ignore
 scripts export-ignore
