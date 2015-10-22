@@ -201,7 +201,7 @@ help:
 	@echo "    install   :  install tests to local filesystem"
 	@echo "    clean     :  remove object files"
 	@echo "    distclean :  remove all generated files"
-	@echo "	   tarball   :  make a rt-tests tarball suitable for release
+	@echo "    tarball   :  make a rt-tests tarball suitable for release"
 	@echo "    help      :  print this message"
 
 .PHONY: tags
