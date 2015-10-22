@@ -69,7 +69,29 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/man/man8/signaltest.8.gz
 
 %changelog
- * Wed Oct 07 2015 John Kacur <jkacur@redhat.com> - 0.95-1
+* Thu Oct 22 2015 John Kacur <jkacur@redhat.com> - 0.96-1
+- Clark Williams
+  - Makefile: add target to create OBJDIR before use
+  - specfile: add signaltest manpage to files section and remove trailing
+    whitespace in changelog
+  - Makefile: have distclean remove .asc file for tarball
+
+-  Henrik Austad
+  - Android: clean up the bypass ifdeffery
+  - Android: rename arch from bionic to android
+  - Android: Expand match for android in ostype
+  - rt-sched.h: do not unconditionally define syscall-numbers
+
+- John Kacur
+  - cyclictest: Clean-ups in timerthread before working on it
+  - Makefile: OBJDIR should be an order-only-prerequisite
+  - Makefile: Move TARGETS back to a more logical place in the Makefile
+  - cyclictest: Add a feature to record spikes
+  - cyclictest: fix #ifdef broken by NO_PTHREAD_SETAFFINITY
+- Uwe Kleine-König
+  - Fix some trivial typos found by codespell
+
+* Wed Oct 07 2015 John Kacur <jkacur@redhat.com> - 0.95-1
 - Henrik Austad
   - cyclictest: move redefine of CPUSET back to uclib
 - John Kacur
@@ -89,7 +111,7 @@ rm -rf $RPM_BUILD_ROOT
   - rt-migrate-test: remove space before \n
   - drop compiling without NPTL support
 
- * Mon Sep 21 2015 John Kacur <jkacur@redhat.com> - 0.94-1
+* Mon Sep 21 2015 John Kacur <jkacur@redhat.com> - 0.94-1
 - Clark Williams
   - hwlatdetect: initial cut at tracking the amount of SMIs that occurred
     during a run
@@ -116,7 +138,7 @@ rm -rf $RPM_BUILD_ROOT
   - error: mark fatal, err_exit, err_quit as being noreturn
   - cyclictest: add option for dumping the histogram in a file
 
- * Thu Aug 13 2015 John Kacur <jkacur@redhat.com> - 0.93-1
+* Thu Aug 13 2015 John Kacur <jkacur@redhat.com> - 0.93-1
 - Alexander Stein
   - cyclictest: Fix long priority help text option
   - cyclictest: Fix long priority help text option
@@ -133,7 +155,7 @@ rm -rf $RPM_BUILD_ROOT
   - Change VERSION_STRING to VERSION
   - Create an rt-tests.tar file using git-archive
 
- * Tue Jun 09 2015 John Kacur <jkacur@redhat.com> - 0.92-1
+* Tue Jun 09 2015 John Kacur <jkacur@redhat.com> - 0.92-1
 - Anna-Maria Gleixner (2):
   - cyclictest: Convert the offset of the alignment option to microseconds
   - cyclictest: Align measurement threads to the next full second
@@ -150,7 +172,7 @@ rm -rf $RPM_BUILD_ROOT
 - Sebastian Andrzej Siewior (1):
   - cyclictest: consider the 4 as the major version
 
- * Tue Feb 17 2015 Clark Williams <williams@redhat.com> - 0.91-1
+* Tue Feb 17 2015 Clark Williams <williams@redhat.com> - 0.91-1
 - From Boris Egorov <egorov@linux.com>
   - rt-migrate-test: exit early if nr_runs is non-positive
   - rt-migrate-test: use variables instead of macros
