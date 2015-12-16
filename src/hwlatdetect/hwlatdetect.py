@@ -108,6 +108,14 @@ class Kmod(object):
     ''' class to manage loading and unloading hwlat.ko'''
 
     names = ("hwlat_detector", "smi_detector")
+    def __check_builtin(self):
+        for l in open(os.path.join('/lib/modules', os.uname()[2], 'modules.builtin'), "r"):
+            for m in Kmod.names:
+                if m in l:
+                    debug("found %s as builtin" % m)
+                    return m
+        return None
+
     def __find_modname(self):
         debug("looking for modules")
         path = os.path.join("/lib/modules",
@@ -123,6 +131,15 @@ class Kmod(object):
 
     def __init__(self):
         self.preloaded = False
+        self.builtin = False
+
+        # check for builtin
+        self.modname = self.__check_builtin()
+        if self.modname:
+            self.builtin = True
+            return
+
+        # now look for module
         f = open ('/proc/modules')
         for l in f:
             field = l.split()
@@ -136,6 +153,9 @@ class Kmod(object):
         self.modname = self.__find_modname()
 
     def load(self):
+        if self.builtin:
+            debug("not loading %s (builtin)" % self.modname)
+            return True
         if self.preloaded:
             debug("not loading %s (already loaded)" % self.modname)
             return True
@@ -143,7 +163,7 @@ class Kmod(object):
         return (subprocess.call(cmd) == 0)
 
     def unload(self):
-        if self.preloaded:
+        if self.preloaded or self.builtin:
             debug("Not unloading %s" % self.modname)
             return True
         cmd = ['/sbin/modprobe', '-r', self.modname]
