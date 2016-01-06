@@ -79,15 +79,21 @@ class DebugFS(object):
             val = f.readline()
             f.close()
         else:
-            fd = os.open(path, os.O_RDONLY|os.O_NONBLOCK)
+            f = os.fdopen(os.open(path, os.O_RDONLY|os.O_NONBLOCK), "r")
             try:
-                val = os.read(fd, 256)
+                val = f.readline()
             except OSError as e:
+                print ("errno: %s" % e)
                 if e.errno == errno.EAGAIN:
                     val = None
                 else:
                     raise
-            os.close(fd)
+            except IOError as e:
+                if e.errno == errno.EAGAIN:
+                    val = None
+                else:
+                    raise
+            f.close()
         return val
 
     def putval(self, item, value):
