@@ -7,6 +7,8 @@
 # modify it under the terms of the GNU General Public License Version 2
 # as published by the Free Software Foundation.
 
+from __future__ import print_function
+
 import sys
 import os
 import time
@@ -295,7 +297,7 @@ class Hwlat(object):
                 while val:
                     val = val.strip()
                     self.samples.append(val)
-                    if watch: print val
+                    if watch: print(val)
                     debug("got a latency sample: %s" % val)
                     val = self.get_sample()
                 time.sleep(0.1)
@@ -391,7 +393,7 @@ class Smi(object):
                 val = val.strip()
                 if int(val) >= threshold:
                     self.samples.append(val)
-                    if watch: print val
+                    if watch: print(val)
                     debug("got a latency sample: %s (threshold: %d)" % (val, self.get("threshold")))
                 time.sleep(0.1)
         except KeyboardInterrupt as e:
@@ -572,7 +574,7 @@ if __name__ == '__main__':
             if count > detect.initsmi[i]:
                 smis = count - detect.initsmi[i]
                 total_smis += smis
-                print "%d SMIs occured on cpu %d" % (smis, i)
+                print("%d SMIs occured on cpu %d" % (smis, i))
         info("SMIs during run: %d" % total_smis)
 
     if reportfile:
