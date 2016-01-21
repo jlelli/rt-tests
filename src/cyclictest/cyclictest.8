@@ -188,6 +188,10 @@ memory allocations using the numa(3) policy library. Thread stacks and
 data structures are allocated from the NUMA node local to the core to
 which the thread is bound. Requires the underlying kernel to have NUMA
 support compiled in.
+.TP
+.B \\-\-smi
+Enable SMI count/detection on processors with SMI count support.
+
 .SH SEE ALSO
 .BR numactl (8),
 .\" .br
