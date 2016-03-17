@@ -495,6 +495,9 @@ static void tracemark(char *fmt, ...)
 
 static void tracing(int on)
 {
+	if (notrace)
+		return;
+
 	if (on) {
 		switch (kernelversion) {
 		case KV_26_LT18: gettimeofday(0,(struct timezone *)1); break;
@@ -1888,7 +1891,7 @@ static void sighand(int sig)
 	shutdown = 1;
 	if (refresh_on_max)
 		pthread_cond_signal(&refresh_on_max_cond);
-	if (tracelimit && !notrace)
+	if (tracelimit)
 		tracing(0);
 }
 
@@ -2518,7 +2521,7 @@ int main(int argc, char **argv)
 	}
  out:
 	/* ensure that the tracer is stopped */
-	if (tracelimit && !notrace)
+	if (tracelimit)
 		tracing(0);
 
 
