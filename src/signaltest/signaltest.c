@@ -323,7 +323,7 @@ int main(int argc, char **argv)
 	process_options(argc, argv);
 
 	if (check_privs())
-		exit(-1);
+		exit(1);
 
 	/* lock all memory (prevent paging) */
 	if (lockall)

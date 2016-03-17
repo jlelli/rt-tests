@@ -95,7 +95,7 @@ int main(void)
 	*minimum_priority = sched_get_priority_min(policy);
 
 	if (check_privs())
-		exit(-1);
+		exit(1);
 
 	mptr = mmap_page();	/* Get a page of shared memory */
 	resource = (pthread_mutex_t*)mptr;	/* point our lock to it */
@@ -138,7 +138,7 @@ int main(void)
 		pid2 = fork();		/* parent code */
 		if (pid2 == -1) {
 			perror("fork: ");
-			exit(-1);
+			exit(1);
 		} else if (pid2 != 0) {		/* parent code */
 			high(pid2);
 		} else {			/* child code */
@@ -231,7 +231,7 @@ void *mmap_page(void)
 	mptr = mmap(NULL, pgsize, PROTRW, MMAP_FLAGS, 0, 0);
 	if (mptr == MAP_FAILED) {
 		perror("In function mmap_page - mmap");
-		exit(-1);
+		exit(1);
 	}
 
 	return mptr;

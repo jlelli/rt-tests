@@ -634,7 +634,7 @@ int verify_cpu(int cpu)
 	if (status == -1) {
 		err = errno;
 		fprintf(stderr, "sched_getaffinity %s\n", strerror(err));
-		exit(-1);
+		exit(1);
 	}
 
 	if (CPU_ISSET(cpu, &mask))
