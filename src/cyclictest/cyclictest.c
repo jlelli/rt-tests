@@ -543,11 +543,8 @@ static void open_tracemark_fd(void)
 		warn("unable to open trace_marker file: %s\n", path);
 }
 
-static void setup_tracer(void)
+static void debugfs_prepare(void)
 {
-	if (!tracelimit || notrace)
-		return;
-
 	if (mount_debugfs(NULL))
 		fatal("could not mount debugfs");
 
@@ -562,6 +559,14 @@ static void setup_tracer(void)
 			    "TRACERs not configured?\n", testname);
 	} else
 		fileprefix = procfileprefix;
+}
+
+static void setup_tracer(void)
+{
+	if (!tracelimit || notrace)
+		return;
+
+	debugfs_prepare();
 
 	if (kernelversion >= KV_26_33) {
 		int ret;
