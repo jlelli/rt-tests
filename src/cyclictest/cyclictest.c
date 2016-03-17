@@ -527,6 +527,19 @@ static int settracer(char *tracer)
 	return -1;
 }
 
+static void open_tracemark_fd(void)
+{
+	char path[MAX_PATH];
+
+	if (tracemark_fd >= 0)
+		return;
+
+	sprintf(path, "%s/%s", fileprefix, "trace_marker");
+	tracemark_fd = open(path, O_WRONLY);
+	if (tracemark_fd < 0)
+		warn("unable to open trace_marker file: %s\n", path);
+}
+
 static void setup_tracer(void)
 {
 	if (!tracelimit || notrace)
@@ -655,14 +668,7 @@ static void setup_tracer(void)
 				fatal("unable to open %s for tracing", path);
 		}
 
-		/* open the tracemark file descriptor */
-		if (tracemark_fd == -1) {
-			char path[MAX_PATH];
-			strcat(strcpy(path, fileprefix), "trace_marker");
-			if ((tracemark_fd = open(path, O_WRONLY)) == -1)
-				warn("unable to open trace_marker file: %s\n", path);
-		}
-
+		open_tracemark_fd();
 	} else {
 		setkernvar("trace_all_cpus", "1");
 		setkernvar("trace_freerunning", "1");
