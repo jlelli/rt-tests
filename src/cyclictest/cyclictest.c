@@ -202,6 +202,7 @@ static void trigger_update(struct thread_param *par, int diff, int64_t ts);
 static int shutdown;
 static int tracelimit = 0;
 static int notrace = 0;
+static int trace_marker = 0;
 static int ftrace = 0;
 static int kernelversion;
 static int verbose = 0;
@@ -559,6 +560,18 @@ static void debugfs_prepare(void)
 			    "TRACERs not configured?\n", testname);
 	} else
 		fileprefix = procfileprefix;
+}
+
+static void enable_trace_mark(void)
+{
+	if (!trace_marker)
+		return;
+
+	if (!tracelimit)
+		fatal("--tracemark requires -b\n");
+
+	debugfs_prepare();
+	open_tracemark_fd();
 }
 
 static void setup_tracer(void)
@@ -1312,6 +1325,7 @@ static void display_help(int error)
 	       "-t [NUM] --threads=NUM     number of threads:\n"
 	       "                           without NUM, threads = max_cpus\n"
 	       "                           without -t default = 1\n"
+	       "         --tracemark       write a trace mark when -b latency is exceeded\n"
 	       "-T TRACE --tracer=TRACER   set tracing function\n"
 	       "    configured tracers: %s\n"
 	       "-u       --unbuffered      force unbuffered output for live processing\n"
@@ -1453,7 +1467,7 @@ enum option_values {
 	OPT_SYSTEM, OPT_SMP, OPT_THREADS, OPT_TRACER, OPT_TRIGGER,
 	OPT_TRIGGER_NODES, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE, OPT_WAKEUP,
 	OPT_WAKEUPRT, OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
-	OPT_ALIGNED, OPT_SECALIGNED, OPT_LAPTOP, OPT_SMI,
+	OPT_ALIGNED, OPT_SECALIGNED, OPT_LAPTOP, OPT_SMI, OPT_TRACEMARK,
 };
 
 /* Process commandline options */
@@ -1508,6 +1522,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"spike",	     required_argument, NULL, OPT_TRIGGER },
 			{"spike-nodes",	     required_argument, NULL, OPT_TRIGGER_NODES },
 			{"threads",          optional_argument, NULL, OPT_THREADS },
+			{"tracemark",        no_argument,       NULL, OPT_TRACEMARK },
 			{"tracer",           required_argument, NULL, OPT_TRACER },
 			{"unbuffered",       no_argument,       NULL, OPT_UNBUFFERED },
 			{"numa",             no_argument,       NULL, OPT_NUMA },
@@ -1749,6 +1764,8 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			fatal("--smi is not available on your arch\n");
 #endif
 			break;
+		case OPT_TRACEMARK:
+			trace_marker = 1; break;
 		}
 	}
 
@@ -2183,6 +2200,8 @@ int main(int argc, char **argv)
 		warn("Running on unknown kernel version...YMMV\n");
 
 	setup_tracer();
+
+	enable_trace_mark();
 
 	if (check_timer())
 		warn("High resolution timers not available\n");
