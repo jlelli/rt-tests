@@ -1765,6 +1765,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 #endif
 			break;
 		case OPT_TRACEMARK:
+			notrace = 1; /* using --tracemark implies --notrace */
 			trace_marker = 1; break;
 		}
 	}
