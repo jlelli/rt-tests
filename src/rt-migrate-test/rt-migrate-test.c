@@ -138,7 +138,7 @@ static void perr(char *fmt, ...)
 
 	perror(buffer);
 	fflush(stderr);
-	exit(1);
+	exit(-1);
 }
 
 static void print_progress_bar(int percent)
@@ -226,6 +226,7 @@ static void parse_options (int argc, char *argv[])
 			break;
 		}
 	}
+
 }
 
 static unsigned long long get_time(void)
@@ -603,7 +604,7 @@ int main (int argc, char **argv)
 			exit(1);
 	}
 	if (check < 0)
-		exit(1);
+		exit(-1);
 	else
 		exit(0);
 
