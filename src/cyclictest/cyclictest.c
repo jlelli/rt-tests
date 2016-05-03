@@ -489,7 +489,12 @@ static void tracemark(char *fmt, ...)
 	va_start(ap, fmt);
 	len = vsnprintf(tracebuf, TRACEBUFSIZ, fmt, ap);
 	va_end(ap);
+
+	/* write the tracemark message */
 	write(tracemark_fd, tracebuf, len);
+
+	/* now stop any trace */
+	write(trace_fd, "0\n", 2);
 }
 
 
@@ -535,13 +540,28 @@ static void open_tracemark_fd(void)
 {
 	char path[MAX_PATH];
 
-	if (tracemark_fd >= 0)
-		return;
+	/*
+	 * open the tracemark file if it's not already open
+	 */
+	if (tracemark_fd < 0) {
+		sprintf(path, "%s/%s", fileprefix, "trace_marker");
+		tracemark_fd = open(path, O_WRONLY);
+		if (tracemark_fd < 0) {
+			warn("unable to open trace_marker file: %s\n", path);
+			return;
+		}
+	}
 
-	sprintf(path, "%s/%s", fileprefix, "trace_marker");
-	tracemark_fd = open(path, O_WRONLY);
-	if (tracemark_fd < 0)
-		warn("unable to open trace_marker file: %s\n", path);
+	/*
+	 * if we're not tracing and the tracing_on fd is not open,
+	 * open the tracing_on file so that we can stop the trace
+	 * if we hit a breaktrace threshold
+	 */
+	if (notrace && trace_fd < 0) {
+		sprintf(path, "%s/%s", fileprefix, "tracing_on");
+		if ((trace_fd = open(path, O_WRONLY)) < 0)
+			warn("unable to open tracing_on file: %s\n", path);
+	}
 }
 
 static void debugfs_prepare(void)
