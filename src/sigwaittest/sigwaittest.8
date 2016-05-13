@@ -8,18 +8,18 @@ sigwaittest [-a|-a PROC] [-b USEC] [-d DIST] [-f] [-i INTV] [-l loops] [-p PRIO]
 .br
 .SH "DESCRIPTION"
 .LP
-The program \fBsigwaittest\fR starts two threads or, optionally, forks two processes that are synchonized via signals and measures the latency between sending a signal and returning from sigwait().
+The program \fBsigwaittest\fR starts two threads or, optionally, forks two processes that are synchronized via signals and measures the latency between sending a signal and returning from sigwait().
 .SH "OPTIONS"
 .TP
 .B \-a, \-\-affinity[=PROC]
-Run on procesor number PROC. If PROC is not specified, run on current processor.
+Run on processor number PROC. If PROC is not specified, run on current processor.
 .TP
 .B \-b, \-\-breaktrace=USEC
 Send break trace command when latency > USEC. This is a debugging option to control the latency tracer in the realtime preemption patch.
 It is useful to track down unexpected large latencies of a system.
 .TP
 .B \-d, \-\-distance=DIST
-Set the distance of thread intervals in microseconds (default is 500 us). When  cylictest is called with the -t option and more than one thread is created, then this distance value is added to the interval of the threads: Interval(thread N) = Interval(thread N-1) + DIST
+Set the distance of thread intervals in microseconds (default is 500 us). When  cyclictest is called with the -t option and more than one thread is created, then this distance value is added to the interval of the threads: Interval(thread N) = Interval(thread N-1) + DIST
 .TP
 .B \-f, \-\-fork
 Instead of creating threads (which is the default), fork new processes
@@ -34,7 +34,7 @@ Set the number of loops. The default is 0 (endless). This option is useful for a
 Set the priority of the process.
 .TP
 .B \-t, \-\-threads[=NUM]
-Set the number of test threads (default is 1, if this option is not given). If NUM is specified, create NUM test threads. If NUM is not specifed, NUM is set to the number of available CPUs.
+Set the number of test threads (default is 1, if this option is not given). If NUM is specified, create NUM test threads. If NUM is not specified, NUM is set to the number of available CPUs.
 .SH "EXAMPLES"
 The following example was running on a 4-way CPU:
 .LP

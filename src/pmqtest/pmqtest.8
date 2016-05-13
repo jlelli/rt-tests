@@ -12,7 +12,7 @@ The program \fBpmqtest\fR starts pairs of threads that are synchronized via mq_s
 .SH "OPTIONS"
 .TP
 .B \-a, \-\-affinity[=PROC]
-Run on procesor number PROC. If PROC is not specified, run on current processor.
+Run on processor number PROC. If PROC is not specified, run on current processor.
 .TP
 .B \-b, \-\-breaktrace=USEC
 Send break trace command when latency > USEC. This is a debugging option to control the latency tracer in the realtime preemption patch.
@@ -37,7 +37,7 @@ Set the priority of the process.
 Test mode for symmetric multi-processing, implies -a and -t and uses the same priority on all threads.
 .TP
 .B \-t, \-\-threads[=NUM]
-Set the number of test threads (default is 1, if this option is not given). If NUM is specified, create NUM test threads. If NUM is not specifed, NUM is set to the number of available CPUs.
+Set the number of test threads (default is 1, if this option is not given). If NUM is specified, create NUM test threads. If NUM is not specified, NUM is set to the number of available CPUs.
 .TP
 .B \-T, \-\-timeout=TO
 Use mq_timedreceive() instead of mq_receive() and specify timeout TO in seconds.
