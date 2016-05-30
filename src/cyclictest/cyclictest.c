@@ -927,10 +927,14 @@ static int has_smi_counter(void)
 	case 0x56:      /* BDX-DE */
 	case 0x4E:      /* SKL */
 	case 0x5E:      /* SKL */
+	case 0x8E:      /* KBL */
+	case 0x9E:      /* KBL */
+	case 0x55:      /* SKX */
 	case 0x37:      /* BYT */
 	case 0x4D:      /* AVN */
 	case 0x4C:      /* AMT */
 	case 0x57:      /* PHI */
+	case 0x5C:      /* BXT */
 		break;
 	default:
 		return 0;
