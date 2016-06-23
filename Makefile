@@ -14,7 +14,9 @@ sources = cyclictest.c \
 	  sendme.c \
 	  signaltest.c \
 	  sigwaittest.c \
-	  svsematest.c
+	  svsematest.c  \
+	  cyclicdeadline.c \
+	  deadline_test.c
 
 TARGETS = $(sources:.c=)
 LIBS	= -lrt -lpthread
@@ -83,6 +85,7 @@ VPATH	+= src/pmqtest:
 VPATH	+= src/backfire:
 VPATH	+= src/lib:
 VPATH	+= src/hackbench:
+VPATH	+= src/sched_deadline:
 
 $(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) -D VERSION=$(VERSION) -c $< $(CFLAGS) $(CPPFLAGS) -o $@
@@ -102,6 +105,12 @@ $(OBJDIR):
 
 cyclictest: $(OBJDIR)/cyclictest.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(NUMA_LIBS)
+
+cyclicdeadline: $(OBJDIR)/cyclicdeadline.o $(OBJDIR)/librttest.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
+
+deadline_test: $(OBJDIR)/deadline_test.o $(OBJDIR)/librttest.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
 signaltest: $(OBJDIR)/signaltest.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)

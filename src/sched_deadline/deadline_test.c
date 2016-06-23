@@ -29,7 +29,9 @@
  *    Look for "simple_test"
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdlib.h>

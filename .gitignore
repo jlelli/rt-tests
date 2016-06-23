@@ -30,6 +30,8 @@ SRPMS
 /pip_stress
 /hackbench
 /pmqtest
+/cyclicdeadline
+/deadline_test
 
 rt-tests.spec
 tags
