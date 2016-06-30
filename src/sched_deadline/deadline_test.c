@@ -72,6 +72,7 @@ static void usage(char **argv)
 	       " -b - Bind on the last cpu. (shortcut for -c <lastcpu>)\n"
 	       " -r prio - Add an RT task with given prio to stress system\n"
 	       " -c cpulist - Comma/hyphen separated list of CPUs to run deadline tasks on\n"
+	       " -i interval - The shortest deadline for the tasks\n"
 	       " -p percent - The percent of bandwidth to use (1-90%%)\n"
 	       " -P percent - The percent of runtime for execution completion\n"
 	       "              (Default 100%%)\n"
@@ -1804,7 +1805,7 @@ int main (int argc, char **argv)
 		exit(-1);
 	}
 
-	while ((c = getopt(argc, argv, "+hbr:c:p:P:t:s:")) >= 0) {
+	while ((c = getopt(argc, argv, "+hbr:c:i:p:P:t:s:")) >= 0) {
 		switch (c) {
 		case 'b':
 			all_cpus = 0;
