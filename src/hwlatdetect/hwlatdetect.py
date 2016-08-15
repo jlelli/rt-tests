@@ -474,6 +474,10 @@ if __name__ == '__main__':
                       dest="threshold",
                       help="value above which is considered an hardware latency")
 
+    parser.add_option("--hardlimit", default=None, type="string",
+                      dest="hardlimit",
+                      help="value above which the test is considered to fail")
+
     parser.add_option("--window", default=None, type="string",
                       dest="window",
                       help="time between samples")
@@ -525,6 +529,12 @@ if __name__ == '__main__':
         t = microseconds(o.threshold)
         detect.set("threshold", t)
         debug("threshold set to %dus" % t)
+
+    if o.hardlimit:
+        hardlimit = microseconds(o.hardlimit)
+    else:
+        hardlimit = detect.get("threshold")
+    debug("hardlimit set to %dus" % hardlimit)
 
     if o.window:
         w = microseconds(o.window)
@@ -601,5 +611,6 @@ if __name__ == '__main__':
         for s in detect.samples:
             print("%s" % s)
 
+    maxlatency = int(detect.get("max"))
     detect.cleanup()
-    sys.exit(exceeding)
+    sys.exit(maxlatency > hardlimit)
