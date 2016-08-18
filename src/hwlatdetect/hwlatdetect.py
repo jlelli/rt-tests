@@ -568,9 +568,15 @@ if __name__ == '__main__':
 
     info("test finished")
 
-    exceeding = detect.get("count")
-    info("Max Latency: %dus" % detect.get("max"))
+    max_latency = detect.get("max")
+    if max_latency == 0:
+        info("Max Latency: Below threshold")
+    else:
+        info("Max Latency: %dus" % max_latency)
+
     info("Samples recorded: %d" % len(detect.samples))
+
+    exceeding = detect.get("count")
     info("Samples exceeding threshold: %d" % exceeding)
 
     if detect.have_msr:
