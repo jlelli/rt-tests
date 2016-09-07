@@ -106,6 +106,13 @@ class DebugFS(object):
     def getpath(self, item):
         return os.path.join(self.mountpoint, item)
 
+# Exception class for when tracer is not available
+class DetectorNotAvailable(Exception):
+    def __init__(self, name, msg):
+        self.args = (name, msg)
+        self.name = name
+        self.msg = msg
+
 #
 # Class used to manage loading and unloading of the
 # hwlat kernel module. Like the debugfs class
@@ -116,6 +123,7 @@ class Kmod(object):
     ''' class to manage loading and unloading of kernel modules'''
 
     names = ("hwlat_detector", "smi_detector")
+
     def __check_builtin(self):
         for l in open(os.path.join('/lib/modules', os.uname()[2], 'modules.builtin'), "r"):
             if self.name in l:
@@ -138,6 +146,8 @@ class Kmod(object):
     def __init__(self, name):
         if name not in Kmod.names:
             raise RuntimeError, "unsupported module name: %s" % name
+        if name == "smi_detector":
+            raise RuntimeError, "smi_detector module no longer supported!"
         self.name = name
         self.preloaded = False
         self.builtin = False
@@ -155,7 +165,7 @@ class Kmod(object):
                 debug("using already loaded %s" % self.name)
                 return
         if not self.__find_module():
-            raise RuntimeError, "module %s does not exist!" % self.name
+            raise DetectorNotAvailable, name, "module %s does not exist!" % self.name
 
     def load(self):
         if self.builtin:
@@ -296,7 +306,7 @@ class Tracer(Detector):
         super(Tracer, self).__init__()
         path = self.debugfs.getpath('tracing/hwlat_detector')
         if not os.path.exists(path):
-            raise RuntimeError, "hwlat tracer not available"
+            raise DetectorNotAvailable, "hwlat", "hwlat tracer not available"
         self.type = "tracer"
         self.samples = []
         self.set("enable", 0)
@@ -421,116 +431,6 @@ class Hwlat(Detector):
         if not self.debugfs.umount():
             raise RuntimeError("Failed to unmount debugfs")
 
-#
-# the old smi_detector.ko module has different debugfs entries than the modern
-# hwlat_detector.ko module; this object translates the current entries into the
-# old style ones. The only real issue is that the smi_detector module doesn't
-# have the notion of width/window, it has the sample time and the interval
-# between samples. Of course window == sample time + interval, but you have to
-# have them both to calculate the window.
-#
-
-class Smi(Detector):
-    '''class to wrap access to smi_detector debugfs files'''
-    field_translate = {
-        "count" : "smi_count",
-        "enable" : "enable",
-        "max" : "max_sample_us",
-        "sample" : "sample_us",
-        "threshold" : "latency_threshold_us",
-        "width" : "ms_per_sample",
-        "window" : "ms_between_sample",
-        }
-
-    def __init__(self, debugfs):
-        super(Smi, self).__init__()
-        self.kmod = Kmod("smi_detector")
-        self.type = "kmodule"
-        self.width = 0
-        self.window = 0
-        self.debugfs = debugfs
-
-    def __get(self, field):
-        return int(self.debugfs.getval(os.path.join("smi_detector", field)))
-
-    def __set(self, field, value):
-        debug("__set: %s <-- %d" % (field, value))
-        self.debugfs.putval(os.path.join("smi_detector", field), str(value))
-        if self.__get(field) != value:
-            raise RuntimeError("Error setting %s to %d (%d)" % (field, value, self.__get(field)))
-
-    def get(self, field):
-        name = Smi.field_translate[field]
-        if name != field:
-            debug("get: %s translated to %s" % (field, name))
-        if field == "window":
-            return self.get_window()
-        elif field == "width":
-            return ms2us(self.__get(name))
-        else:
-            return self.__get(name)
-
-    def get_window(self):
-        sample = ms2us(self.__get('ms_per_sample'))
-        interval = ms2us(self.__get('ms_between_samples'))
-        return sample + interval
-
-    def set_window(self, window):
-        width = ms2us(int(self.__get('ms_per_sample')))
-        interval = window - width
-        if interval <= 0:
-            raise RuntimeError("Smi: invalid width/interval values (%d/%d (%d))" % (width, interval, window))
-        self.__set('ms_between_samples', us2ms(interval))
-
-    def set(self, field, val):
-        name = Smi.field_translate[field]
-        if name != field:
-            debug ("set: %s translated to %s" % (field, name))
-        if field == "enable" and val:
-            val = 1
-        if field == "window":
-            self.set_window(val)
-        else:
-            if field == "width":
-                val = us2ms(val)
-            self.__set(name, val)
-
-    def get_sample(self):
-        name = Smi.field_translate["sample"]
-        return self.debugfs.getval(os.path.join('smi_detector', name), nonblocking=True)
-
-    def detect(self):
-        self.samples = []
-        testend = time.time() + self.testduration
-        threshold = self.get("threshold")
-        debug("detect: threshold %d" % threshold)
-        pollcnt = 0
-        try:
-            while time.time() < testend:
-                pollcnt += 1
-                val = self.get_sample()
-                val = val.strip()
-                if int(val) >= threshold:
-                    self.samples.append(val)
-                    if watch: print(val)
-                    debug("got a latency sample: %s (threshold: %d)" % (val, self.get("threshold")))
-                time.sleep(0.1)
-        except KeyboardInterrupt as e:
-            print("interrupted")
-        return self.samples
-
-    def cleanup(self):
-        if not self.kmod.unload():
-            raise RuntimeError("Failed to unload %s" % self.name)
-        if not self.debugfs.umount():
-            raise RuntimeError("Failed to unmount debugfs")
-
-def ms2us(val):
-    return val * 1000
-
-def us2ms(val):
-    return val / 1000
-
 def seconds(str):
     "convert input string to value in seconds"
     if str.isdigit():
@@ -611,10 +511,6 @@ if __name__ == '__main__':
                       dest="report",
                       help="filename for sample data")
 
-    parser.add_option("--cleanup", action="store_true", default=False,
-                      dest="cleanup",
-                      help="force unload of module and umount of debugfs")
-
     parser.add_option("--debug", action="store_true", default=False,
                       dest="debug",
                       help="turn on debugging prints")
@@ -646,12 +542,10 @@ if __name__ == '__main__':
     if o.kmodule:
         detect = Hwlat()
     else:
-        detect = Tracer()
-
-    if o.cleanup:
-        debug("forcing cleanup of debugfs and hardware latency module")
-        detect.force_cleanup()
-        sys.exit(0)
+        try:
+            detect = Tracer()
+        except DetectorNotAvailable, err:
+            detect = HwLat()
 
     if o.threshold:
         t = microseconds(o.threshold)
