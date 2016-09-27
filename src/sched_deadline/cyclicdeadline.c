@@ -1155,7 +1155,7 @@ int main (int argc, char **argv)
 			 * have HRTICK enabled.
 			 */
 			if (!setup_hr_tick()) {
-				fprintf(stderr, "For less that 2ms run times, you need to\n"
+				fprintf(stderr, "For less than 2ms run times, you need to\n"
 					"have HRTICK enabled in debugfs/sched_features\n");
 				exit(-1);
 			}
