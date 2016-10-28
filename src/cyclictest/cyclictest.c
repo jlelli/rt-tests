@@ -1688,7 +1688,6 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case 'R':
 		case OPT_RESOLUTION:
 			check_clock_resolution = 1; break;
-		case 's':
 		case OPT_SECALIGNED:
 			secaligned = 1;
 			if (optarg != NULL)
@@ -1698,6 +1697,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			else
 				offset = 0;
 			break;
+		case 's':
 		case OPT_SYSTEM:
 			use_system = MODE_SYS_OFFSET; break;
 		case 'S':
