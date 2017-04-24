@@ -2377,6 +2377,9 @@ int main(int argc, char **argv)
 			/*  allocate memory for a stack on appropriate node */
 			stack = rt_numa_numa_alloc_onnode(stksize, node, i);
 
+			/* touch the stack pages to pre-fault them in */
+			memset(stack, 0, stksize);
+
 			/* set the thread's stack */
 			if (pthread_attr_setstack(&attr, stack, stksize))
 				fatal("failed to set stack addr for thread %d to 0x%x\n",
