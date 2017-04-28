@@ -1241,6 +1241,17 @@ static void *timerthread(void *param)
 	}
 
 out:
+	if (refresh_on_max) {
+		pthread_mutex_lock(&refresh_on_max_lock);
+		/* We could reach here with both shutdown and allstopped unset (0).
+		 * Set shutdown with synchronization to notify the main
+		 * thread not to be blocked when it should exit.
+		 */
+		shutdown++;
+		pthread_cond_signal(&refresh_on_max_cond);
+		pthread_mutex_unlock(&refresh_on_max_lock);
+	}
+
 	if (par->mode == MODE_CYCLIC)
 		timer_delete(timer);
 
@@ -2516,8 +2527,9 @@ int main(int argc, char **argv)
 
 		if (refresh_on_max) {
 			pthread_mutex_lock(&refresh_on_max_lock);
-			pthread_cond_wait(&refresh_on_max_cond,
-					  &refresh_on_max_lock);
+			if (!shutdown)
+				pthread_cond_wait(&refresh_on_max_cond,
+						&refresh_on_max_lock);
 			pthread_mutex_unlock(&refresh_on_max_lock);
 		}
 	}
@@ -2526,6 +2538,9 @@ int main(int argc, char **argv)
  outall:
 	shutdown = 1;
 	usleep(50000);
+
+	if (!verbose && !quiet && refresh_on_max)
+		printf("\033[%dB", num_threads + 2);
 
 	if (quiet)
 		quiet = 2;
