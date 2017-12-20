@@ -35,7 +35,7 @@ LDFLAGS ?=
 PYLIB  ?= $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 
 ifndef DEBUG
-	CFLAGS	+= -O2
+	CFLAGS	+= -O2 -g
 else
 	CFLAGS	+= -O0 -g
 endif
