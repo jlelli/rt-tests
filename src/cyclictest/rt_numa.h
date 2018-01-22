@@ -23,8 +23,6 @@
 #include "rt-utils.h"
 #include "error.h"
 
-static int numa = 0;
-
 #ifdef NUMA
 #include <numa.h>
 
