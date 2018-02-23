@@ -1,5 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
+# (C) 2018 Clark Williams <williams@redhat.com>
 # (C) 2015,2016 Clark Williams <williams@redhat.com>
 # (C) 2009 Clark Williams <williams@redhat.com>
 #
@@ -16,7 +17,7 @@ import subprocess
 import errno
 import os.path
 
-version = "0.7"
+version = "0.8"
 debugging = False
 quiet = False
 watch = False
@@ -145,9 +146,9 @@ class Kmod(object):
 
     def __init__(self, name):
         if name not in Kmod.names:
-            raise RuntimeError, "unsupported module name: %s" % name
+            raise RuntimeError("unsupported module name: %s" % name)
         if name == "smi_detector":
-            raise RuntimeError, "smi_detector module no longer supported!"
+            raise RuntimeError("smi_detector module no longer supported!")
         self.name = name
         self.preloaded = False
         self.builtin = False
@@ -165,7 +166,7 @@ class Kmod(object):
                 debug("using already loaded %s" % self.name)
                 return
         if not self.__find_module():
-            raise DetectorNotAvailable, name, "module %s does not exist!" % self.name
+            raise DetectorNotAvailable(name, "module %s does not exist!" % self.name)
 
     def load(self):
         if self.builtin:
@@ -213,23 +214,23 @@ class Detector(object):
         return counts
 
     def cleanup(self):
-        raise RuntimeError, "must override base method 'cleanup'!"
+        raise RuntimeError("must override base method 'cleanup'!")
 
     def get(self, field):
         '''get the value of a debugfs field'''
-        raise RuntimeError, "must override base method 'get'!"
+        raise RuntimeError("must override base method 'get'!")
 
     def set(self, field, val):
         '''set a value in a debugfs field'''
-        raise RuntimeError, "must override base method 'set'!"
+        raise RuntimeError("must override base method 'set'!")
 
     def save(self, reportfile=None):
         '''save sample data to reportfile'''
-        raise RuntimeError, "must override base method 'save'!"
+        raise RuntimeError("must override base method 'save'!")
 
     def display(self):
         '''output the sample data as a string'''
-        raise RuntimeError, "must override base method 'display'!"
+        raise RuntimeError("must override base method 'display'!")
 
     def start(self):
         count = 0
@@ -261,7 +262,7 @@ class Detector(object):
 
     def detect(self):
         '''get detector output'''
-        raise RuntimeError, "must override base method 'detect'!"
+        raise RuntimeError("must override base method 'detect'!")
 #
 # class to handle running the hwlat tracer module of ftrace
 #
@@ -306,7 +307,7 @@ class Tracer(Detector):
         super(Tracer, self).__init__()
         path = self.debugfs.getpath('tracing/hwlat_detector')
         if not os.path.exists(path):
-            raise DetectorNotAvailable, "hwlat", "hwlat tracer not available"
+            raise DetectorNotAvailable("hwlat", "hwlat tracer not available")
         self.type = "tracer"
         self.samples = []
         self.set("enable", 0)
@@ -544,7 +545,7 @@ if __name__ == '__main__':
     else:
         try:
             detect = Tracer()
-        except DetectorNotAvailable, err:
+        except DetectorNotAvailable as err:
             detect = HwLat()
 
     if o.threshold:
@@ -555,8 +556,8 @@ if __name__ == '__main__':
     if o.hardlimit:
         hardlimit = microseconds(o.hardlimit)
     else:
-        hardlimit = detect.get("threshold")
-    debug("hardlimit set to %dus" % int(hardlimit))
+        hardlimit = int(detect.get("threshold"))
+    debug("hardlimit set to %dus" % hardlimit)
 
     if o.window:
         w = microseconds(o.window)
