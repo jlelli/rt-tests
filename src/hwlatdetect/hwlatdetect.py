@@ -561,7 +561,7 @@ if __name__ == '__main__':
 
     if o.window:
         w = microseconds(o.window)
-        if w < detect.get("width"):
+        if w < int(detect.get("width")):
             debug("shrinking width to %d for new window of %d" % (w/2, w))
             detect.set("width", w/2)
         debug("window parameter = %d" % w)
@@ -570,7 +570,7 @@ if __name__ == '__main__':
 
     if o.width:
         w = microseconds(o.width)
-        if w > detect.get("window"):
+        if w > int(detect.get("window")):
             debug("widening window to %d for new width of %d" % (w*2, w))
             detect.set("window", w*2)
         debug("width parameter = %d" % w)
