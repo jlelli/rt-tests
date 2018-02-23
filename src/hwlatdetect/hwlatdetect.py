@@ -485,62 +485,62 @@ def microseconds(str):
 #
 
 if __name__ == '__main__':
-    from optparse import OptionParser
+    from argparse import ArgumentParser
 
-    parser = OptionParser()
-    parser.add_option("--duration", default=None, type="string",
-                      dest="duration",
-                      help="total time to test for hardware latency (<n>{smdw})")
+    parser = ArgumentParser()
+    parser.add_argument("--duration", default=None,
+                        dest="duration",
+                        help="total time to test for hardware latency: <n>{smdw}")
 
-    parser.add_option("--threshold", default=None, type="string",
-                      dest="threshold",
-                      help="value above which is considered an hardware latency")
+    parser.add_argument("--threshold", default=None,
+                        dest="threshold",
+                        help="value above which is considered an hardware latency")
 
-    parser.add_option("--hardlimit", default=None, type="string",
-                      dest="hardlimit",
-                      help="value above which the test is considered to fail")
+    parser.add_argument("--hardlimit", default=None,
+                        dest="hardlimit",
+                        help="value above which the test is considered to fail")
 
-    parser.add_option("--window", default=None, type="string",
-                      dest="window",
-                      help="time between samples")
+    parser.add_argument("--window", default=None,
+                        dest="window",
+                        help="time between samples")
 
-    parser.add_option("--width", default=None, type="string",
-                      dest="width",
-                      help="time to actually measure")
+    parser.add_argument("--width", default=None,
+                        dest="width",
+                        help="time to actually measure")
 
-    parser.add_option("--report", default=None, type="string",
-                      dest="report",
-                      help="filename for sample data")
+    parser.add_argument("--report", default=None,
+                        dest="report",
+                        help="filename for sample data")
 
-    parser.add_option("--debug", action="store_true", default=False,
-                      dest="debug",
-                      help="turn on debugging prints")
+    parser.add_argument("--debug", action="store_true", default=False,
+                        dest="debug",
+                        help="turn on debugging prints")
 
-    parser.add_option("--quiet", action="store_true", default=False,
-                      dest="quiet",
-                      help="turn off all screen output")
+    parser.add_argument("--quiet", action="store_true", default=False,
+                        dest="quiet",
+                        help="turn off all screen output")
 
-    parser.add_option("--watch", action="store_true", default=False,
-                      dest="watch",
-                      help="print sample data to stdout as it arrives")
+    parser.add_argument("--watch", action="store_true", default=False,
+                        dest="watch",
+                        help="print sample data to stdout as it arrives")
 
-    parser.add_option("--kmodule", action="store_true", default=False,
-                      dest="kmodule",
-                      help="force using the kernel module")
+    parser.add_argument("--kmodule", action="store_true", default=False,
+                        dest="kmodule",
+                        help="force using the kernel module")
 
-    (o, a) = parser.parse_args()
+    args = parser.parse_args()
 
     # need these before creating detector instance
-    if o.debug:
+    if args.debug:
         debugging = True
         quiet = False
         debug("debugging prints turned on")
 
-    if o.quiet:
+    if args.quiet:
         quiet = True
         debugging = False
 
-    if o.kmodule:
+    if args.kmodule:
         detect = Hwlat()
     else:
         try:
@@ -548,19 +548,19 @@ if __name__ == '__main__':
         except DetectorNotAvailable as err:
             detect = HwLat()
 
-    if o.threshold:
-        t = microseconds(o.threshold)
+    if args.threshold:
+        t = microseconds(args.threshold)
         detect.set("threshold", t)
         debug("threshold set to %dus" % t)
 
-    if o.hardlimit:
-        hardlimit = microseconds(o.hardlimit)
+    if args.hardlimit:
+        hardlimit = microseconds(args.hardlimit)
     else:
         hardlimit = int(detect.get("threshold"))
     debug("hardlimit set to %dus" % hardlimit)
 
-    if o.window:
-        w = microseconds(o.window)
+    if args.window:
+        w = microseconds(args.window)
         if w < int(detect.get("width")):
             debug("shrinking width to %d for new window of %d" % (w/2, w))
             detect.set("width", w/2)
@@ -568,8 +568,8 @@ if __name__ == '__main__':
         detect.set("window", w)
         debug("window for sampling set to %dus" % w)
 
-    if o.width:
-        w = microseconds(o.width)
+    if args.width:
+        w = microseconds(args.width)
         if w > int(detect.get("window")):
             debug("widening window to %d for new width of %d" % (w*2, w))
             detect.set("window", w*2)
@@ -577,16 +577,16 @@ if __name__ == '__main__':
         detect.set("width", w)
         debug("sample width set to %dus" % w)
 
-    if o.duration:
-        detect.testduration = seconds(o.duration)
+    if args.duration:
+        detect.testduration = seconds(args.duration)
     else:
         detect.testduration = 120 # 2 minutes
     debug("test duration is %ds" % detect.testduration)
 
-    if o.watch:
+    if args.watch:
         watch = True
 
-    reportfile = o.report
+    reportfile = args.report
 
     info("hwlatdetect:  test duration %d seconds" % detect.testduration)
     info("   detector: %s" % detect.type)
