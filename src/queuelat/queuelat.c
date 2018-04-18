@@ -131,6 +131,74 @@ static void print_all_buckets(void)
 	}
 }
 
+static void print_max_bucketsec(void)
+{
+	int i, bucket_nr;
+	unsigned long long highest_val = 0;
+
+	for (i = 0; i <= OUTLIER_BUCKET; i++) {
+		unsigned long long val = i*VALS_PER_BUCKET;
+
+		bucket_nr = val_to_bucket(val);
+
+		if (buckets[bucket_nr] != 0) {
+			highest_val = val;
+		}
+	}
+
+	bucket_nr = val_to_bucket(highest_val);
+	printf("Max loop processing time: [%lld - %lld] = %lld\n", highest_val,
+						     highest_val + VALS_PER_BUCKET-1,
+						     buckets[bucket_nr]);
+
+	return;
+}
+
+static void print_min_bucketsec(void)
+{
+	int i, bucket_nr;
+	unsigned long long min_val = 0;
+
+	for (i = 0; i <= OUTLIER_BUCKET; i++) {
+		unsigned long long val = i*VALS_PER_BUCKET;
+
+		bucket_nr = val_to_bucket(val);
+
+		if (buckets[bucket_nr] != 0) {
+			min_val = val;
+			break;
+		}
+	}
+
+	bucket_nr = val_to_bucket(min_val);
+	printf("Min loop processing time: [%lld - %lld] = %lld\n", min_val,
+						     min_val + VALS_PER_BUCKET-1,
+						     buckets[bucket_nr]);
+
+	return;
+}
+
+static void print_avg_bucketsec(void)
+{
+	int i, bucket_nr;
+	unsigned long long total_sum = 0;
+	unsigned long long nr_hits = 0;
+
+	for (i = 0; i <= OUTLIER_BUCKET; i++) {
+		unsigned long long val = i*VALS_PER_BUCKET;
+		unsigned long long maxtime; 
+
+		bucket_nr = val_to_bucket(val);
+
+		maxtime = val + VALS_PER_BUCKET-1;
+		total_sum = total_sum + maxtime*buckets[bucket_nr];
+
+		nr_hits = nr_hits + buckets[bucket_nr];
+	}
+
+	printf("Avg loop processing time: %lld\n", total_sum / nr_hits);
+}
+
 static void print_all_buckets_drainlength(void)
 {
 	int i, print_dotdotdot = 0;
@@ -335,6 +403,17 @@ static void convert_to_ghz(double tsc_freq_mhz)
 		cycles_to_ns);
 }
 
+
+static void print_exit_info(void)
+{
+	print_all_buckets();
+	printf("\n ---------------- \n");
+	print_min_bucketsec();
+	print_max_bucketsec();
+	print_avg_bucketsec();
+
+}
+
 void main_loop(void)
 {
 	u64 a, b;
@@ -405,7 +484,7 @@ void main_loop(void)
 					   "queue_size=%d max_queue_len=%d\n",
 					   queue_size, max_queue_len);
 			trace_write(buf, ret);
-			print_all_buckets();
+			print_exit_info();
 			exit(0);
 		}
 	}
@@ -416,7 +495,7 @@ void main_loop(void)
 
 void sig_handler(int sig)
 {
-	print_all_buckets();
+	print_exit_info();
 	exit(0);
 }
 
