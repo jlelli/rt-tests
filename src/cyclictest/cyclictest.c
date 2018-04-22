@@ -935,6 +935,9 @@ static int has_smi_counter(void)
 	case 0x4C:      /* AMT */
 	case 0x57:      /* PHI */
 	case 0x5C:      /* BXT */
+	case 0x5F:	/* DNV */
+	case 0x7A:	/* Gemini Lake */
+	case 0x85:	/* Knights Mill */
 		break;
 	default:
 		return 0;
@@ -2046,6 +2049,13 @@ static void print_hist(struct thread_param *par[], int nthreads)
 			fprintf(fd, " # %05lu others", par[i]->stats->hist_overflow - par[i]->stats->num_outliers);
 		fprintf(fd, "\n");
 	}
+	if (smi) {
+		fprintf(fd, "# SMIs:");
+		for (i = 0; i < nthreads; i++)
+			fprintf(fd, " %05lu", par[i]->stats->smi_count);
+		fprintf(fd, "\n");
+	}
+
 	fprintf(fd, "\n");
 
 	if (use_histfile)
