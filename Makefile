@@ -16,7 +16,8 @@ sources = cyclictest.c \
 	  sigwaittest.c \
 	  svsematest.c  \
 	  cyclicdeadline.c \
-	  deadline_test.c
+	  deadline_test.c \
+	  queuelat.c 
 
 TARGETS = $(sources:.c=)
 LIBS	= -lrt -lpthread
@@ -86,6 +87,7 @@ VPATH	+= src/backfire:
 VPATH	+= src/lib:
 VPATH	+= src/hackbench:
 VPATH	+= src/sched_deadline:
+VPATH	+= src/queuelat:	
 
 $(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) -D VERSION=$(VERSION) -c $< $(CFLAGS) $(CPPFLAGS) -o $@
@@ -145,6 +147,9 @@ pip_stress: $(OBJDIR)/pip_stress.o $(OBJDIR)/librttest.a
 
 hackbench: $(OBJDIR)/hackbench.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS)
+
+queuelat: $(OBJDIR)/queuelat.o $(OBJDIR)/librttest.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
 LIBOBJS =$(addprefix $(OBJDIR)/,error.o rt-get_cpu.o rt-sched.o rt-utils.o)
 $(OBJDIR)/librttest.a: $(LIBOBJS)

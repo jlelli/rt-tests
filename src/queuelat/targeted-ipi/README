@@ -1,0 +1,12 @@
+
+To build:
+
+make -C <path_to_kernel_src> M=$PWD
+
+To build against the running kernel use:
+
+make -C /lib/modules/`uname -r`/build M=$PWD
+
+
+Read targeted-ipi.c for the parameters.
+
