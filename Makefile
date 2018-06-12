@@ -33,7 +33,7 @@ CFLAGS ?= -Wall -Wno-nonnull
 CPPFLAGS += -D_GNU_SOURCE -Isrc/include
 LDFLAGS ?=
 
-PYLIB  ?= $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
+PYLIB  ?= $(shell python3 -c 'import distutils.sysconfig;  print (distutils.sysconfig.get_python_lib())')
 
 ifndef DEBUG
 	CFLAGS	+= -O2 -g
