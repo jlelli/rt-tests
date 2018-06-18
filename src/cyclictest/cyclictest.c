@@ -1207,7 +1207,6 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"spike-nodes",	     required_argument, NULL, OPT_TRIGGER_NODES },
 			{"threads",          optional_argument, NULL, OPT_THREADS },
 			{"unbuffered",       no_argument,       NULL, OPT_UNBUFFERED },
-			{"numa",             no_argument,       NULL, OPT_NUMA },
 			{"verbose",          no_argument,       NULL, OPT_VERBOSE },
 			{"dbg_cyclictest",   no_argument,       NULL, OPT_DBGCYCLIC },
 			{"policy",           required_argument, NULL, OPT_POLICY },
@@ -1215,7 +1214,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"posix_timers",     no_argument,	NULL, OPT_POSIX_TIMERS },
 			{NULL, 0, NULL, 0 },
 		};
-		int c = getopt_long(argc, argv, "a::A::b:c:d:D:h:H:i:l:MNo:p:mqrRsSt::uUvD:x",
+		int c = getopt_long(argc, argv, "a::A::b:c:d:D:h:H:i:l:MNo:p:mqrRsSt::uvD:x",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1350,20 +1349,6 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case 'u':
 		case OPT_UNBUFFERED:
 			setvbuf(stdout, NULL, _IONBF, 0); break;
-		case 'U':
-		case OPT_NUMA: /* NUMA testing */
-			numa = 1;	/* Turn numa on */
-			if (smp)
-				fatal("numa and smp options are mutually exclusive\n");
-			numa_on_and_available();
-#ifdef NUMA
-			num_threads = max_cpus;
-			setaffinity = AFFINITY_USEALL;
-#else
-			warn("cyclictest was not built with the numa option\n");
-			warn("ignoring --numa or -U\n");
-#endif
-			break;
 		case 'v':
 		case OPT_VERBOSE: verbose = 1; break;
 		case 'x':
@@ -1396,6 +1381,19 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			fatal("--smi is not available on your arch\n");
 #endif
 			break;
+		}
+	}
+
+	if (!smp) {	/* if smp wasn't requested, test for numa automatically */
+#ifdef NUMA
+		if (numa_available() != -1) {
+			numa = 1;
+			num_threads = max_cpus;
+			setaffinity = AFFINITY_USEALL;
+#else
+			warn("cyclictest was not built with the numa option\n");
+			numa = 0;
+#endif
 		}
 	}
 

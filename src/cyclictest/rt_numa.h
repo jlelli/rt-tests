@@ -192,12 +192,6 @@ static inline void rt_bitmask_free(struct bitmask *mask)
 
 #endif	/* LIBNUMA_API_VERSION */
 
-static void numa_on_and_available()
-{
-	if (numa && (numa_available() == -1))
-		fatal("--numa specified and numa functions not available.\n");
-}
-
 #else /* ! NUMA */
 
 struct bitmask {
