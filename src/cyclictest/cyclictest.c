@@ -1713,9 +1713,7 @@ static void trigger_update(struct thread_param *par, int diff, int64_t ts)
 void get_cpu_affinity(struct bitmask *cpus)
 {
 	struct bitmask *bitmask = numa_allocate_cpumask();
-#if NUMA
-	numa_sched_getaffinity(0, bitmask);
-#else
+#if 0
 	int i, max_cpus = numa_num_configured_cpus();
 	cpu_set_t mask;
 	int ret = sched_getaffinity(0, sizeof(mask), &mask);
@@ -1731,9 +1729,10 @@ void get_cpu_affinity(struct bitmask *cpus)
 			numa_bitmask_setbit(bitmask, i);
 		}
 	}
+#else
+	numa_sched_getaffinity(0, bitmask);
 #endif
-	/* copy the contents to our argument */
-	*cpus = *bitmask;
+	cpus = bitmask;
 }
 
 int main(int argc, char **argv)
@@ -1744,7 +1743,7 @@ int main(int argc, char **argv)
 	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	int i, ret = -1;
 	int status;
-	int numa = numa_available() == 0 ? 1 : 0;
+	int numa = numa_available();
 
 	get_cpu_affinity(&allowed_cpus);
 
