@@ -1010,6 +1010,8 @@ static void display_help(int error)
 	       "         --secaligned [USEC] align thread wakeups to the next full second\n"
 	       "                           and apply the optional offset\n"
 	       "-s       --system          use sys_nanosleep and sys_setitimer\n"
+	       "-S       --smp             Standard SMP testing: options -a -t -n and\n"
+	       "                           same priority of all threads\n"
 	       "	--spike=<trigger>  record all spikes > trigger\n"
 	       "	--spike-nodes=[num of nodes]\n"
 	       "			   These are the maximum number of spikes we can record.\n"
@@ -1023,6 +1025,10 @@ static void display_help(int error)
 	       "                           without -t default = 1\n"
 	       "         --tracemark       write a trace mark when -b latency is exceeded\n"
 	       "-u       --unbuffered      force unbuffered output for live processing\n"
+#ifdef NUMA
+	       "-U       --numa            Standard NUMA testing (similar to SMP option)\n"
+	       "                           thread data structures allocated from local node\n"
+#endif
 	       "-v       --verbose         output values on stdout for statistics\n"
 	       "                           format: n:c:v n=tasknum c=count v=value in us\n"
 	       "	 --dbg_cyclictest  print info useful for debugging cyclictest\n"
@@ -1045,7 +1051,7 @@ static int quiet;
 static int interval = DEFAULT_INTERVAL;
 static int distance = -1;
 static struct bitmask *affinity_mask = NULL;
-static struct bitmask allowed_cpus;
+static int smp = 0;
 
 enum {
 	AFFINITY_UNSPECIFIED,
@@ -1150,8 +1156,8 @@ enum option_values {
 	OPT_INTERVAL, OPT_LOOPS, OPT_MLOCKALL, OPT_REFRESH,
 	OPT_NANOSLEEP, OPT_NSECS, OPT_OSCOPE, OPT_PRIORITY,
 	OPT_QUIET, OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION,
-	OPT_SYSTEM, OPT_THREADS, OPT_TRIGGER,
-	OPT_TRIGGER_NODES, OPT_UNBUFFERED, OPT_VERBOSE,
+	OPT_SYSTEM, OPT_SMP, OPT_THREADS, OPT_TRIGGER,
+	OPT_TRIGGER_NODES, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE,
 	OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
 	OPT_ALIGNED, OPT_SECALIGNED, OPT_LAPTOP, OPT_SMI,
 	OPT_TRACEMARK, OPT_POSIX_TIMERS,
@@ -1161,6 +1167,7 @@ enum option_values {
 static void process_options (int argc, char *argv[], int max_cpus)
 {
 	int error = 0;
+	int option_affinity = 0;
 
 	for (;;) {
 		int option_index = 0;
@@ -1195,10 +1202,12 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"secaligned",       optional_argument, NULL, OPT_SECALIGNED },
 			{"system",           no_argument,       NULL, OPT_SYSTEM },
 			{"smi",              no_argument,       NULL, OPT_SMI },
+			{"smp",              no_argument,       NULL, OPT_SMP },
 			{"spike",	     required_argument, NULL, OPT_TRIGGER },
 			{"spike-nodes",	     required_argument, NULL, OPT_TRIGGER_NODES },
 			{"threads",          optional_argument, NULL, OPT_THREADS },
 			{"unbuffered",       no_argument,       NULL, OPT_UNBUFFERED },
+			{"numa",             no_argument,       NULL, OPT_NUMA },
 			{"verbose",          no_argument,       NULL, OPT_VERBOSE },
 			{"dbg_cyclictest",   no_argument,       NULL, OPT_DBGCYCLIC },
 			{"policy",           required_argument, NULL, OPT_POLICY },
@@ -1206,13 +1215,16 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"posix_timers",     no_argument,	NULL, OPT_POSIX_TIMERS },
 			{NULL, 0, NULL, 0 },
 		};
-		int c = getopt_long(argc, argv, "a::A::b:c:d:D:h:H:i:l:MNo:p:mqrRst::uvD:x",
+		int c = getopt_long(argc, argv, "a::A::b:c:d:D:h:H:i:l:MNo:p:mqrRsSt::uUvD:x",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
 		case 'a':
 		case OPT_AFFINITY:
+			option_affinity = 1;
+			if (smp || numa)
+				break;
 			if (optarg != NULL) {
 				parse_cpumask(optarg, max_cpus);
 				setaffinity = AFFINITY_SPECIFIED;
@@ -1307,14 +1319,26 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case 's':
 		case OPT_SYSTEM:
 			use_system = MODE_SYS_OFFSET; break;
+		case 'S':
+		case OPT_SMP: /* SMP testing */
+			if (numa)
+				fatal("numa and smp options are mutually exclusive\n");
+			smp = 1;
+			num_threads = max_cpus;
+			setaffinity = AFFINITY_USEALL;
+			break;
 		case 't':
 		case OPT_THREADS:
+			if (smp) {
+				warn("-t ignored due to --smp\n");
+				break;
+			}
 			if (optarg != NULL)
 				num_threads = atoi(optarg);
 			else if (optind<argc && atoi(argv[optind]))
 				num_threads = atoi(argv[optind]);
 			else
-				num_threads = numa_bitmask_weight(&allowed_cpus);
+				num_threads = max_cpus;
 			break;
 		case OPT_TRIGGER:
 			trigger = atoi(optarg);
@@ -1326,6 +1350,20 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case 'u':
 		case OPT_UNBUFFERED:
 			setvbuf(stdout, NULL, _IONBF, 0); break;
+		case 'U':
+		case OPT_NUMA: /* NUMA testing */
+			numa = 1;	/* Turn numa on */
+			if (smp)
+				fatal("numa and smp options are mutually exclusive\n");
+			numa_on_and_available();
+#ifdef NUMA
+			num_threads = max_cpus;
+			setaffinity = AFFINITY_USEALL;
+#else
+			warn("cyclictest was not built with the numa option\n");
+			warn("ignoring --numa or -U\n");
+#endif
+			break;
 		case 'v':
 		case OPT_VERBOSE: verbose = 1; break;
 		case 'x':
@@ -1358,6 +1396,14 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			fatal("--smi is not available on your arch\n");
 #endif
 			break;
+		}
+	}
+
+	if (option_affinity) {
+		if (smp) {
+			warn("-a ignored due to --smp\n");
+		} else if (numa) {
+			warn("-a ignored due to --numa\n");
 		}
 	}
 
@@ -1710,31 +1756,6 @@ static void trigger_update(struct thread_param *par, int diff, int64_t ts)
 	pthread_mutex_unlock(&trigger_lock);
 }
 
-void get_cpu_affinity(struct bitmask *cpus)
-{
-	struct bitmask *bitmask = numa_allocate_cpumask();
-#if 0
-	int i, max_cpus = numa_num_configured_cpus();
-	cpu_set_t mask;
-	int ret = sched_getaffinity(0, sizeof(mask), &mask);
-
-	if (ret)
-		fatal("unable to get affinity mask: %s", strerror(errno));
-
-	/* convert the cpuset to a bitmask */
-	bitmask = numa_allocate_cpumask();
-
-	for (i=0, i < max_cpus; i++) {
-		if (CPU_ISSET(i, &mask)) {
-			numa_bitmask_setbit(bitmask, i);
-		}
-	}
-#else
-	numa_sched_getaffinity(0, bitmask);
-#endif
-	cpus = bitmask;
-}
-
 int main(int argc, char **argv)
 {
 	sigset_t sigset;
@@ -1743,9 +1764,6 @@ int main(int argc, char **argv)
 	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	int i, ret = -1;
 	int status;
-	int numa = numa_available();
-
-	get_cpu_affinity(&allowed_cpus);
 
 	process_options(argc, argv, max_cpus);
 
