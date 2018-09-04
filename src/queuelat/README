@@ -51,6 +51,7 @@ cycles_per_packet: number of cycles to process one packet (int).
 mpps(million-packet-per-sec): million packets per second (float).
 tsc_freq_mhz: TSC frequency in MHz, as measured by TSC PIT calibration 
 (search for "Detected XXX MHz processor" in dmesg, and use the integer part).
+timeout: timeout (in seconds).
 
 How it works
 ============

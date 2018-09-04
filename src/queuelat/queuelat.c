@@ -532,6 +532,18 @@ int calculate_nr_packets_drain_per_block(void)
 	return nr_packets_drain_per_block;
 }
 
+
+void print_help(void)
+{
+	printf("usage: queuelat [options]\n");
+	printf("-h show this help menu\n");
+	printf("-m max-queue-len (maximum latency allowed, in nanoseconds) (int)\n");
+	printf("-c cycles-per-packet (number of cycles to process one packet (int)\n");
+	printf("-p million-packet-per-sec (million packets per second) (float)\n");
+	printf("-f tsc-freq-mhz (TSC frequency in MHz) (float)\n");
+	printf("-t timeout (timeout, in seconds) (int)\n");
+}
+
 int main(int argc, char **argv)
 {
 	double tsc_freq_mhz;
@@ -549,7 +561,7 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt (argc, argv, "m:c:p:f:t:q:")) != -1)
+	while ((c = getopt (argc, argv, "m:c:p:f:t:q:h")) != -1)
 		switch (c)
 		{
 		case 'm':
@@ -570,6 +582,9 @@ int main(int argc, char **argv)
 		case 'q':
 			qvalue = optarg;
 			break;
+		case 'h':
+			print_help();
+			return 0;
 		case '?':
 			if (optopt == 'm' || optopt == 'c' || optopt == 'p' ||
 			    optopt == 'f' || optopt == 't' || optopt == 'q')
