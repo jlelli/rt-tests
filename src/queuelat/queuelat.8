@@ -1,0 +1,59 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH QUEUELAT 8 "Sept 3, 2018"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+queuelat \- Queue latency test program
+.SH SYNOPSIS
+.B queuelat
+.RI "[\-h] [\-m " max-queue-len "] [\-c " cycles-per-packet "] [\-p " mpps "] [\-f " tsc-freq "] [\-t " timeout "] \
+
+.SH DESCRIPTION
+queuelat simulates a network queue checking for latency
+violations in packet processing.
+
+.SH OPTIONS
+A summary of options is included below.
+.TP
+.B \-h
+Show help
+.br
+.TP
+.B \-m max-queue-len
+Maximum allowed latency, in nanoseconds. If latency to process
+.br
+any packet exceeds this value, the program quits,
+writing
+.br
+a message to the trace buffer.
+.TP
+.B \-c cycles-per-packet
+Estimated number of cycles it takes to process one packet.
+.br
+This value should come from the envisioned packet
+.br
+forwarding application being simulated.
+.TP
+.B \-p mpps
+Million packets per second that arrive for processing.
+.TP
+.B \-f tsc-freq-mhz
+TSC frequency in MHz.
+.TP
+.B \-t timeout
+Timeout in seconds to quit the program.
+
+
+.SH AUTHOR
+queuelat was written by Marcelo Tosatti <mtosatti@redhat.com>
+.br
