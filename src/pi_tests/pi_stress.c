@@ -1032,7 +1032,6 @@ void usage(void)
 	       ngroups);
 	printf
 	    ("\t--inversions=<n>- number of inversions per group [infinite]\n");
-	printf("\t--report=<path>\t- output to file [/dev/null]\n");
 	printf("\t--rr\t\t- use SCHED_RR for test threads [SCHED_FIFO]\n");
 	printf("\t--sched\t\t- scheduling options per thread type:\n");
 	printf("\t\tid=[high|med|low]\t\t\t- select thread\n");
