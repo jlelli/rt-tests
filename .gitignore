@@ -32,6 +32,7 @@ SRPMS
 /pmqtest
 /cyclicdeadline
 /deadline_test
+/queuelat
 
 rt-tests.spec
 tags
