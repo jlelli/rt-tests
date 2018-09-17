@@ -1,0 +1,47 @@
+.\"
+.TH PIP\ STRESS 8 "September 17, 2018"
+.SH NAME
+.B pip_stress \- Priority Inheritance with processes
+.SH SYNOPSIS
+.B pip_stress
+
+.SH DESCRIPTION
+This program demonstrates the technique of using priority inheritance (PI)
+mutexes with processes instead of threads.
+The way to do this is to obtain some shared memory - in this case with
+mmap that backs a pthread_mutex_t since this will support PI.
+Pay particular attention to how this is intialized to support processes.
+Function init_shared_pthread_mutex() does this by setting the
+pthread_mutexattr to PTHREAD_PROCESS_SHARED and the mutex protocol to
+PTHREAD_PRIO_INHERIT.
+In this program we purposely try to invoke a classic priority inversion.
+A low priority process grabs the mutex and does some work.
+A high priority process comes a long and is blocked since the mutex is taken.
+A medium priority process that doesn't require the mutex then takes the
+processor. Because the processes are restricted to one cpu, the low priority
+processes never makes any progress because the medium priority process
+runs in an infinite loop. This is a priority inversion because the
+medium priority process is running at the expensive of the high priority
+process. However, since we have used PRIO_INHERIT and are running on a
+machine that supports preemption, the high priority process will lend it's
+priority to the low priority process which will preempt the medium priority
+process. The low priority process will then release the mutex which the
+high priority process can obtain. When the high priority process gets to run
+it kills the medium priority process.
+The state structure keeps track of the progress. Although this program
+is set up to likely trigger an inversion, there is no guarantee that
+scheduling will make that happen. After the program completes it reports
+whether a priority inversion occurred or not. In either case this program
+demonstrates how to use priority inheritance mutexes with processes.
+In fact, you would be better off to avoid scenarios in which a priority
+inversion occurs if possible - this program tries to trigger them just
+to show that it works. If you are having difficulty triggering an inversion,
+merely increase the time that the low priority process sleeps while
+holding the lock. (usleep);
+Also note that you have to run as a user with permission to change
+scheduling priorities.
+.BR
+.SH AUTHOR
+pip_stress was written by John Kacur <jkacur at redhat.com>
+.PP
+This manual page was also written by John Kacur
