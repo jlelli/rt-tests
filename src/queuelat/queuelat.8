@@ -1,0 +1,158 @@
+.\"
+.TH queuelat 8 "September 17, 2018"
+.SH NAME
+.B queuelat
+.SH SYNOPSIS
+.B queuelat
+
+.sh DESCRIPTION
+
+cyclictest does not catch all cases where packet forwarding 
+latency can exceed a given threshold.
+
+Example: 
+
+# taskset -c 3 ./queuelat -m 20000 -c 100 -p 13 -f `sh ./get_cpuinfo_mhz.sh`
+
+# rmmod targeted-ipi; insmod ./targeted-ipi.ko ipidest=3 nripis=200 interval=2 delay=10   
+
+           <...>-4566  [003] .....11  4474.559880: tracing_mark_write: memmove block queue_size=28 queue_dec=279 queue_inc=307 delta=23685 ns
+           <...>-4566  [003] .....11  4474.559912: tracing_mark_write: memmove block queue_size=63 queue_dec=279 queue_inc=314 delta=24198 ns
+           <...>-4566  [003] .....11  4474.559937: tracing_mark_write: memmove block queue_size=97 queue_dec=279 queue_inc=313 delta=24090 ns
+           <...>-4566  [003] .....11  4474.559965: tracing_mark_write: memmove block queue_size=130 queue_dec=279 queue_inc=312 delta=24048 ns
+           <...>-4566  [003] .....11  4474.559993: tracing_mark_write: memmove block queue_size=162 queue_dec=279 queue_inc=311 delta=23957 ns
+           <...>-4566  [003] .....11  4474.560018: tracing_mark_write: memmove block queue_size=193 queue_dec=279 queue_inc=310 delta=23912 ns
+           <...>-4566  [003] .....11  4474.560046: tracing_mark_write: memmove block queue_size=225 queue_dec=279 queue_inc=311 delta=23965 ns
+           <...>-4566  [003] .....11  4474.560074: tracing_mark_write: memmove block queue_size=257 queue_dec=279 queue_inc=311 delta=23971 ns
+           <...>-4566  [003] .....11  4474.560102: tracing_mark_write: memmove block queue_size=288 queue_dec=279 queue_inc=310 delta=23902 ns
+           <...>-4566  [003] .....11  4474.560127: tracing_mark_write: memmove block queue_size=320 queue_dec=279 queue_inc=311 delta=23945 ns
+           <...>-4566  [003] .....11  4474.560155: tracing_mark_write: memmove block queue_size=351 queue_dec=279 queue_inc=310 delta=23921 ns
+           <...>-4566  [003] .....11  4474.560180: tracing_mark_write: memmove block queue_size=381 queue_dec=279 queue_inc=309 delta=23839 ns
+           <...>-4566  [003] .....11  4474.560208: tracing_mark_write: memmove block queue_size=412 queue_dec=279 queue_inc=310 delta=23876 ns
+           <...>-4566  [003] .....11  4474.560236: tracing_mark_write: memmove block queue_size=443 queue_dec=279 queue_inc=310 delta=23886 ns
+           <...>-4566  [003] .....11  4474.560261: tracing_mark_write: memmove block queue_size=474 queue_dec=279 queue_inc=310 delta=23901 ns
+           <...>-4566  [003] .....11  4474.560288: tracing_mark_write: memmove block queue_size=505 queue_dec=279 queue_inc=310 delta=23891 ns
+           <...>-4566  [003] .....11  4474.560316: tracing_mark_write: memmove block queue_size=535 queue_dec=279 queue_inc=309 delta=23822 ns
+           <...>-4566  [003] .....11  4474.560341: tracing_mark_write: memmove block queue_size=565 queue_dec=279 queue_inc=309 delta=23815 ns
+           <...>-4566  [003] .....11  4474.560353: tracing_mark_write: queue length exceeded: queue_size=565 max_queue_len=559
+
+# taskset -c 3 cyclictest -m -n -q -p95 -D 60m -h60 -i 200
+
+# rmmod targeted-ipi; insmod ./targeted-ipi.ko ipidest=3 nripis=20000 interval=2 delay=10
+
+Cyclictest results:
+
+# Total: 000068099
+# Min Latencies: 00001
+# Avg Latencies: 00002
+# Max Latencies: 00008
+# Histogram Overflows: 00000
+
+
+----- queuelat basics:
+
+Queuelat simulates a DPDK queue. From queuelat.c: 
+
+Program parameters:
+max_queue_len: maximum latency allowed, in nanoseconds (int).
+cycles_per_packet: number of cycles to process one packet (int).
+mpps(million-packet-per-sec): million packets per second (float).
+tsc_freq_mhz: TSC frequency in MHz, as measured by TSC PIT calibration 
+(search for "Detected XXX MHz processor" in dmesg, and use the integer part).
+
+How it works
+============
+
+ The program in essence does:
+
+             b = rdtsc();
+             memmove(dest, src, n);
+             a = rdtsc();
+
+             delay = convert_to_ns(a - b);
+
+             queue_size += packets_queued_in(delay);
+             queue_size -= packets_processed;
+     
+             if (queue_size > max_queue_len)
+                     FAIL();
+
+packets_processed is fixed, and is estimated as follows: 
+n is determined first, so that the stats bucket with highest count 
+takes max_latency/2.
+for max_latency/2, we calculate how many packets can be drained
+in that time (using cycles_per_packet).
+
+Queuelat output
+===============
+
+During calibration, queuelat outputs the following table:
+
+[9600 - 9699] = 0  packetfillrates=[67 - 67]
+[9700 - 9799] = 7907  packetfillrates=[67 - 68]
+[9800 - 9899] = 42085  packetfillrates=[68 - 69]
+[9900 - 9999] = 7  packetfillrates=[69 - 69]
+[10000 - 10099] = 1  packetfillrates=[70 - 70]
+  |	  |       |		      |
+  |	  |	  |		      |
+  |	  |	  |		      |_________ [min - max]  number of 
+  |	  |       |				 packets the queue will reach
+  |       |       |				 with specified mpps in this 
+  |       |       |				 time (without draining)
+  |       |	  |
+  |	  |       |______________________________ number of hits for this
+  |	  |					  bucket
+  |       |		
+  |	  |______________________________________  min amount of time (ns)
+  |   						   this bucket accepts
+  |
+  |______________________________________________  max amount of time (ns)
+						   this bucket accepts
+
+
+On success, queuelat outputs a table similar to cyclictest:
+
+[7000 - 7099] = 0
+[7100 - 7199] = 2
+[7200 - 7299] = 2457
+[7300 - 7399] = 21058
+  |      |	  |
+  |	 |	  |___________  Number of processing loops that hit this
+  |	 |		        bucket.
+  |      |
+  |	 |____________________	Maximum number of nanoseconds of this bucket.
+  |	  
+  |
+  |___________________________  Minimum number of nanoseconds in this bucket.
+
+That is a processing loop will account into a bucket if its duration 
+is 
+
+	 min_number_ns_in_bucket < duration < max_number_ns_in_bucket
+
+
+Automatic determination of Mpps
+===============================
+
+There is a script called determine_maximum_mpps.sh, which should be edited
+to include the pinning and -RT priority configuration for your machine.
+
+PREAMBLE="taskset -c 2 chrt -f 1"
+MAXLAT="20000"
+CYCLES_PER_PACKET="300"
+
+This script will find the maximum mpps parameter which can sustain:
+
+	1) 10 consecutive 30 second runs.
+	2) 1 run of 10 minutes.
+
+Without violating the latency specified with $MAXLAT.
+
+.BR
+.SH AUTHOR
+queuelat was written by Marcello Tosatti <mtosatti at redhat.com>
+.SH SEE ALSO
+.BR determine_maximum_mpps.sh
+.BR get_cpuinfo_mhz.sh
+.PP
+This manual page was created by John Kacur <jkacur at redhat.com>
