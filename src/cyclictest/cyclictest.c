@@ -1025,10 +1025,6 @@ static void display_help(int error)
 	       "                           without -t default = 1\n"
 	       "         --tracemark       write a trace mark when -b latency is exceeded\n"
 	       "-u       --unbuffered      force unbuffered output for live processing\n"
-#ifdef NUMA
-	       "-U       --numa            Standard NUMA testing (similar to SMP option)\n"
-	       "                           thread data structures allocated from local node\n"
-#endif
 	       "-v       --verbose         output values on stdout for statistics\n"
 	       "                           format: n:c:v n=tasknum c=count v=value in us\n"
 	       "	 --dbg_cyclictest  print info useful for debugging cyclictest\n"
@@ -1329,7 +1325,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case 't':
 		case OPT_THREADS:
 			if (smp) {
-				warn("-t ignored due to --smp\n");
+				warn("-t ignored due to smp mode\n");
 				break;
 			}
 			if (optarg != NULL)
@@ -1399,9 +1395,9 @@ static void process_options (int argc, char *argv[], int max_cpus)
 
 	if (option_affinity) {
 		if (smp) {
-			warn("-a ignored due to --smp\n");
+			warn("-a ignored due to smp mode\n");
 		} else if (numa) {
-			warn("-a ignored due to --numa\n");
+			warn("-a ignored due to numa mode\n");
 		}
 	}
 
