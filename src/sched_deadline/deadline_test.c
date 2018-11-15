@@ -2092,6 +2092,8 @@ int main (int argc, char **argv)
 		printf("\n");
 	}
 
-	free(setcpu_buf);
+	if (!setcpu_buf)
+		free(setcpu_buf);
+
 	return 0;
 }
