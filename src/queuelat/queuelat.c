@@ -265,7 +265,7 @@ static inline unsigned long long __rdtscll(void)
 {
         DECLARE_ARGS(val, low, high);
 
-        asm volatile("cpuid; rdtsc" : EAX_EDX_RET(val, low, high));
+        asm volatile("mfence; rdtsc" : EAX_EDX_RET(val, low, high));
 
         return EAX_EDX_VAL(val, low, high);
 }
