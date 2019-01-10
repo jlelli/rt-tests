@@ -1386,11 +1386,11 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			numa = 1;
 			num_threads = max_cpus;
 			setaffinity = AFFINITY_USEALL;
-#else
-			warn("cyclictest was not built with the numa option\n");
-			numa = 0;
-#endif
 		}
+#else
+		warn("cyclictest was not built with the numa option\n");
+		numa = 0;
+#endif
 	}
 
 	if (option_affinity) {
