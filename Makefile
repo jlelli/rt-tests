@@ -16,7 +16,8 @@ sources = cyclictest.c \
 	  svsematest.c  \
 	  cyclicdeadline.c \
 	  deadline_test.c \
-	  queuelat.c 
+	  queuelat.c \
+	  ssdd.c
 
 TARGETS = $(sources:.c=)
 LIBS	= -lrt -lpthread
@@ -86,6 +87,7 @@ VPATH	+= src/lib:
 VPATH	+= src/hackbench:
 VPATH	+= src/sched_deadline:
 VPATH	+= src/queuelat:	
+VPATH	+= src/ssdd:
 
 $(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) -D VERSION=$(VERSION) -c $< $(CFLAGS) $(CPPFLAGS) -o $@
@@ -144,6 +146,9 @@ hackbench: $(OBJDIR)/hackbench.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS)
 
 queuelat: $(OBJDIR)/queuelat.o $(OBJDIR)/librttest.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
+
+ssdd: $(OBJDIR)/ssdd.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
 LIBOBJS =$(addprefix $(OBJDIR)/,error.o rt-get_cpu.o rt-sched.o rt-utils.o)
