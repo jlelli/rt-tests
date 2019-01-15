@@ -37,7 +37,7 @@
 #define STATE_EXITED_TSIG	6	/* exited with termination signal */
 #define STATE_EXITED_ERRSTAT	7	/* exited with non-zero status */
 
-char *state_name[] = {
+static char *state_name[] = {
 	[STATE_EXITED] = "STATE_EXITED",
 	[STATE_STOPPED] = "STATE_STOPPED",
 	[STATE_SIGNALED] = "STATE_SIGNALED",
@@ -47,7 +47,7 @@ char *state_name[] = {
 	[STATE_EXITED_ERRSTAT] = "STATE_EXITED_ERRSTAT"
 };
 
-const char *get_state_name(int state)
+static const char *get_state_name(int state)
 {
 	if (state < STATE_EXITED || state > STATE_EXITED_ERRSTAT)
 		return "?";
@@ -100,7 +100,7 @@ static int do_wait(pid_t *wait_pid, int *ret_sig)
 	return STATE_UNKNOWN;
 }
 
-int check_sigchld(void)
+static int check_sigchld(void)
 {
 	int i;
 	/*
@@ -121,9 +121,9 @@ int check_sigchld(void)
 	return got_sigchld;
 }
 
-pid_t parent;
-int nforks = 10;
-int nsteps = 10000;
+static pid_t parent;
+static int nforks = 10;
+static int nsteps = 10000;
 
 static void sigchld(int sig, unused siginfo_t * info, unused void *arg)
 {
