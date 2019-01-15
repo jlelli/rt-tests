@@ -132,12 +132,8 @@ static void sigchld(int sig, unused siginfo_t * info, unused void *arg)
 
 static void child_process(void)
 {
-	unused volatile int i;
-
-	/* wait for ptrace attach */
-	usleep(100000);
 	while (1)
-		i = 0;
+		;
 }
 
 static int forktests(int testid)
@@ -169,9 +165,6 @@ static int forktests(int testid)
 		       testid, parent, status, errno);
 		exit(1);
 	}
-
-	/* give both our child and parent time to set things up */
-	usleep(125000);
 
 	/*
 	 * Attach to the child.
