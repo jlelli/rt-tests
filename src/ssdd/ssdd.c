@@ -144,7 +144,6 @@ static int forktests(int testid)
 	struct sigaction act, oact;
 
 	parent = getpid();
-	printf("forktest#%d/%d: STARTING\n", testid, parent);
 
 	child = fork();
 	if (child == -1) {
@@ -154,6 +153,8 @@ static int forktests(int testid)
 	}
 	if (!child)
 		child_process();
+
+	printf("forktest#%d/%d/%d: STARTING\n", testid, parent, child);
 
 	act.sa_sigaction = sigchld;
 	sigemptyset(&act.sa_mask);
@@ -275,6 +276,7 @@ int main(int argc, char **argv)
 		if (argc)
 			nsteps = atoi(*argv);
 	}
+	printf("#main : %d\n", getpid());
 	printf("#forks: %d\n", nforks);
 	printf("#steps: %d\n", nsteps);
 	printf("\n");
