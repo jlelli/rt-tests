@@ -1257,7 +1257,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case 'F':
 		case OPT_FIFO:
 			use_fifo = 1;
-			strncpy(fifopath, optarg, strlen(optarg));
+			strncpy(fifopath, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case 'H':
 		case OPT_HISTOFALL:
@@ -1267,7 +1267,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			histogram = atoi(optarg); break;
 		case OPT_HISTFILE:
 			use_histfile = 1;
-			strncpy(histfile, optarg, strlen(optarg));
+			strncpy(histfile, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case 'i':
 		case OPT_INTERVAL:
