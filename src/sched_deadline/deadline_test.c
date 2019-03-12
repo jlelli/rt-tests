@@ -2092,8 +2092,12 @@ int main (int argc, char **argv)
 		printf("\n");
 	}
 
-	if (!setcpu_buf)
+	if (setcpu_buf)
 		free(setcpu_buf);
+	free(thread);
+	free(sched_data);
+
+	CPU_FREE(cpusetp);
 
 	return 0;
 }
