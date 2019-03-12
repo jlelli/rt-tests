@@ -1261,6 +1261,10 @@ int main (int argc, char **argv)
 		}
 	}
 
-	free(setcpu_buf);
+	if (setcpu_buf)
+		free(setcpu_buf);
+	free(thread);
+	free(sched_data);
+
 	return 0;
 }
