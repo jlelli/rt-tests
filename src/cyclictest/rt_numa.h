@@ -249,13 +249,6 @@ static inline void rt_bitmask_free(struct bitmask *mask)
 	free(mask);
 }
 
-
-static void numa_on_and_available()
-{
-	if (numa) /* NUMA is not defined here */
-		fatal("numa mode and numa functions not available.\n");
-}
-
 #endif	/* NUMA */
 
 /*
