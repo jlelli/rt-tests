@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
 
 #define NSEC_PER_SEC 1000000000
 
@@ -249,6 +250,8 @@ typedef unsigned long long cycles_t;
 typedef unsigned long long usecs_t;
 typedef unsigned long long u64;
 
+#if defined __x86_64__ || defined __i386__
+
 #ifdef __x86_64__
 #define DECLARE_ARGS(val, low, high)    unsigned low, high
 #define EAX_EDX_VAL(val, low, high)     ((low) | ((u64)(high) << 32))
@@ -270,7 +273,25 @@ static inline unsigned long long __rdtscll(void)
         return EAX_EDX_VAL(val, low, high);
 }
 
-#define rdtscll(val) do { (val) = __rdtscll(); } while (0)
+#define gettick(val) do { (val) = __rdtscll(); } while (0)
+
+#elif defined __arm__
+
+static inline unsigned long long __clock_gettime(void)
+{
+	struct timespec now;
+	int ret;
+
+	ret = clock_gettime(CLOCK_MONOTONIC, &now);
+	if (ret < 0)
+		return 0;
+
+	return now.tv_nsec;
+}
+
+#define gettick(val) do { (val) = __clock_gettime(); } while (0)
+
+#endif
 
 static void init_buckets(void)
 {
@@ -348,9 +369,9 @@ static void run_n(int n)
 
 	memmove(dest, src, n);
 	for (i = 0; i < loops; i++) {
-		rdtscll(b);
+		gettick(b);
 		memmove(dest, src, n);
-		rdtscll(a);
+		gettick(a);
 		delta = (a - b) * cycles_to_ns;
 		account(delta);
 	}
@@ -446,9 +467,9 @@ void main_loop(void)
 		int ret;
 		int nr_packets_fill;
 
-		rdtscll(b);
+		gettick(b);
 		memmove(dest, src, default_n);
-		rdtscll(a);
+		gettick(a);
 		delta = (a - b) * cycles_to_ns;
 		account(delta);
 
