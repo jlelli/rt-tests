@@ -1062,7 +1062,7 @@ int main (int argc, char **argv)
 		exit(-1);
 	}
 
-	while ((c = getopt(argc, argv, "+hac:t:")) >= 0) {
+	while ((c = getopt(argc, argv, "+hac:i:s:t:")) >= 0) {
 		switch (c) {
 		case 'a':
 			all_cpus = 1;
