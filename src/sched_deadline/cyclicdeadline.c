@@ -283,7 +283,7 @@ static void setup_ftrace_marker(void)
 {
 	struct stat st;
 	const char *debugfs = find_debugfs();
-	char files[strlen(debugfs) + 14];
+	char files[strlen(debugfs) + strlen("/tracing/trace_marker") + 1];
 	int ret;
 
 	if (strlen(debugfs) == 0)
