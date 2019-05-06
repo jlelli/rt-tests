@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# (C) 2018 Clark Williams <williams@redhat.com>
+# (C) 2018,2019 Clark Williams <williams@redhat.com>
 # (C) 2015,2016 Clark Williams <williams@redhat.com>
 # (C) 2009 Clark Williams <williams@redhat.com>
 #
@@ -213,6 +213,22 @@ class Detector(object):
             counts = [ int(x.strip()) for x in p.stdout.readlines()]
         return counts
 
+    # methods for preventing/enabling c-state transitions
+    # openinging /dev/cpu_dma_latency and writeing a 32-bit zero to that file will prevent
+    # c-state transitions while the file descriptor is open.
+    # use c_states_off() to disable c-state transitions
+    # use c_states_on() to close the file descriptor and re-enable c-states
+    #
+    def c_states_off(self):
+        self.dma_latency_handle = os.open("/dev/cpu_dma_latency", os.O_WRONLY)
+        os.write(self.dma_latency_handle, b'\x00\x00\x00\x00')
+        debug("c-states disabled")
+
+    def c_states_on(self):
+        if self.dma_latency_handle:
+            os.close(self.dma_latency_handle)
+        debug("c-states enabled")
+
     def cleanup(self):
         raise RuntimeError("must override base method 'cleanup'!")
 
@@ -235,6 +251,7 @@ class Detector(object):
     def start(self):
         count = 0
         threshold = int(self.get("threshold"))
+        self.c_states_off()
         debug("enabling detector module (threshold: %d)" % threshold)
         self.set("enable", 1)
         while self.get("enable") == 0:
@@ -258,6 +275,7 @@ class Detector(object):
             time.sleep(0.1)
             debug("retrying disable of detector module(%d)" % count)
             self.set("enable", 0)
+        self.c_states_on()
         debug("detector module disabled")
 
     def detect(self):
