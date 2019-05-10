@@ -8,7 +8,7 @@
 # modify it under the terms of the GNU General Public License Version 2
 # as published by the Free Software Foundation.
 
-from __future__ import print_function
+
 
 import sys
 import os
@@ -84,7 +84,7 @@ class DebugFS(object):
             try:
                 val = f.readline()
             except OSError as e:
-                print ("errno: %s" % e)
+                print("errno: %s" % e)
                 if e.errno == errno.EAGAIN:
                     val = None
                 else:
@@ -159,7 +159,7 @@ class Kmod(object):
             return
 
         # now look for already loaded module
-        for l in open ('/proc/modules'):
+        for l in open('/proc/modules'):
             field = l.split()
             if self.name in field[0]:
                 self.preloaded = True
@@ -210,7 +210,7 @@ class Detector(object):
         if self.have_msr:
             p = subprocess.Popen(['/usr/sbin/rdmsr', '-a', '-d', '0x34'], stdout=subprocess.PIPE)
             p.wait()
-            counts = [ int(x.strip()) for x in p.stdout.readlines()]
+            counts = [int(x.strip()) for x in p.stdout.readlines()]
         return counts
 
     # methods for preventing/enabling c-state transitions
@@ -295,11 +295,11 @@ class Tracer(Detector):
 
     class Sample(object):
         'private class for tracer sample data'
-        __slots__= 'timestamp', 'inner', 'outer',
+        __slots__ = 'timestamp', 'inner', 'outer',
         def __init__(self, line):
             fields = line.split()
             i,o = fields[6].split('/')
-            ts=fields[7][3:]
+            ts = fields[7][3:]
             self.timestamp = str(ts)
             self.inner = int(i)
             self.outer = int(o)
@@ -332,14 +332,14 @@ class Tracer(Detector):
         self.set('current_tracer', 'hwlat')
 
     def set(self, field, val):
-        path=self.translate(field)
+        path = self.translate(field)
         self.debugfs.putval(path, str(val))
 
     def get(self, field):
         if field == "count":
             return len(self.samples)
         elif field == "max":
-            max=0
+            max = 0
             for values in self.samples:
                 s = int(values.largest())
                 if s > max:
@@ -435,7 +435,7 @@ class Hwlat(Detector):
 
     def display(self):
         for s in self.samples:
-            print (s)
+            print(s)
 
     def save(self, output=None):
         if output:
