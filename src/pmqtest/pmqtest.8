@@ -21,6 +21,11 @@ It is useful to track down unexpected large latencies of a system.
 .B \-d, \-\-distance=DIST
 Set the distance of thread intervals in microseconds (default is 500 us). When pmqtest is called with the -t option and more than one thread is created, then this distance value is added to the interval of the threads: Interval(thread N) = Interval(thread N-1) + DIST
 .TP
+.B \-D, \-\-duration=TIME
+Specify a length for the test run.
+.br
+Append 'm', 'h', or 'd' to specify minutes, hours or days.
+.TP
 .B \-f, \-\-forcetimeout=TO
 Set an artificial delay of the send function to force timeout of the receiver, requires the -T option
 .TP
