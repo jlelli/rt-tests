@@ -146,7 +146,7 @@ int lockall = 0;
 
 /* command line options */
 struct option options[] = {
-	{"duration", required_argument, NULL, 't'},
+	{"duration", required_argument, NULL, 'D'},
 	{"verbose", no_argument, NULL, 'v'},
 	{"quiet", no_argument, NULL, 'q'},
 	{"groups", required_argument, NULL, 'g'},
@@ -1027,7 +1027,8 @@ void usage(void)
 	printf("\t--verbose\t- lots of output\n");
 	printf("\t--quiet\t\t- suppress running output\n");
 	printf
-	    ("\t--duration=<n>- length of the test run in seconds [infinite]\n");
+	    ("\t--duration=<n>\t- length of the test run in seconds [infinite]\n");
+	printf("\t\t\t  Append 'm', 'h', or 'd' to specify minutes, hours or days.\n");
 	printf("\t--groups=<n>\t- set the number of inversion groups [%d]\n",
 	       ngroups);
 	printf
@@ -1322,13 +1323,13 @@ int process_sched_line(const char *arg)
 void process_command_line(int argc, char **argv)
 {
 	int opt;
-	while ((opt = getopt_long(argc, argv, "+ht:vqi:g:rs:pdVum", options, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "+hD:vqi:g:rs:pdVum", options, NULL)) != -1) {
 		switch (opt) {
 		case 'h':
 			usage();
 			exit(0);
-		case 't':
-			duration = strtol(optarg, NULL, 10);
+		case 'D':
+			duration = parse_time_string(optarg);
 			break;
 		case 'v':
 			verbose = 1;
