@@ -248,6 +248,8 @@ static void display_help(void)
 	"-f       --fork            fork new processes instead of creating threads\n"
 	"-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+	"-D       --duration=TIME   specify a length for the test run.\n"
+	"                           Append 'm', 'h', or 'd' to specify minutes, hours or days.\n"
 	"-p PRIO  --prio=PRIO       priority\n"
 	"-S       --smp             SMP testing: options -a -t and same priority\n"
         "                           of all threads\n"
@@ -264,6 +266,7 @@ static int affinity;
 static int priority;
 static int num_threads = 1;
 static int max_cycles;
+static int duration;
 static int interval = 1000;
 static int distance = 500;
 static int smp;
@@ -285,13 +288,14 @@ static void process_options (int argc, char *argv[])
 			{"fork", optional_argument, NULL, 'f'},
 			{"interval", required_argument, NULL, 'i'},
 			{"loops", required_argument, NULL, 'l'},
+			{"duration", required_argument, NULL, 'D'},
 			{"priority", required_argument, NULL, 'p'},
 			{"smp", no_argument, NULL, 'S'},
 			{"threads", optional_argument, NULL, 't'},
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:d:f::i:l:p:St::",
+		int c = getopt_long (argc, argv, "a::b:d:f::i:l:D:p:St::",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -326,6 +330,7 @@ static void process_options (int argc, char *argv[])
 			break;
 		case 'i': interval = atoi(optarg); break;
 		case 'l': max_cycles = atoi(optarg); break;
+		case 'D': duration = parse_time_string(optarg); break;
 		case 'p': priority = atoi(optarg); break;
 		case 'S':
 			smp = 1;
@@ -359,6 +364,9 @@ static void process_options (int argc, char *argv[])
 				error = 1;
 			}
 		}
+
+		if (duration < 0)
+			error = 0;
 
 		if (num_threads < 1 || num_threads > 255)
 			error = 1;
@@ -486,9 +494,13 @@ int main(int argc, char *argv[])
 
 	signal(SIGINT, sighand);
 	signal(SIGTERM, sighand);
+	signal(SIGALRM, sighand);
 
 	sigemptyset(&sigset);
 	pthread_sigmask(SIG_SETMASK, &sigset, NULL);
+
+	if (duration)
+		alarm(duration);
 
 	if (!mustfork && !wasforked) {
 		receiver = calloc(num_threads, sizeof(struct params));
@@ -663,6 +675,7 @@ int main(int argc, char *argv[])
 		sigemptyset(&sigset);
 		sigaddset(&sigset, SIGTERM);
 		sigaddset(&sigset, SIGINT);
+		sigaddset(&sigset, SIGALRM);
 		pthread_sigmask(SIG_SETMASK, &sigset, NULL);
 
 		nanosleep(&maindelay, NULL);
