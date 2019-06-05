@@ -1322,9 +1322,8 @@ int process_sched_line(const char *arg)
 void process_command_line(int argc, char **argv)
 {
 	int opt;
-	while ((opt = getopt_long(argc, argv, "+", options, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "+ht:vqi:g:rs:pdVum", options, NULL)) != -1) {
 		switch (opt) {
-		case '?':
 		case 'h':
 			usage();
 			exit(0);
