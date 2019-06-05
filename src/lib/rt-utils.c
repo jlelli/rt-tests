@@ -13,6 +13,7 @@
 #include <sched.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <ctype.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -319,4 +320,37 @@ uint32_t string_to_policy(const char *str)
 pid_t gettid(void)
 {
 	return syscall(SYS_gettid);
+}
+
+/*
+ * parse an input value as a base10 value followed by an optional
+ * suffix. The input value is presumed to be in seconds, unless
+ * followed by a modifier suffix: m=minutes, h=hours, d=days
+ *
+ * the return value is a value in seconds
+ */
+int parse_time_string(char *val)
+{
+	char *end;
+	int t = strtol(val, &end, 10);
+	if (end) {
+		switch (*end) {
+		case 'm':
+		case 'M':
+			t *= 60;
+			break;
+
+		case 'h':
+		case 'H':
+			t *= 60*60;
+			break;
+
+		case 'd':
+		case 'D':
+			t *= 24*60*60;
+			break;
+
+		}
+	}
+	return t;
 }

@@ -24,4 +24,6 @@ uint32_t string_to_policy(const char *str);
 
 pid_t gettid(void);
 
+int parse_time_string(char *val);
+
 #endif	/* __RT_UTILS.H */

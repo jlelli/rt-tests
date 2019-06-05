@@ -407,39 +407,6 @@ static void enable_trace_mark(void)
 }
 
 /*
- * parse an input value as a base10 value followed by an optional
- * suffix. The input value is presumed to be in seconds, unless
- * followed by a modifier suffix: m=minutes, h=hours, d=days
- *
- * the return value is a value in seconds
- */
-static int parse_time_string(char *val)
-{
-	char *end;
-	int t = strtol(val, &end, 10);
-	if (end) {
-		switch (*end) {
-		case 'm':
-		case 'M':
-			t *= 60;
-			break;
-
-		case 'h':
-		case 'H':
-			t *= 60*60;
-			break;
-
-		case 'd':
-		case 'D':
-			t *= 24*60*60;
-			break;
-
-		}
-	}
-	return t;
-}
-
-/*
  * Raise the soft priority limit up to prio, if that is less than or equal
  * to the hard limit
  * if a call fails, return the error
