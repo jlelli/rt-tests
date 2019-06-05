@@ -208,6 +208,8 @@ static void display_help(void)
 		"signaltest <options>\n\n"
 		"-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 		"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+		"-D       --duration=TIME   specify a length for the test run.\n"
+		"                           Append 'm', 'h', or 'd' to specify minutes, hours or days.\n"
 		"-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 		"-q       --quiet           print a summary only on exit\n"
 		"-t NUM   --threads=NUM     number of threads: default=2\n"
@@ -221,6 +223,7 @@ static void display_help(void)
 static int priority;
 static int num_threads = 2;
 static int max_cycles;
+static int duration;
 static int verbose;
 static int quiet;
 static int lockall = 0;
@@ -235,6 +238,7 @@ static void process_options (int argc, char *argv[])
 		static struct option long_options[] = {
 			{"breaktrace", required_argument, NULL, 'b'},
 			{"loops", required_argument, NULL, 'l'},
+			{"duration", required_argument, NULL, 'D'},
 			{"priority", required_argument, NULL, 'p'},
 			{"quiet", no_argument, NULL, 'q'},
 			{"threads", required_argument, NULL, 't'},
@@ -243,13 +247,14 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "b:c:d:i:l:np:qrsmt:v",
+		int c = getopt_long (argc, argv, "b:c:d:i:l:D:np:qrsmt:v",
 			long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
 		case 'b': tracelimit = atoi(optarg); break;
 		case 'l': max_cycles = atoi(optarg); break;
+		case 'D': duration = parse_time_string(optarg); break;
 		case 'p': priority = atoi(optarg); break;
 		case 'q': quiet = 1; break;
 		case 't': num_threads = atoi(optarg); break;
@@ -258,6 +263,9 @@ static void process_options (int argc, char *argv[])
 		case '?': error = 1; break;
 		}
 	}
+
+	if (duration < 0)
+		error = 1;
 
 	if (priority < 0 || priority > 99)
 		error = 1;
@@ -340,6 +348,10 @@ int main(int argc, char **argv)
 
 	signal(SIGINT, sighand);
 	signal(SIGTERM, sighand);
+	signal(SIGALRM, sighand);
+
+	if (duration)
+		alarm(duration);
 
 	par = calloc(num_threads, sizeof(struct thread_param));
 	if (!par)
