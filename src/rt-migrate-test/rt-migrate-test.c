@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <sched.h>
 #include <pthread.h>
+#include "rt-utils.h"
 
 #define gettid() syscall(__NR_gettid)
 
@@ -115,6 +116,7 @@ static unsigned long long now;
 
 static int done;
 static int loop;
+static int duration;
 
 static pthread_barrier_t start_barrier;
 static pthread_barrier_t end_barrier;
@@ -180,6 +182,8 @@ static void usage(char **argv)
 	       "-s time --sleep-time time   Sleep time (ms) between intervals (100)\n"
 	       "-m time --maxerr time       Max allowed error (microsecs)\n"
 	       "-l loops --loops loops      Number of iterations to run (50)\n"
+	       "-D       --duration=TIME    specify a length for the test run.\n"
+	       "                            Append 'm', 'h', or 'd' to specify minutes, hours or days.\n"
 	       "-e                          Use equal prio for #CPU-1 tasks (requires > 2 CPUS)\n"
 	       "-c    --check               Stop if lower prio task is quicker than higher (off)\n"
 	       "-h    --help\n"
@@ -199,11 +203,12 @@ static void parse_options (int argc, char *argv[])
 			{"sleep-time", required_argument, NULL, 's'},
 			{"maxerr", required_argument, NULL, 'm'},
 			{"loops", required_argument, NULL, 'l'},
+			{"duration", required_argument, NULL, 'D'},
 			{"check", no_argument, NULL, 'c'},
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "p:r:s:m:l:ech",
+		int c = getopt_long (argc, argv, "p:r:s:m:l:D:ech",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -214,6 +219,7 @@ static void parse_options (int argc, char *argv[])
 			break;
 		case 's': interval = atoi(optarg); break;
 		case 'l': nr_runs = atoi(optarg); break;
+		case 'D': duration = parse_time_string(optarg); break;
 		case 'm': max_err = usec2nano(atoi(optarg)); break;
 		case 'e': equal = 1; break;
 		case 'c': check = 1; break;
@@ -472,6 +478,10 @@ int main (int argc, char **argv)
 	parse_options(argc, argv);
 
 	signal(SIGINT, stop_log);
+	signal(SIGALRM, stop_log);
+
+	if (duration)
+		alarm(duration);
 
 	if (argc >= (optind + 1))
 		nr_tasks = atoi(argv[optind]);
