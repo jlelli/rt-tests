@@ -21,6 +21,8 @@
 #include <linux/unistd.h>
 #include <linux/magic.h>
 
+#include <rt-utils.h>
+
 #ifdef __i386__
 #ifndef __NR_sched_setattr
 #define __NR_sched_setattr		351
@@ -1049,6 +1051,7 @@ int main (int argc, char **argv)
 	unsigned int interval = 1000;
 	unsigned int step = 500;
 	int percent = 60;
+	int duration = 0;
 	u64 runtime;
 	u64 start_period;
 	u64 end_period;
@@ -1062,7 +1065,7 @@ int main (int argc, char **argv)
 		exit(-1);
 	}
 
-	while ((c = getopt(argc, argv, "+hac:i:s:t:")) >= 0) {
+	while ((c = getopt(argc, argv, "+hac:i:s:t:D:")) >= 0) {
 		switch (c) {
 		case 'a':
 			all_cpus = 1;
@@ -1080,6 +1083,9 @@ int main (int argc, char **argv)
 			break;
 		case 't':
 			nr_threads = atoi(optarg);
+			break;
+		case 'D':
+			duration = parse_time_string(optarg);
 			break;
 		case 'h':
 		default:
@@ -1246,6 +1252,10 @@ int main (int argc, char **argv)
 
 	signal(SIGINT, sighand);
 	signal(SIGTERM, sighand);
+	signal(SIGALRM, sighand);
+
+	if (duration)
+		alarm(duration);
 
 	if (!fail)
 		loop(sched_data, nr_threads);
