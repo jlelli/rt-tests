@@ -15,6 +15,13 @@
  *
  * The tracer waits on each PTRACE_SINGLESTEP with a waitpid(2)
  * and checks that waitpid's return values for correctness.
+ *
+ * This program was originally written by
+ * Joe Korty <joe.korty@concurrent-rt.com>
+ * This program is free software; you can redistribute it and / or modify
+ * it under the terms of the GNU General Public License Version 2
+ * of the licence, or (at your option) any later version
+ * see COPYING for more information
  */
 #include <stdio.h>
 #include <stdlib.h>
