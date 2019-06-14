@@ -33,6 +33,7 @@ SRPMS
 /cyclicdeadline
 /deadline_test
 /queuelat
+/ssdd
 
 rt-tests.spec
 tags
