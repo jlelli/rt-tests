@@ -194,6 +194,7 @@ install: all install_hwlatdetect
 	gzip -c src/pi_tests/pip_stress.8 >"$(DESTDIR)$(mandir)/man8/pip_stress.8.gz"
 	gzip -c src/queuelat/queuelat.8 >"$(DESTDIR)$(mandir)/man8/queuelat.8.gz"
 	gzip -c src/sched_deadline/deadline_test.8 >"$(DESTDIR)$(mandir)/man8/deadline_test.8.gz"
+	gzip -c src/ssdd/ssdd.8 >"$(DESTDIR)$(mandir)/man8/ssdd.8.gz"
 
 .PHONY: install_hwlatdetect
 install_hwlatdetect: hwlatdetect

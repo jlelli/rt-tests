@@ -1,0 +1,29 @@
+.TH SSDD 8 "June 13, 2019"
+.SH NAME
+ssdd \- have a tracer do a bunch of PTRACE_SINGLESTEPs
+.SH SYNOPSIS
+.B ssdd
+.RI "[nforks] [niters]"
+.SH DESCRIPTION
+Have a tracer do a bunch of PTRACE_SINGLESTEPs against
+a tracee as fast as possible.  Create several of these
+tracer/tracee pairs and see if they can be made to
+interfere with each other.
+The tracer waits on each PTRACE_SINGLESTEP with a waitpid(2)
+and checks that waitpid's return values for correctness.
+.SH OPTIONS
+.B nforks
+number of tracer/tracee pairs to fork off.
+Default is 10.
+.br
+.TP
+.B niters
+number of PTRACE_SINGLESTEP iterations to
+do before declaring success, for each tracer/
+tracee pair set up. Default is 10,000.
+
+.SH AUTHOR
+ssdd was written by Joe Korty <joe.korty@concurrent-rt.com>
+.PP
+This manual page was written by John Kacur <jkacur@redhat.com>
+
