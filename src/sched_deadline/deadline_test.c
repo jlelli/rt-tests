@@ -51,6 +51,7 @@
 #include <linux/unistd.h>
 #include <linux/magic.h>
 
+#include <rt-utils.h>
 #include <rt-sched.h>
 
 /**
@@ -102,9 +103,6 @@ static void usage(char **argv)
  */
 #define CPUSET_ALL	"my_cpuset_all"
 #define CPUSET_LOCAL	"my_cpuset"
-
-/* Define the system call interfaces */
-#define gettid() syscall(__NR_gettid)
 
 typedef unsigned long long u64;
 typedef unsigned int u32;
@@ -1267,7 +1265,7 @@ void *run_deadline(void *data)
 	attr.sched_runtime = sched_data->runtime_us * 1000;
 	attr.sched_deadline = sched_data->deadline_us * 1000;
 
-	printf("thread[%ld] runtime=%lldus deadline=%lldus loops=%lld\n",
+	printf("thread[%d] runtime=%lldus deadline=%lldus loops=%lld\n",
 	       gettid(), sched_data->runtime_us,
 	       sched_data->deadline_us, sched_data->loops_per_period);
 

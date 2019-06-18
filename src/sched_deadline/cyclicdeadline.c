@@ -33,8 +33,6 @@
 #define CPUSET_ALL	"my_cpuset_all"
 #define CPUSET_LOCAL	"my_cpuset"
 
-#define gettid() syscall(__NR_gettid)
-
 typedef unsigned long long u64;
 typedef unsigned int u32;
 typedef int s32;
@@ -755,7 +753,7 @@ void *run_deadline(void *data)
 	attr.sched_runtime = sd->runtime_us * 1000;
 	attr.sched_deadline = sd->deadline_us * 1000;
 
-	printf("thread[%ld] runtime=%lldus deadline=%lldus\n",
+	printf("thread[%d] runtime=%lldus deadline=%lldus\n",
 	       gettid(), sd->runtime_us, sd->deadline_us);
 
 	pthread_barrier_wait(&barrier);
@@ -1195,7 +1193,7 @@ int main (int argc, char **argv)
 		system("cat /sys/fs/cgroup/cpuset/my_cpuset/tasks");
 	}
 
-	printf("main thread %ld\n", gettid());
+	printf("main thread %d\n", gettid());
 
 	pthread_barrier_wait(&barrier);
 	printf("fail 2 %d\n", fail);
