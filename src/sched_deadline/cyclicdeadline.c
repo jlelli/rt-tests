@@ -24,16 +24,6 @@
 #include <rt-utils.h>
 #include <rt-sched.h>
 
-#ifdef __i386__
-#ifndef __NR_getcpu
-#define __NR_getcpu			309
-#endif
-#else /* x86_64 */
-#ifndef __NR_getcpu
-#define __NR_getcpu			309
-#endif
-#endif /* i386 or x86_64 */
-
 #define _STR(x) #x
 #define STR(x) _STR(x)
 #ifndef MAXPATH
@@ -44,7 +34,6 @@
 #define CPUSET_LOCAL	"my_cpuset"
 
 #define gettid() syscall(__NR_gettid)
-#define getcpu(cpup, nodep, unused) syscall(__NR_getcpu, cpup, nodep, unused)
 
 typedef unsigned long long u64;
 typedef unsigned int u32;
