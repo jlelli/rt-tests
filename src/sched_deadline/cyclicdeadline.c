@@ -1165,7 +1165,6 @@ int main (int argc, char **argv)
 		exit(-1);
 	}
 
-	all_cpus = 1;
 	if (!all_cpus) {
 		int *pids;
 
