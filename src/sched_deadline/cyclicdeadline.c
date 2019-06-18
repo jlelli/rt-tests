@@ -631,8 +631,16 @@ static void usage(char **argv)
 		p--;
 	p++;
 
-	printf("usage: %s\n"
-	       "\n",p);
+	printf("usage: %s [options]\n"
+	       " -h - Show this help menu\n"
+	       " -a - Use all CPUs\n"
+	       " -c cpulist - Comma/hyphen separated list of CPUs to run deadline tasks on\n"
+	       " -i interval(us) - The shortest deadline for the tasks (default 1000us)\n"
+	       " -s step(us) - The amount to increase the deadline for each task (default 500us)\n"
+	       " -t threads - The number of threads to run as deadline (default 1)\n"
+	       " -D time - Specify a length for the test run\n"
+	       "           Append 'm', 'h', or 'd' to specify minutes, hours or days\n"
+	       "\n", p);
 	exit(-1);
 }
 
