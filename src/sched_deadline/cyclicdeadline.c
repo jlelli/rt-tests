@@ -1204,10 +1204,11 @@ int main (int argc, char **argv)
 	printf("main thread %d\n", gettid());
 
 	pthread_barrier_wait(&barrier);
-	printf("fail 2 %d\n", fail);
 
-	if (fail)
+	if (fail) {
+		printf("fail 2\n");
 		exit(-1);
+	}
 
 	pthread_barrier_wait(&barrier);
 
