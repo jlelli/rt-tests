@@ -22,31 +22,17 @@
 #include <linux/magic.h>
 
 #include <rt-utils.h>
+#include <rt-sched.h>
 
 #ifdef __i386__
-#ifndef __NR_sched_setattr
-#define __NR_sched_setattr		351
-#endif
-#ifndef __NR_sched_getattr
-#define __NR_sched_getattr		352
-#endif
 #ifndef __NR_getcpu
 #define __NR_getcpu			309
 #endif
 #else /* x86_64 */
-#ifndef __NR_sched_setattr
-#define __NR_sched_setattr		314
-#endif
-#ifndef __NR_sched_getattr
-#define __NR_sched_getattr		315
-#endif
 #ifndef __NR_getcpu
 #define __NR_getcpu			309
 #endif
 #endif /* i386 or x86_64 */
-#ifndef SCHED_DEADLINE
-#define SCHED_DEADLINE		6
-#endif
 
 #define _STR(x) #x
 #define STR(x) _STR(x)
@@ -58,8 +44,6 @@
 #define CPUSET_LOCAL	"my_cpuset"
 
 #define gettid() syscall(__NR_gettid)
-#define sched_setattr(pid, attr, flags) syscall(__NR_sched_setattr, pid, attr, flags)
-#define sched_getattr(pid, attr, size, flags) syscall(__NR_sched_getattr, pid, attr, size, flags)
 #define getcpu(cpup, nodep, unused) syscall(__NR_getcpu, cpup, nodep, unused)
 
 typedef unsigned long long u64;
@@ -113,24 +97,6 @@ struct sched_data {
 	struct thread_stat stat;
 
 	char buff[BUFSIZ+1];
-};
-
-struct sched_attr {
-	u32 size;
-
-	u32 sched_policy;
-	u64 sched_flags;
-
-	/* SCHED_NORMAL, SCHED_BATCH */
-	s32 sched_nice;
-
-	/* SCHED_FIFO, SCHED_RR */
-	u32 sched_priority;
-
-	/* SCHED_DEADLINE */
-	u64 sched_runtime;
-	u64 sched_deadline;
-	u64 sched_period;
 };
 
 static int shutdown;

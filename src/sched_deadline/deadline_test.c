@@ -51,6 +51,8 @@
 #include <linux/unistd.h>
 #include <linux/magic.h>
 
+#include <rt-sched.h>
+
 /**
  * usage - show the usage of the program and exit.
  * @argv: The program passed in args
@@ -82,43 +84,6 @@ static void usage(char **argv)
 	exit(-1);
 }
 
-/*
- * sched_setattr() and sched_getattr() are new system calls. We need to
- * hardcode it here.
- */
-#if defined(__i386__)
-
-#ifndef __NR_sched_setattr
-#define __NR_sched_setattr		351
-#endif
-#ifndef __NR_sched_getattr
-#define __NR_sched_getattr		352
-#endif
-
-#elif defined(__x86_64__)
-
-#ifndef __NR_sched_setattr
-#define __NR_sched_setattr		314
-#endif
-#ifndef __NR_sched_getattr
-#define __NR_sched_getattr		315
-#endif
-
-#endif /* i386 or x86_64 */
-
-#if !defined(__NR_sched_setattr)
-# error "Your arch does not support sched_setattr()"
-#endif
-
-#if !defined(__NR_sched_getattr)
-# error "Your arch does not support sched_getattr()"
-#endif
-
-/* If not included in the headers, define sched deadline policy numbe */
-#ifndef SCHED_DEADLINE
-#define SCHED_DEADLINE		6
-#endif
-
 #define _STR(x) #x
 #define STR(x) _STR(x)
 
@@ -140,43 +105,10 @@ static void usage(char **argv)
 
 /* Define the system call interfaces */
 #define gettid() syscall(__NR_gettid)
-#define sched_setattr(pid, attr, flags) syscall(__NR_sched_setattr, pid, attr, flags)
-#define sched_getattr(pid, attr, size, flags) syscall(__NR_sched_getattr, pid, attr, size, flags)
 
 typedef unsigned long long u64;
 typedef unsigned int u32;
 typedef int s32;
-
-/**
- * struct sched_attr - get/set attr system call descriptor.
- *
- * This is the descriptor defined for setting SCHED_DEADLINE tasks.
- * It will someday be in a header file.
- *
- * The fields specific for deadline:
- *
- *  @sched_policy: 6 is for deadline
- *  @sched_runtime: The runtime in nanoseconds
- *  @sched_deadline: The deadline in nanoseconds.
- *  @sched_period: The period, if different than deadline (not used here)
- */
-struct sched_attr {
-	u32 size;
-
-	u32 sched_policy;
-	u64 sched_flags;
-
-	/* SCHED_NORMAL, SCHED_BATCH */
-	s32 sched_nice;
-
-	/* SCHED_FIFO, SCHED_RR */
-	u32 sched_priority;
-
-	/* SCHED_DEADLINE */
-	u64 sched_runtime;
-	u64 sched_deadline;
-	u64 sched_period;
-};
 
 /**
  * struct sched_data - the descriptor for the threads.
