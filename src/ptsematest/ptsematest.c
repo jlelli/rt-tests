@@ -40,8 +40,6 @@
 
 #include <pthread.h>
 
-#define gettid() syscall(__NR_gettid)
-
 #define USEC_PER_SEC 1000000
 
 enum {

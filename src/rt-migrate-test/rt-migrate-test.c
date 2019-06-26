@@ -43,8 +43,6 @@
 #include <pthread.h>
 #include "rt-utils.h"
 
-#define gettid() syscall(__NR_gettid)
-
 int nr_tasks;
 int lfd;
 

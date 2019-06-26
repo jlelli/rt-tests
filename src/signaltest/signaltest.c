@@ -32,9 +32,6 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-/* Ugly, but .... */
-#define gettid() syscall(__NR_gettid)
-
 #define USEC_PER_SEC		1000000
 #define NSEC_PER_SEC		1000000000
 

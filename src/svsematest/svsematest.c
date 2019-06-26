@@ -44,8 +44,6 @@
 #include "rt-get_cpu.h"
 #include "error.h"
 
-#define gettid() syscall(__NR_gettid)
-
 #define USEC_PER_SEC 1000000
 
 #define SEM_WAIT_FOR_RECEIVER 0

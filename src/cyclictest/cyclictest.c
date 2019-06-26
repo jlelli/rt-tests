@@ -54,8 +54,6 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-/* Ugly, but .... */
-#define gettid() syscall(__NR_gettid)
 #define sigev_notify_thread_id _sigev_un._tid
 
 #ifdef __UCLIBC__
