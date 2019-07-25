@@ -204,7 +204,7 @@ void *pmqthread(void *param)
 				char tracing_enabled_file[MAX_PATH];
 
 				strcpy(tracing_enabled_file, get_debugfileprefix());
-				strcat(tracing_enabled_file, "tracing_enabled");
+				strcat(tracing_enabled_file, "tracing_on");
 				int tracing_enabled =
 				    open(tracing_enabled_file, O_WRONLY);
 				if (tracing_enabled >= 0) {
