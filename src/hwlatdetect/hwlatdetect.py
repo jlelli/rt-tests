@@ -542,10 +542,6 @@ if __name__ == '__main__':
                         dest="watch",
                         help="print sample data to stdout as it arrives")
 
-    parser.add_argument("--kmodule", action="store_true", default=False,
-                        dest="kmodule",
-                        help="force using the kernel module")
-
     args = parser.parse_args()
 
     # need these before creating detector instance
@@ -558,13 +554,7 @@ if __name__ == '__main__':
         quiet = True
         debugging = False
 
-    if args.kmodule:
-        detect = Hwlat()
-    else:
-        try:
-            detect = Tracer()
-        except DetectorNotAvailable as err:
-            detect = HwLat()
+    detect = Tracer()
 
     if args.threshold:
         t = microseconds(args.threshold)
