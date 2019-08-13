@@ -1183,6 +1183,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		case 'a':
 		case OPT_AFFINITY:
 			option_affinity = 1;
+			/* smp sets AFFINITY_USEALL in OPT_SMP */
 			if (smp)
 				break;
 			if (optarg != NULL) {
@@ -1345,15 +1346,11 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		}
 	}
 
-	if (!smp) {	/* if smp wasn't requested, test for numa automatically */
+	/* if smp wasn't requested, test for numa automatically */
+	if (!smp) {
 #ifdef NUMA
-		if (numa_available() != -1) {
+		if (numa_available() != -1)
 			numa = 1;
-			if (setaffinity == AFFINITY_UNSPECIFIED) {
-				num_threads = max_cpus;
-				setaffinity = AFFINITY_USEALL;
-			}
-		}
 #else
 		warn("cyclictest was not built with the numa option\n");
 		numa = 0;
