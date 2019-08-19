@@ -401,7 +401,7 @@ int main(int argc, char *argv[])
 	struct params *sender = NULL;
 	sigset_t sigset;
 	void *param = NULL;
-	char f_opt[8];
+	char f_opt[14];
 	struct timespec launchdelay, maindelay;
 
 	myfile = getenv("_");
