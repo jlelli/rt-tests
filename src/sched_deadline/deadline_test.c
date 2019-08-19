@@ -1795,7 +1795,7 @@ int main (int argc, char **argv)
 
 	/* -b has us bind to the last CPU. */
 	if (!all_cpus && !setcpu) {
-		setcpu_buf = malloc(10);
+		setcpu_buf = malloc(12);
 		if (!setcpu_buf) {
 			perror("malloc");
 			exit(-1);
