@@ -440,7 +440,7 @@ int main(int argc, char *argv[])
 		goto nomem;
 
 	for (i = 0; i < num_threads; i++) {
-		char mqname[16];
+		char mqname[19];
 
 		sprintf(mqname, SYNCMQ_NAME, i);
 		receiver[i].syncmq = mq_open(mqname, oflag, 0777, &mqstat);
@@ -567,7 +567,7 @@ int main(int argc, char *argv[])
 	}
 	nanosleep(&maindelay, NULL);
 	for (i = 0; i < num_threads; i++) {
-		char mqname[16];
+		char mqname[19];
 
 		mq_close(receiver[i].syncmq);
 		sprintf(mqname, SYNCMQ_NAME, i);
