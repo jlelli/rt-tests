@@ -38,3 +38,4 @@ SRPMS
 rt-tests.spec
 tags
 TAGS
+cscope.*
