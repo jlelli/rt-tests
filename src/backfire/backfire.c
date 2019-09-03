@@ -30,8 +30,8 @@
 #include <linux/miscdevice.h>
 #include <linux/proc_fs.h>
 #include <linux/spinlock.h>
+#include <linux/uaccess.h>
 
-#include <asm/uaccess.h>
 #include <asm/system.h>
 
 #define BACKFIRE_MINOR MISC_DYNAMIC_MINOR
