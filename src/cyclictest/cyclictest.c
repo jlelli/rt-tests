@@ -231,9 +231,13 @@ static struct thread_param **parameters;
 static struct thread_stat **statistics;
 
 static void print_stat(FILE *fp, struct thread_param *par, int index, int verbose, int quiet);
+static void rstat_print_stat(struct thread_param *par, int index, int verbose, int quiet);
+static void rstat_setup(void);
 
 static int latency_target_fd = -1;
 static int32_t latency_target_value = 0;
+
+static int rstat_fd = -1;
 
 /* Latency trick
  * if the file /dev/cpu_dma_latency exists,
@@ -1475,6 +1479,22 @@ static void sighand(int sig)
 		fprintf(stderr, "#---------------------------\n");
 		quiet = oldquiet;
 		return;
+	} else if (sig == SIGUSR2) {
+		int i;
+		int oldquiet = quiet;
+
+		if (rstat_fd == -1) {
+			fprintf(stderr, "ERROR: rstat_fd not valid\n");
+			return;
+		}
+		quiet = 0;
+		dprintf(rstat_fd, "#---------------------------\n");
+		dprintf(rstat_fd, "# cyclictest current status:\n");
+		for (i = 0; i < num_threads; i++)
+			rstat_print_stat(parameters[i], i, 0, 0);
+		dprintf(rstat_fd, "#---------------------------\n");
+		quiet = oldquiet;
+		return;
 	}
 	shutdown = 1;
 	if (refresh_on_max)
@@ -1642,6 +1662,62 @@ static void print_stat(FILE *fp, struct thread_param *par, int index, int verbos
 	}
 }
 
+static void rstat_print_stat(struct thread_param *par, int index, int verbose, int quiet)
+{
+	struct thread_stat *stat = par->stats;
+	int fd = rstat_fd;
+
+	if (!verbose) {
+		if (quiet != 1) {
+			char *fmt;
+			if (use_nsecs)
+				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+				        "Min:%7ld Act:%8ld Avg:%8ld Max:%8ld";
+			else
+				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+				        "Min:%7ld Act:%5ld Avg:%5ld Max:%8ld";
+
+			dprintf(fd, fmt, index, stat->tid, par->prio,
+				par->interval, stat->cycles, stat->min,
+				stat->act, stat->cycles ?
+				(long)(stat->avg/stat->cycles) : 0, stat->max);
+
+			if (smi)
+				dprintf(fd," SMI:%8ld", stat->smi_count);
+
+			dprintf(fd, "\n");
+		}
+	} else {
+		while (stat->cycles != stat->cyclesread) {
+			unsigned long diff_smi;
+			long diff = stat->values
+			    [stat->cyclesread & par->bufmsk];
+
+			if (smi)
+				diff_smi = stat->smis
+				[stat->cyclesread & par->bufmsk];
+
+			if (diff > stat->redmax) {
+				stat->redmax = diff;
+				stat->cycleofmax = stat->cyclesread;
+			}
+			if (++stat->reduce == oscope_reduction) {
+				if (!smi)
+					dprintf(fd, "%8d:%8lu:%8ld\n", index,
+						stat->cycleofmax, stat->redmax);
+				else
+					dprintf(fd, "%8d:%8lu:%8ld%8ld\n",
+						index, stat->cycleofmax,
+						stat->redmax, diff_smi);
+
+				stat->reduce = 0;
+				stat->redmax = 0;
+			}
+			stat->cyclesread++;
+		}
+	}
+}
+
 
 /*
  * thread that creates a named fifo and hands out run stats when someone
@@ -1728,6 +1804,105 @@ static void trigger_update(struct thread_param *par, int diff, int64_t ts)
 	spikes++;
 	pthread_mutex_unlock(&trigger_lock);
 }
+
+/* Running status shared memory open */
+static int rstat_shm_open(void)
+{
+	int fd;
+
+	errno = 0;
+	fd = shm_unlink("/cyclictest_shm");
+
+	if ((fd == -1) && (errno != ENOENT)) {
+		fprintf(stderr, "ERROR: shm_unlink %s\n", strerror(errno));
+		return fd;
+	}
+
+	errno = 9;
+	fd = shm_open("/cyclictest_shm", O_RDWR|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+	if (fd == -1) {
+		fprintf(stderr, "ERROR: shm_open %s\n", strerror(errno));
+	}
+
+	rstat_fd = fd;
+
+	return fd;
+}
+
+static int rstat_ftruncate(int fd)
+{
+	int err;
+
+	errno = 0;
+	err = ftruncate(fd, _SC_PAGE_SIZE);
+	if (err) {
+		fprintf(stderr, "ftruncate error %s\n", strerror(errno));
+	}
+
+	return err;
+}
+
+static void *rstat_mmap(int fd)
+{
+	void *mptr;
+
+	errno = 0;
+	mptr = mmap(0, _SC_PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+
+	if (mptr == (void*)-1) {
+		fprintf(stderr, "ERROR: mmap, %s\n", strerror(errno));
+	}
+
+	return mptr;
+}
+
+static int rstat_mlock(void *mptr)
+{
+	int err;
+
+	err = mlock(mptr, _SC_PAGE_SIZE);
+
+	errno = 0;
+	if (err == -1) {
+		fprintf(stderr, "ERROR, mlock %s\n", strerror(errno));
+	}
+
+	return err;
+}
+
+static void rstat_setup(void)
+{
+	int res;
+	void *mptr = NULL;
+
+	int sfd = rstat_shm_open();
+	if (sfd < 0)
+		goto rstat_err;
+
+	res = rstat_ftruncate(sfd);
+	if (res)
+		goto rstat_err1;
+
+	mptr = rstat_mmap(sfd);
+	if (mptr == MAP_FAILED)
+		goto rstat_err1;
+
+	res = rstat_mlock(mptr);
+	if (res)
+		goto rstat_err2;
+
+	return;
+
+rstat_err2:
+	munmap(mptr, _SC_PAGE_SIZE);
+rstat_err1:
+	close(sfd);
+	shm_unlink("/cyclictest_shm");
+rstat_err:
+	rstat_fd = -1;
+	return;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -1869,6 +2044,7 @@ int main(int argc, char **argv)
 
 	}
 
+
 	mode = use_nanosleep + use_system;
 
 	sigemptyset(&sigset);
@@ -1878,6 +2054,10 @@ int main(int argc, char **argv)
 	signal(SIGINT, sighand);
 	signal(SIGTERM, sighand);
 	signal(SIGUSR1, sighand);
+	signal(SIGUSR2, sighand);
+
+	/* Set-up shm */
+	rstat_setup();
 
 	parameters = calloc(num_threads, sizeof(struct thread_param *));
 	if (!parameters)
@@ -2137,6 +2317,10 @@ int main(int argc, char **argv)
 
 	if (affinity_mask)
 		rt_bitmask_free(affinity_mask);
+
+	/* Remove running status shared memory file if it exists */
+	if (rstat_fd >= 0)
+		shm_unlink("/cyclictest_shm");
 
 	exit(ret);
 }
