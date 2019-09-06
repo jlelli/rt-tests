@@ -1349,8 +1349,12 @@ static void process_options (int argc, char *argv[], int max_cpus)
 	/* if smp wasn't requested, test for numa automatically */
 	if (!smp) {
 #ifdef NUMA
-		if (numa_available() != -1)
+		if (numa_available() != -1) {
 			numa = 1;
+			if (setaffinity == AFFINITY_UNSPECIFIED) {
+				setaffinity = AFFINITY_USEALL;
+			}
+		}
 #else
 		warn("cyclictest was not built with the numa option\n");
 		numa = 0;
@@ -1716,6 +1720,7 @@ int main(int argc, char **argv)
 	sigset_t sigset;
 	int signum = SIGALRM;
 	int mode;
+	int cpu;
 	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	int i, ret = -1;
 	int status;
@@ -1877,6 +1882,16 @@ int main(int argc, char **argv)
 		if (status != 0)
 			fatal("error from pthread_attr_init for thread %d: %s\n", i, strerror(status));
 
+		switch (setaffinity) {
+		case AFFINITY_UNSPECIFIED: cpu = -1; break;
+		case AFFINITY_SPECIFIED:
+			cpu = cpu_for_thread(i, max_cpus);
+			if (verbose)
+				printf("Thread %d using cpu %d.\n", i, cpu);
+			break;
+		case AFFINITY_USEALL: cpu = i % max_cpus; break;
+		}
+
 		node = -1;
 		if (numa) {
 			void *stack;
@@ -1884,7 +1899,7 @@ int main(int argc, char **argv)
 			size_t stksize;
 
 			/* find the memory node associated with the cpu i */
-			node = rt_numa_numa_node_of_cpu(i);
+			node = rt_numa_numa_node_of_cpu(cpu);
 
 			/* get the stack size set for for this thread */
 			if (pthread_attr_getstack(&attr, &currstk, &stksize))
@@ -1895,7 +1910,7 @@ int main(int argc, char **argv)
 				stksize = PTHREAD_STACK_MIN * 2;
 
 			/*  allocate memory for a stack on appropriate node */
-			stack = rt_numa_numa_alloc_onnode(stksize, node, i);
+			stack = rt_numa_numa_alloc_onnode(stksize, node, cpu);
 
 			/* touch the stack pages to pre-fault them in */
 			memset(stack, 0, stksize);
@@ -1965,20 +1980,13 @@ int main(int argc, char **argv)
 			interval += distance;
 		if (verbose)
 			printf("Thread %d Interval: %d\n", i, interval);
+
 		par->max_cycles = max_cycles;
 		par->stats = stat;
 		par->node = node;
 		par->tnum = i;
-		switch (setaffinity) {
-		case AFFINITY_UNSPECIFIED: par->cpu = -1; break;
-		case AFFINITY_SPECIFIED:
-			par->cpu = cpu_for_thread(i, max_cpus);
-			if (verbose)
-				printf("Thread %d using cpu %d.\n", i,
-					par->cpu);
-			break;
-		case AFFINITY_USEALL: par->cpu = i % max_cpus; break;
-		}
+		par->cpu = cpu;
+
 		stat->min = 1000000;
 		stat->max = 0;
 		stat->avg = 0.0;
