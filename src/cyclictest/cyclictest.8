@@ -52,18 +52,12 @@ Align thread wakeups to a specific offset in microseconds
 .B \-b, \-\-breaktrace=USEC
 Send break trace command when latency > USEC
 .TP
-.B \-B, \-\-preemptirqs
-Both preempt and irqsoff tracing (used with -b)
-.TP
 .B \-c, \-\-clock=CLOCK
 select clock
 .br
 0 = CLOCK_MONOTONIC (default)
 .br
 1 = CLOCK_REALTIME
-.TP
-.B \-C, \-\-context
-context switch tracing (used with \-b)
 .TP
 .B \-d, \-\-distance=DIST
 Distance of thread intervals in us, default = 500
@@ -72,12 +66,6 @@ Distance of thread intervals in us, default = 500
 Specify a length for the test run.
 .br
 Append 'm', 'h', or 'd' to specify minutes, hours or days.
-.TP
-.B \-E, \-\-event
-event tracing (used with \-b)
-.TP
-.B \-f, \-\-ftrace
-Enable function tracing using ftrace as tracer. This option is available only with \-b.
 .TP
 .B \-F, \-\-fifo=<path>
 Create a named pipe at path and write stats to it
@@ -93,9 +81,6 @@ Dump the latency histogram to <path> instead of stdout.
 .TP
 .B \-i, \-\-interval=INTV
 Set the base interval of the thread(s) in microseconds (default is 1000us). This sets the interval of the first thread. See also \-d.
-.TP
-.B \-I, \-\-irqsoff
-Irgsoff tracing (used with \-b)
 .TP
 .B \-l, \-\-loops=LOOPS
 Set the number of loops. The default is 0 (endless). This option is useful for automated tests with a given number of test cycles. Cyclictest is stopped once the number of timer intervals has been reached.
@@ -113,25 +98,15 @@ running cyclictest on low-bandwidth connections)
 .B \-n, \-\-nanosleep
 Use clock_nanosleep instead of posix interval timers. Setting this option runs the tests with clock_nanosleep instead of posix interval timers.
 .TP
-.B \-\-notrace
-suppress tracing
-.TP
 .B \-N, \-\-nsecs
 Show results in nanoseconds instead of microseconds, which is the default unit.
 .TP
 .B \-o, \-\-oscope=RED
 Oscilloscope mode, reduce verbose output by RED.
 .TP
-.B \-O, \-\-traceopt=TRACING_OPTION
-Used to pass tracing options to ftrace tracers. May be invoked multiple
-times for multiple trace options. For example trace options look at /sys/kernel/debug/tracing/trace_options
-.TP
 .B \-p, \-\-prio=PRIO
 Set the priority of the first thread. The given priority is set to the first test thread. Each further thread gets a lower priority:
 Priority(Thread N) = max(Priority(Thread N\-1) \- 1, 0)
-.TP
-.B \-P, \-\-preemptoff
-Preempt off tracing (used with -b)
 .TP
 .B \-\-policy=NAME
 set the scheduler policy of the measurement threads
@@ -178,10 +153,6 @@ the number of available CPUs. See \-d, \-i and \-p for further information.
 .B \-\-tracemark
 write a trace mark when \-b latency is exceeded.
 .TP
-.B \-T, \-\-tracer=TRACEFUNC
-set the ftrace tracer function. Used with the \-b option. Must be one
-of the trace functions available from <debugfs-mountpoint>/kernel/debug/tracing/available_tracers
-.TP
 .B \-u, \-\-unbuffered
 force unbuffered output for live processing
 .TP
@@ -191,12 +162,6 @@ Output values on stdout for statistics. This option is used to gather statistica
 n:c:v
 
 where n=task number c=count v=latency value in us.
-.TP
-.B \\-w, \-\-wakeup
-task wakeup tracing (used with \-b)
-.TP
-.B \\-W, \-\-wakeuprt
-rt-task wakeup tracing (used with \-b)
 .TP
 .B \-\-dbg_cyclictest
 Print info userful for debugging cyclictest
