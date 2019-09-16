@@ -1897,6 +1897,7 @@ int main(int argc, char **argv)
 				printf("Thread %d using cpu %d.\n", i, cpu);
 			break;
 		case AFFINITY_USEALL: cpu = i % max_cpus; break;
+		default: cpu = -1;
 		}
 
 		node = -1;
