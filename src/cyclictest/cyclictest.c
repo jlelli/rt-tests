@@ -1353,6 +1353,13 @@ static void process_options (int argc, char *argv[], int max_cpus)
 		}
 	}
 
+	if ((use_system == MODE_SYS_OFFSET) && (use_nanosleep == MODE_CYCLIC)) {
+		warn("The system option requires clock_nanosleep\n");
+		warn("and is not compatible with posix_timers\n");
+		warn("Using clock_nanosleep\n");
+		use_nanosleep = MODE_CLOCK_NANOSLEEP;
+	}
+
 	/* if smp wasn't requested, test for numa automatically */
 	if (!smp) {
 #ifdef NUMA
