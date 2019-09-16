@@ -184,6 +184,7 @@ static void trigger_update(struct thread_param *par, int diff, int64_t ts);
 
 static int shutdown;
 static int tracelimit = 0;
+static int trace_marker = 0;
 static int verbose = 0;
 static int oscope_reduction = 1;
 static int lockall = 0;
@@ -400,6 +401,9 @@ static void debugfs_prepare(void)
 
 static void enable_trace_mark(void)
 {
+	if (!trace_marker)
+		return;
+
 	debugfs_prepare();
 	open_tracemark_fd();
 }
@@ -1167,6 +1171,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"spike",	     required_argument, NULL, OPT_TRIGGER },
 			{"spike-nodes",	     required_argument, NULL, OPT_TRIGGER_NODES },
 			{"threads",          optional_argument, NULL, OPT_THREADS },
+			{"tracemark",	     no_argument,	NULL, OPT_TRACEMARK },
 			{"unbuffered",       no_argument,       NULL, OPT_UNBUFFERED },
 			{"verbose",          no_argument,       NULL, OPT_VERBOSE },
 			{"dbg_cyclictest",   no_argument,       NULL, OPT_DBGCYCLIC },
@@ -1343,6 +1348,8 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			fatal("--smi is not available on your arch\n");
 #endif
 			break;
+		case OPT_TRACEMARK:
+			trace_marker = 1; break;
 		}
 	}
 
