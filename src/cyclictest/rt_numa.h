@@ -29,7 +29,7 @@ static int numa = 0;
 #include <numa.h>
 
 #ifndef LIBNUMA_API_VERSION
-#define LIBNUMA_API_VERSION 1
+#define LIBNUMA_API_VERSION 2
 #endif
 
 static void *
