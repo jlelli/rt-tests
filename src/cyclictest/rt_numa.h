@@ -1,16 +1,7 @@
 /*
  * A numa library for cyclictest.
  * The functions here are designed to work whether cyclictest has been
- * compiled with numa support or not, and whether the user uses the --numa
- * option or not.
- * They should also work correctly with older versions of the numactl lib
- * such as the one found on RHEL5, or with the newer version 2 and above.
- *
- * The difference in behavior hinges on whether LIBNUMA_API_VERSION >= 2,
- * in which case we will employ the bitmask affinity behavior -or-
- * either LIBNUMA_API_VERSION < 2 or NUMA support is missing altogether,
- * in which case we retain the older affinity behavior which can either
- * specify a single CPU core or else use all cores.
+ * compiled with numa support or not.
  *
  * (C) 2010 John Kacur <jkacur@redhat.com>
  * (C) 2010 Clark Williams <williams@redhat.com>
@@ -27,10 +18,6 @@ static int numa = 0;
 
 #ifdef NUMA
 #include <numa.h>
-
-#ifndef LIBNUMA_API_VERSION
-#define LIBNUMA_API_VERSION 2
-#endif
 
 static void *
 threadalloc(size_t size, int node)
@@ -68,8 +55,6 @@ static void *rt_numa_numa_alloc_onnode(size_t size, int node, int cpu)
 				size, node, cpu);
 	return stack;
 }
-
-#if LIBNUMA_API_VERSION >= 2
 
 /*
  * Use new bit mask CPU affinity behavior
@@ -110,87 +95,6 @@ static inline void rt_bitmask_free(struct bitmask *mask)
 	numa_bitmask_free(mask);
 }
 
-#else	/* LIBNUMA_API_VERSION == 1 */
-
-struct bitmask {
-	unsigned long size; /* number of bits in the map */
-	unsigned long *maskp;
-};
-#define BITS_PER_LONG	(8*sizeof(long))
-
-/*
- * Map legacy CPU affinity behavior onto bit mask infrastructure
- */
-static int rt_numa_numa_node_of_cpu(int cpu)
-{
-	unsigned char cpumask[256];
-	int node, idx, bit;
-	int max_node, max_cpus;
-
-	max_node = numa_max_node();
-	max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-
-	if (cpu > max_cpus) {
-		errno = EINVAL;
-		return -1;
-	}
-
-	/* calculate bitmask index and relative bit position of cpu */
-	idx = cpu / 8;
-	bit = cpu % 8;
-
-	for (node = 0; node <= max_node; node++) {
-		if (numa_node_to_cpus(node, (void *) cpumask, sizeof(cpumask)))
-			return -1;
-
-		if (cpumask[idx] & (1<<bit))
-			return node;
-	}
-	errno = EINVAL;
-	return -1;
-}
-
-static inline unsigned int rt_numa_bitmask_isbitset( const struct bitmask *mask,
-	unsigned long i)
-{
-	long bit = mask->maskp[i/BITS_PER_LONG] & (1<<(i % BITS_PER_LONG));
-	return (bit != 0);
-}
-
-static inline struct bitmask* rt_numa_parse_cpustring(const char* s,
-	int max_cpus)
-{
-	int cpu;
-	struct bitmask *mask = NULL;
-	cpu = atoi(s);
-	if (0 <= cpu && cpu < max_cpus) {
-		mask = malloc(sizeof(*mask));
-		if (mask) {
-			/* Round up to integral number of longs to contain
-			 * max_cpus bits */
-			int nlongs = (max_cpus+BITS_PER_LONG-1)/BITS_PER_LONG;
-
-			mask->maskp = calloc(nlongs, sizeof(long));
-			if (mask->maskp) {
-				mask->maskp[cpu/BITS_PER_LONG] |=
-					(1UL << (cpu % BITS_PER_LONG));
-				mask->size = max_cpus;
-			} else {
-				free(mask);
-				mask = NULL;
-			}
-		}
-	}
-	return mask;
-}
-
-static inline void rt_bitmask_free(struct bitmask *mask)
-{
-	free(mask->maskp);
-	free(mask);
-}
-
-#endif	/* LIBNUMA_API_VERSION */
 
 #else /* ! NUMA */
 
