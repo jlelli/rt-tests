@@ -3,7 +3,7 @@
 ssdd \- have a tracer do a bunch of PTRACE_SINGLESTEPs
 .SH SYNOPSIS
 .B ssdd
-.RI "[nforks] [niters]"
+.RI "<options>"
 .SH DESCRIPTION
 Have a tracer do a bunch of PTRACE_SINGLESTEPs against
 a tracee as fast as possible.  Create several of these
@@ -12,15 +12,19 @@ interfere with each other.
 The tracer waits on each PTRACE_SINGLESTEP with a waitpid(2)
 and checks that waitpid's return values for correctness.
 .SH OPTIONS
-.B nforks
+.B \-f, \-\-forks
 number of tracer/tracee pairs to fork off.
 Default is 10.
 .br
 .TP
-.B niters
+.B \-i, \-\-iters
 number of PTRACE_SINGLESTEP iterations to
 do before declaring success, for each tracer/
 tracee pair set up. Default is 10,000.
+.br
+.TP
+.B \-h, \-\-help
+Display usage
 
 .SH AUTHOR
 ssdd was written by Joe Korty <joe.korty@concurrent-rt.com>

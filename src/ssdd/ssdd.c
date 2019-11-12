@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
@@ -64,6 +65,17 @@ static const char *get_state_name(int state)
 #define unused __attribute__((unused))
 
 static int got_sigchld;
+
+enum option_value { OPT_NFORKS=1, OPT_NITERS, OPT_HELP };
+
+static void usage()
+{
+	printf("ssdd <options>\n");
+	printf("\t-f --forks=<number of forks>\n");
+	printf("\t-i --iters=<number of iterations>\n");
+	printf("\t-h --help\n");
+	exit(0);
+}
 
 static int do_wait(pid_t *wait_pid, int *ret_sig)
 {
@@ -276,13 +288,34 @@ int main(int argc, char **argv)
 
 	setbuf(stdout, NULL);
 
-	argc--, argv++;
-	if (argc) {
-		nforks = atoi(*argv);
-		argc--, argv++;
-		if (argc)
-			nsteps = atoi(*argv);
+	for (;;) {
+		int option_index = 0;
+
+		static struct option long_options[] = {
+			{"forks", required_argument, NULL, OPT_NFORKS},
+			{"iters", required_argument, NULL, OPT_NITERS},
+			{"help", no_argument, NULL, OPT_HELP},
+			{NULL, 0, NULL, 0},
+		};
+		int c = getopt_long(argc, argv, "f:i:h", long_options, &option_index);
+		if (c == -1)
+			break;
+		switch(c) {
+			case 'f':
+			case OPT_NFORKS:
+				nforks = atoi(optarg);
+				break;
+			case 'i':
+			case OPT_NITERS:
+				nsteps = atoi(optarg);
+				break;
+			case 'h':
+			case OPT_HELP:
+				usage();
+				break;
+		}
 	}
+
 	printf("#main : %d\n", getpid());
 	printf("#forks: %d\n", nforks);
 	printf("#steps: %d\n", nsteps);
