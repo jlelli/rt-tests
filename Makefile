@@ -27,7 +27,6 @@ DESTDIR	?=
 prefix  ?= /usr/local
 bindir  ?= $(prefix)/bin
 mandir	?= $(prefix)/share/man
-srcdir	?= $(prefix)/src
 
 CFLAGS ?= -Wall -Wno-nonnull
 CPPFLAGS += -D_GNU_SOURCE -Isrc/include
@@ -177,8 +176,7 @@ rebuild:
 
 .PHONY: install
 install: all install_hwlatdetect
-	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man4"
-	mkdir -p "$(DESTDIR)$(srcdir)" "$(DESTDIR)$(mandir)/man8"
+	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man8"
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
 	install src/queuelat/get_cpuinfo_mhz.sh "$(DESTDIR)$(bindir)"
 	install src/queuelat/determine_maximum_mpps.sh "${DESTDIR}${bindir}"
