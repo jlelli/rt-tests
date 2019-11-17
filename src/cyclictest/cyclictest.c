@@ -802,7 +802,7 @@ static void *timerthread(void *param)
 		ret = clock_gettime(par->clock, &now);
 		if (ret != 0) {
 			if (ret != EINTR)
-				warn("clock_getttime() failed. errno: %d\n",
+				warn("clock_gettime() failed. errno: %d\n",
 				     errno);
 			goto out;
 		}
@@ -964,7 +964,7 @@ static void display_help(int error)
 	       "			   but will not drain your battery so quickly\n"
 	       "-m       --mlockall        lock current and future memory allocations\n"
 	       "-M       --refresh_on_max  delay updating the screen until a new max\n"
-	       "			   latency is hit. Userful for low bandwidth.\n"
+	       "			   latency is hit. Useful for low bandwidth.\n"
 	       "-N       --nsecs           print results in ns instead of us (default us)\n"
 	       "-o RED   --oscope=RED      oscilloscope mode, reduce verbose output by RED\n"
 	       "-p PRIO  --priority=PRIO   priority of highest prio thread\n"
