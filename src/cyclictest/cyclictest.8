@@ -67,6 +67,9 @@ Specify a length for the test run.
 .br
 Append 'm', 'h', or 'd' to specify minutes, hours or days.
 .TP
+.B \-\-latency=PM_Q0S
+write PM_Q0S to /dev/cpu_dma_latency
+.TP
 .B \-F, \-\-fifo=<path>
 Create a named pipe at path and write stats to it
 .TP
@@ -94,9 +97,6 @@ Lock current and future memory allocations to prevent being paged out
 .B \\-M, \-\-refresh_on_max
 Delay updating the screen until a new max latency is hit. (useful for
 running cyclictest on low-bandwidth connections)
-.TP
-.B \-n, \-\-nanosleep
-Use clock_nanosleep instead of posix interval timers. Setting this option runs the tests with clock_nanosleep instead of posix interval timers.
 .TP
 .B \-N, \-\-nsecs
 Show results in nanoseconds instead of microseconds, which is the default unit.
@@ -165,6 +165,9 @@ where n=task number c=count v=latency value in us.
 .TP
 .B \-\-dbg_cyclictest
 Print info userful for debugging cyclictest
+.TP
+.B \-x, \-\-posix_timers
+Use POSIX timers instead of clock_nanosleep.
 
 .SH SEE ALSO
 .BR numa (3),
