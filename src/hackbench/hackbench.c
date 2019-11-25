@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * This is the latest version of hackbench.c, that tests scheduler and
  * unix-socket (or pipe) performance.
