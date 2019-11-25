@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 #ifndef __RT_UTILS_H
 #define __RT_UTILS_H
 

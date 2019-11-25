@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * Copyright (C) 2018 Marcelo Tosatti <mtosatti@redhat.com>
+ * Copyright (C) 2019 John Kacur <jkacur@redhat.com>
+ * Copyright (C) 2019 Clark Williams <williams@redhat.com>
+ */
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/module.h>

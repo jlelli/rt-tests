@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (C) 2009 Carsten Emde <carsten.emde@osadl.org>
  * Copyright (C) 2010 Clark Williams <williams@redhat.com>

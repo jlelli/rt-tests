@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2018 Marcelo Tosatti <mtosatti@redhat.com>
+
 #  A script to determine the maximum mpps. Logic:
 #  Increase mpps in 0.5 units 
 # 

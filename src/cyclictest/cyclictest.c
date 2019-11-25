@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * High resolution timer test software
  *
@@ -5,10 +6,6 @@
  * (C) 2013      John Kacur <jkacur@redhat.com>
  * (C) 2008-2012 Clark Williams <williams@redhat.com>
  * (C) 2005-2007 Thomas Gleixner <tglx@linutronix.de>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License Version
- * 2 as published by the Free Software Foundation.
  *
  */
 #include <stdio.h>

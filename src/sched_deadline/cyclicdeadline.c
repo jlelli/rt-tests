@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
+/*
+ * Copyright (C) 2016 Red Hat Inc, Steven Rostedt <srostedt@redhat.com>
+ * Copyright (C) 2019 John Kacur <jkacur@redhat.com>
+ * Copyright (C) 2019 Clark Williams <williams@redhat.com>
+ */
+
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdlib.h>

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 #ifndef __RT_GET_CPU_H
 #define __RT_GET_CPU_H
 #include <stdio.h>

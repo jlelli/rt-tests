@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 #ifndef __PIP_STRESS_H
 #define __PIP_STRESS_H
 

@@ -1,14 +1,10 @@
 #!/usr/bin/python3
 
+# SPDX-License-Identifier: GPL-2.0-only
+
 # (C) 2018,2019 Clark Williams <williams@redhat.com>
 # (C) 2015,2016 Clark Williams <williams@redhat.com>
 # (C) 2009 Clark Williams <williams@redhat.com>
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License Version 2
-# as published by the Free Software Foundation.
-
-
 
 import sys
 import os

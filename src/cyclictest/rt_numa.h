@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * A numa library for cyclictest.
  * The functions here are designed to work whether cyclictest has been
