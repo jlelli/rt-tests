@@ -283,7 +283,7 @@ static inline unsigned long long __rdtscll(void)
 
 #define gettick(val) do { (val) = __rdtscll(); } while (0)
 
-#elif defined __arm__
+#else
 
 static inline unsigned long long __clock_gettime(void)
 {
