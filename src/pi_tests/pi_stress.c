@@ -1008,29 +1008,25 @@ void *high_priority(void *arg)
 
 void usage(void)
 {
-	printf("usage: pi_stress <options>\n");
-	printf("    options:\n");
-	printf("\t--verbose\t- lots of output\n");
-	printf("\t--quiet\t\t- suppress running output\n");
-	printf
-	    ("\t--duration=<n>\t- length of the test run in seconds [infinite]\n");
-	printf("\t\t\t  Append 'm', 'h', or 'd' to specify minutes, hours or days.\n");
-	printf("\t--groups=<n>\t- set the number of inversion groups [%d]\n",
+	printf("usage: pi_stress <options>\n\n");
+	printf("-v\t--verbose\t- lots of output\n");
+	printf("-q\t--quiet\t\t- suppress running output\n");
+	printf ("-D TIME\t--duration=TIME\n\t\t\t- length of test run in seconds (default is infinite)\n");
+	printf("\t\t\t  Append 'm', 'h', or 'd'\n\t\t\t  to specify minutes, hours or days.\n");
+	printf("-g\t--groups=<n>\t- set the number of inversion groups [%d]\n",
 	       ngroups);
-	printf
-	    ("\t--inversions=<n>- number of inversions per group [infinite]\n");
-	printf("\t--rr\t\t- use SCHED_RR for test threads [SCHED_FIFO]\n");
-	printf("\t--sched\t\t- scheduling options per thread type:\n");
+	printf ("-i INVERSIONS\t\t--inversions=INVERSIONS\n\t\t\t  number of inversions per group (default is infinite)\n");
+	printf("-r\t--rr\t\t- use SCHED_RR for test threads [SCHED_FIFO]\n");
+	printf("-s SCHED_OPTS\t--sched\t\t- scheduling options per thread type:\n");
 	printf("\t\tid=[high|med|low]\t\t\t- select thread\n");
 	printf("\t\t,policy=[fifo,rr],priority=<n>\t\t- SCHED_FIFO or SCHED_RR\n");
 	printf("\t\t,policy=deadline,runtime=<n>,deadline=<n>,period=<n>\t- SCHED_DEADLINE\n");
-	printf("\t--prompt\t- prompt before starting the test\n");
-	printf
-	    ("\t--uniprocessor\t- force all threads to run on one processor\n");
-	printf("\t--mlockall\t- lock current and future memory\n");
-	printf("\t--debug\t\t- turn on debug prints\n");
-	printf("\t--version\t- print version number on output\n");
-	printf("\t--help\t\t- print this message\n");
+	printf("-p\t--prompt\t- prompt before starting the test\n");
+	printf ("-u\t--uniprocessor\t- force all threads to run on one processor\n");
+	printf("-m\t--mlockall\t- lock current and future memory\n");
+	printf("-d\t--debug\t\t- turn on debug prints\n");
+	printf("-V\t--version\t- print version number on output\n");
+	printf("-h\t--help\t\t- print this message\n");
 }
 
 /* block all signals (called from main) */
