@@ -154,10 +154,10 @@ static void display_help(void)
 	"                           with NUM pin all threads to the processor NUM\n"
 	"-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 	"-d DIST  --distance=DIST   distance of thread intervals in us default=500\n"
-	"-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
-	"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 	"-D       --duration=TIME   specify a length for the test run.\n"
 	"                           Append 'm', 'h', or 'd' to specify minutes, hours or days.\n"
+	"-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
+	"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 	"-p PRIO  --prio=PRIO       priority\n"
 	"-S       --smp             SMP testing: options -a -t and same priority\n"
         "                           of all threads\n"
@@ -202,7 +202,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:d:i:l:D:p:St::",
+		int c = getopt_long (argc, argv, "a::b:d:i:l:D:p:St::h",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -245,6 +245,8 @@ static void process_options (int argc, char *argv[])
 			else
 				num_threads = max_cpus;
 			break;
+		case 'h':
+			display_help();
 		case '?': error = 1; break;
 		}
 	}
@@ -275,7 +277,7 @@ static void process_options (int argc, char *argv[])
 		sameprio = 1;
 
 	if (error)
-		display_help ();
+		display_help();
 }
 
 
