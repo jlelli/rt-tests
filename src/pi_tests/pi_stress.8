@@ -21,7 +21,8 @@ pi_stress \- a stress test for POSIX Priority Inheritance mutexes
 .IR groups
 .RB [ \-d|\-\-debug ]
 .RB [ \-v|\-\-verbose ]
-.RB [ \-s|\-\-signal ]
+.RB [ \-s|\-\-sched
+.IR sched_opts ]
 .RB [ \-r|\-\-rr ]
 .RB [ \-p|\-\-prompt ]
 .RB [ \-m|\-\-mlockall ]
@@ -63,12 +64,12 @@ Specify a length for the test run.
 Append 'm', 'h', or 'd' to specify minutes, hours or days.
 .IP \-v|\-\-verbose
 Run with verbose messages
-.IP \-s|\-\-signal
-Terminate on receipt of SIGTERM (Ctrl-C). Default is to terminate on
-any keypress.
 .IP \-r|\-\-rr
 Run inversion group threads as SCHED_RR (round-robin). The default is
 to run the inversion threads as SCHED_FIFO.
+.IP \-s|\-\-sched
+scheduling options per thread type:
+id=[high|med|low],policy=[fifo,rr],priority=<n>,policy=deadline,runtime=<n>,deadline=<n>,period=<n>
 .IP \-p|\-\-prompt
 Prompt before actually starting the stress test
 .IP \-u|\-\-uniprocessor
