@@ -571,6 +571,7 @@ void print_help(void)
 	printf("-p million-packet-per-sec (million packets per second) (float)\n");
 	printf("-f tsc-freq-mhz (TSC frequency in MHz) (float)\n");
 	printf("-t timeout (timeout, in seconds) (int)\n");
+	printf("-q min_queue_len_to_print_trace (int)\n");
 }
 
 int main(int argc, char **argv)
@@ -616,22 +617,25 @@ int main(int argc, char **argv)
 			return 0;
 		case '?':
 			if (optopt == 'm' || optopt == 'c' || optopt == 'p' ||
-			    optopt == 'f' || optopt == 't' || optopt == 'q')
+			    optopt == 'f' || optopt == 't' || optopt == 'q') {
 				printf ("Option -%c requires an argument.\n", optopt);
-			else if (isprint (optopt))
+			} else if (isprint (optopt)) {
 				printf ("Unknown option `-%c'.\n", optopt);
-			else
-				printf ( "Unknown option character `\\x%x'.\n",
-
-optopt);
+				print_help();
 				return 1;
-			default:
-				abort ();
+			} else {
+				printf ( "Unknown option character `\\x%x'.\n", optopt);
+				print_help();
+				return 1;
+			}
+			break;
+		default:
+			abort ();
 		}
 
 	if (mvalue == NULL || cvalue == NULL || pvalue == NULL ||
 	    fvalue == NULL) {
-		printf("options -m, -c, -p and -f required.\n");
+		printf("options -m, -c, -p and -f are required.\n");
 		printf("usage: %s -m maxlatency -c cycles_per_packet -p mpps(million-packet-per-sec) -f tsc_freq_mhz [-t timeout (in secs)] [-q min_queue_len_to_print_trace]\n", argv[0]);
 		return 1;
 	}
