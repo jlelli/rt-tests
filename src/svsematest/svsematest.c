@@ -281,7 +281,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:d:f::i:l:D:p:St::",
+		int c = getopt_long (argc, argv, "a::b:d:f::i:l:D:p:St::h",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -335,6 +335,7 @@ static void process_options (int argc, char *argv[])
 			else
 				num_threads = max_cpus;
 			break;
+		case 'h': error = 1; break;
 		case '?': error = 1; break;
 		}
 	}
