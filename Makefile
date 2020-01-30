@@ -34,6 +34,32 @@ LDFLAGS ?=
 
 PYLIB  ?= $(shell python3 -c 'import distutils.sysconfig;  print (distutils.sysconfig.get_python_lib())')
 
+MANPAGES = src/cyclictest/cyclictest.8 \
+	   src/pi_tests/pi_stress.8 \
+	   src/ptsematest/ptsematest.8 \
+	   src/rt-migrate-test/rt-migrate-test.8 \
+	   src/sigwaittest/sigwaittest.8 \
+	   src/svsematest/svsematest.8 \
+	   src/pmqtest/pmqtest.8 \
+	   src/hackbench/hackbench.8 \
+	   src/signaltest/signaltest.8 \
+	   src/pi_tests/pip_stress.8 \
+	   src/queuelat/queuelat.8 \
+	   src/sched_deadline/deadline_test.8 \
+	   src/ssdd/ssdd.8 \
+	   src/sched_deadline/cyclicdeadline.8
+
+ifdef PYLIB
+	MANPAGES += src/hwlatdetect/hwlatdetect.8
+endif
+
+MAN_COMPRESSION ?= gzip
+ifeq ($(MAN_COMPRESSION),gzip)
+	MANPAGES := $(MANPAGES:.8=.8.gz)
+else ifeq ($(MAN_COMPRESSION),bzip2)
+	MANPAGES := $(MANPAGES:.8=.8.bz2)
+endif
+
 ifndef DEBUG
 	CFLAGS	+= -O2 -g
 else
@@ -150,11 +176,17 @@ queuelat: $(OBJDIR)/queuelat.o $(OBJDIR)/librttest.a
 ssdd: $(OBJDIR)/ssdd.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
+%.8.gz: %.8
+	gzip -c $< > $@
+
+%.8.bz2: %.8
+	bzip2 -c $< > $@
+
 LIBOBJS =$(addprefix $(OBJDIR)/,error.o rt-get_cpu.o rt-sched.o rt-utils.o)
 $(OBJDIR)/librttest.a: $(LIBOBJS)
 	$(AR) rcs $@ $^
 
-CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej *.d *.a
+CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej *.d *.a *.8.gz *.8.bz2
 CLEANUP += $(if $(wildcard .git), ChangeLog)
 
 .PHONY: clean
@@ -175,35 +207,25 @@ rebuild:
 	$(MAKE) all
 
 .PHONY: install
-install: all install_hwlatdetect
-	mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man8"
+install: all install_manpages install_hwlatdetect
+	mkdir -p "$(DESTDIR)$(bindir)"
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
 	install src/queuelat/get_cpuinfo_mhz.sh "$(DESTDIR)$(bindir)"
 	install src/queuelat/determine_maximum_mpps.sh "${DESTDIR}${bindir}"
-	gzip -c src/cyclictest/cyclictest.8 >"$(DESTDIR)$(mandir)/man8/cyclictest.8.gz"
-	gzip -c src/pi_tests/pi_stress.8 >"$(DESTDIR)$(mandir)/man8/pi_stress.8.gz"
-	gzip -c src/ptsematest/ptsematest.8 >"$(DESTDIR)$(mandir)/man8/ptsematest.8.gz"
-	gzip -c src/rt-migrate-test/rt-migrate-test.8 >"$(DESTDIR)$(mandir)/man8/rt-migrate-test.8.gz"
-	gzip -c src/sigwaittest/sigwaittest.8 >"$(DESTDIR)$(mandir)/man8/sigwaittest.8.gz"
-	gzip -c src/svsematest/svsematest.8 >"$(DESTDIR)$(mandir)/man8/svsematest.8.gz"
-	gzip -c src/pmqtest/pmqtest.8 >"$(DESTDIR)$(mandir)/man8/pmqtest.8.gz"
-	gzip -c src/hackbench/hackbench.8 >"$(DESTDIR)$(mandir)/man8/hackbench.8.gz"
-	gzip -c src/signaltest/signaltest.8 >"$(DESTDIR)$(mandir)/man8/signaltest.8.gz"
-	gzip -c src/pi_tests/pip_stress.8 >"$(DESTDIR)$(mandir)/man8/pip_stress.8.gz"
-	gzip -c src/queuelat/queuelat.8 >"$(DESTDIR)$(mandir)/man8/queuelat.8.gz"
-	gzip -c src/sched_deadline/deadline_test.8 >"$(DESTDIR)$(mandir)/man8/deadline_test.8.gz"
-	gzip -c src/ssdd/ssdd.8 >"$(DESTDIR)$(mandir)/man8/ssdd.8.gz"
-	gzip -c src/sched_deadline/cyclicdeadline.8 >"$(DESTDIR)$(mandir)/man8/cyclicdeadline.8.gz"
 
 .PHONY: install_hwlatdetect
 install_hwlatdetect: hwlatdetect
 	if test -n "$(PYLIB)" ; then \
-		mkdir -p "$(DESTDIR)$(bindir)" "$(DESTDIR)$(mandir)/man8" ; \
+		mkdir -p "$(DESTDIR)$(bindir)" ; \
 		install -D -m 755 src/hwlatdetect/hwlatdetect.py $(DESTDIR)$(PYLIB)/hwlatdetect.py ; \
 		rm -f "$(DESTDIR)$(bindir)/hwlatdetect" ; \
 		ln -s $(PYLIB)/hwlatdetect.py "$(DESTDIR)$(bindir)/hwlatdetect" ; \
-		gzip -c src/hwlatdetect/hwlatdetect.8 >"$(DESTDIR)$(mandir)/man8/hwlatdetect.8.gz" ; \
 	fi
+
+.PHONY: install_manpages
+install_manpages: $(MANPAGES)
+	mkdir -p "$(DESTDIR)$(mandir)/man8"
+	cp $(MANPAGES) "$(DESTDIR)$(mandir)/man8"
 
 .PHONY: tarball
 tarball:
