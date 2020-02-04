@@ -235,6 +235,9 @@ static int latency_target_fd = -1;
 static int32_t latency_target_value = 0;
 
 static int rstat_fd = -1;
+/* strlen("/cyclictest") + digits in max pid len + '\0' */
+#define SHM_BUF_SIZE 19
+static char shm_name[SHM_BUF_SIZE];
 
 /* Latency trick
  * if the file /dev/cpu_dma_latency exists,
@@ -1806,9 +1809,15 @@ static void trigger_update(struct thread_param *par, int diff, int64_t ts)
 static int rstat_shm_open(void)
 {
 	int fd;
+	pid_t pid;
+
+	pid = getpid();
+	printf("pid = %d", pid);
+
+	snprintf(shm_name, SHM_BUF_SIZE, "%s%d", "/cyclictest", pid);
 
 	errno = 0;
-	fd = shm_unlink("/cyclictest_shm");
+	fd = shm_unlink(shm_name);
 
 	if ((fd == -1) && (errno != ENOENT)) {
 		fprintf(stderr, "ERROR: shm_unlink %s\n", strerror(errno));
@@ -1816,7 +1825,7 @@ static int rstat_shm_open(void)
 	}
 
 	errno = 9;
-	fd = shm_open("/cyclictest_shm", O_RDWR|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+	fd = shm_open(shm_name, O_RDWR|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 	if (fd == -1) {
 		fprintf(stderr, "ERROR: shm_open %s\n", strerror(errno));
 	}
@@ -1894,7 +1903,7 @@ rstat_err2:
 	munmap(mptr, _SC_PAGE_SIZE);
 rstat_err1:
 	close(sfd);
-	shm_unlink("/cyclictest_shm");
+	shm_unlink(shm_name);
 rstat_err:
 	rstat_fd = -1;
 	return;
@@ -2317,7 +2326,7 @@ int main(int argc, char **argv)
 
 	/* Remove running status shared memory file if it exists */
 	if (rstat_fd >= 0)
-		shm_unlink("/cyclictest_shm");
+		shm_unlink(shm_name);
 
 	exit(ret);
 }
