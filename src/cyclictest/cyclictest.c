@@ -234,6 +234,7 @@ static void rstat_setup(void);
 static int latency_target_fd = -1;
 static int32_t latency_target_value = 0;
 
+static int rstat_ftruncate(int fd, off_t len);
 static int rstat_fd = -1;
 /* strlen("/cyclictest") + digits in max pid len + '\0' */
 #define SHM_BUF_SIZE 19
@@ -1487,6 +1488,7 @@ static void sighand(int sig)
 			fprintf(stderr, "ERROR: rstat_fd not valid\n");
 			return;
 		}
+		rstat_ftruncate(rstat_fd, 0);
 		quiet = 0;
 		dprintf(rstat_fd, "#---------------------------\n");
 		dprintf(rstat_fd, "# cyclictest current status:\n");
@@ -1835,12 +1837,12 @@ static int rstat_shm_open(void)
 	return fd;
 }
 
-static int rstat_ftruncate(int fd)
+static int rstat_ftruncate(int fd, off_t len)
 {
 	int err;
 
 	errno = 0;
-	err = ftruncate(fd, _SC_PAGE_SIZE);
+	err = ftruncate(fd, len);
 	if (err) {
 		fprintf(stderr, "ftruncate error %s\n", strerror(errno));
 	}
@@ -1885,7 +1887,7 @@ static void rstat_setup(void)
 	if (sfd < 0)
 		goto rstat_err;
 
-	res = rstat_ftruncate(sfd);
+	res = rstat_ftruncate(sfd, _SC_PAGE_SIZE);
 	if (res)
 		goto rstat_err1;
 
