@@ -122,7 +122,7 @@ $(OBJDIR)/%.d: %.c | $(OBJDIR)
 	@$(CC) -MM $(CFLAGS) $(CPPFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@ || rm -f $@
 
 .PHONY: all
-all: $(TARGETS) hwlatdetect | $(OBJDIR)
+all: $(TARGETS) hwlatdetect get_cyclictest_snapshot | $(OBJDIR)
 
 $(OBJDIR):
 	mkdir $(OBJDIR)
@@ -148,6 +148,10 @@ pi_stress: $(OBJDIR)/pi_stress.o $(OBJDIR)/librttest.a
 hwlatdetect:  src/hwlatdetect/hwlatdetect.py
 	chmod +x src/hwlatdetect/hwlatdetect.py
 	ln -s src/hwlatdetect/hwlatdetect.py hwlatdetect
+
+get_cyclictest_snapshot: src/cyclictest/get_cyclictest_snapshot.py
+	chmod +x src/cyclictest/get_cyclictest_snapshot.py
+	ln -s src/cyclictest/get_cyclictest_snapshot.py get_cyclictest_snapshot
 
 rt-migrate-test: $(OBJDIR)/rt-migrate-test.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
@@ -194,6 +198,7 @@ clean:
 	for F in $(CLEANUP); do find -type f -name $$F | xargs rm -f; done
 	rm -f rt-tests-*.tar
 	rm -f hwlatdetect
+	rm -f get_cyclictest_snapshot
 	rm -f tags
 
 RPMDIRS = BUILD BUILDROOT RPMS SRPMS SPECS
@@ -207,7 +212,7 @@ rebuild:
 	$(MAKE) all
 
 .PHONY: install
-install: all install_manpages install_hwlatdetect
+install: all install_manpages install_hwlatdetect install_get_cyclictest_snapshot
 	mkdir -p "$(DESTDIR)$(bindir)"
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
 	install src/queuelat/get_cpuinfo_mhz.sh "$(DESTDIR)$(bindir)"
@@ -220,6 +225,15 @@ install_hwlatdetect: hwlatdetect
 		install -D -m 755 src/hwlatdetect/hwlatdetect.py $(DESTDIR)$(PYLIB)/hwlatdetect.py ; \
 		rm -f "$(DESTDIR)$(bindir)/hwlatdetect" ; \
 		ln -s $(PYLIB)/hwlatdetect.py "$(DESTDIR)$(bindir)/hwlatdetect" ; \
+	fi
+
+.PHONY: install_get_cyclictest_snapshot
+install_get_cyclictest_snapshot: get_cyclictest_snapshot
+	if test -n "${PYLIB}" ; then \
+		mkdir -p "${DESTDIR}${bindir}" ; \
+		install -D -m 755 src/cyclictest/get_cyclictest_snapshot.py ${DESTDIR}${PYLIB}/get_cyclictest_snapshot.py ; \
+		rm -f "${DESTDIR}${bindir}/get_cyclictest_snapshot" ; \
+		ln -s ${PYLIB}/get_cyclictest_snapshot.py "${DESTDIR}${bindir}/get_cyclictest_snapshot" ; \
 	fi
 
 .PHONY: install_manpages
