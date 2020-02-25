@@ -181,7 +181,7 @@ ssdd: $(OBJDIR)/ssdd.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
 %.8.gz: %.8
-	gzip -c $< > $@
+	gzip -nc $< > $@
 
 %.8.bz2: %.8
 	bzip2 -c $< > $@
