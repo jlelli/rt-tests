@@ -1868,9 +1868,8 @@ static int rstat_mlock(void *mptr)
 {
 	int err;
 
-	err = mlock(mptr, _SC_PAGE_SIZE);
-
 	errno = 0;
+	err = mlock(mptr, _SC_PAGE_SIZE);
 	if (err == -1) {
 		fprintf(stderr, "ERROR, mlock %s\n", strerror(errno));
 	}
