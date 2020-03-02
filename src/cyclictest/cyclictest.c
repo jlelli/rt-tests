@@ -650,7 +650,7 @@ static void *timerthread(void *param)
 		CPU_ZERO(&mask);
 		CPU_SET(par->cpu, &mask);
 		thread = pthread_self();
-		if (pthread_setaffinity_np(thread, sizeof(mask), &mask) == -1)
+		if (pthread_setaffinity_np(thread, sizeof(mask), &mask) != 0)
 			warn("Could not set CPU affinity to CPU #%d\n",
 			     par->cpu);
 	}
