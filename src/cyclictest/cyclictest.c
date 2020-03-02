@@ -1199,7 +1199,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			if (optarg != NULL) {
 				parse_cpumask(optarg, max_cpus);
 				setaffinity = AFFINITY_SPECIFIED;
-			} else if (optind<argc && (atoi(argv[optind]) || argv[optind][0] == '0')) {
+			} else if (optind<argc && (atoi(argv[optind]) || argv[optind][0] == '0' || argv[optind][0] == '!')) {
 				parse_cpumask(argv[optind], max_cpus);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else {
