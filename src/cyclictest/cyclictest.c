@@ -1044,7 +1044,12 @@ static unsigned int is_cpumask_zero(const struct bitmask *mask)
 static int cpu_for_thread_sp(int thread_num, int max_cpus)
 {
 	unsigned int m, cpu, i, num_cpus;
+
 	num_cpus = rt_numa_bitmask_count(affinity_mask);
+
+	if (num_cpus == 0) {
+		fatal("No allowable cpus to run on\n");
+	}
 
 	m = thread_num % num_cpus;
 
@@ -1091,6 +1096,30 @@ static int cpu_for_thread_ua(int thread_num, int max_cpus)
 }
 
 
+/* After this function is called, affinity_mask is the intersection of the user
+ * supplied affinity mask and the affinity mask from the run time environment */
+static void use_current_cpuset(const int max_cpus)
+{
+	int i;
+	pid_t pid;
+	struct bitmask *curmask;
+
+	pid = getpid();
+
+	curmask = numa_bitmask_alloc(sizeof(struct bitmask));
+	numa_sched_getaffinity(pid, curmask);
+
+	/* Clear bits that are not set in both the cpuset from the environment,
+	 * and in the user specified affinity for cyclictest */
+	for (i=0; i < max_cpus; i++) {
+		if ((!rt_numa_bitmask_isbitset(affinity_mask, i)) || (!rt_numa_bitmask_isbitset(curmask, i))) {
+			numa_bitmask_clearbit(affinity_mask, i);
+		}
+	}
+
+	numa_bitmask_free(curmask);
+}
+
 static void parse_cpumask(const char *option, const int max_cpus)
 {
 	affinity_mask = rt_numa_parse_cpustring(option, max_cpus);
@@ -1098,7 +1127,10 @@ static void parse_cpumask(const char *option, const int max_cpus)
 		if (is_cpumask_zero(affinity_mask)) {
 			rt_bitmask_free(affinity_mask);
 			affinity_mask = NULL;
+		} else {
+			use_current_cpuset(max_cpus);
 		}
+
 	}
 	if (!affinity_mask)
 		display_help(1);
