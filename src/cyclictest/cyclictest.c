@@ -1040,7 +1040,8 @@ static unsigned int is_cpumask_zero(const struct bitmask *mask)
 	return (rt_numa_bitmask_count(mask) == 0);
 }
 
-static int cpu_for_thread(int thread_num, int max_cpus)
+/* cpu_for_thread AFFINITY_SPECIFIED */
+static int cpu_for_thread_sp(int thread_num, int max_cpus)
 {
 	unsigned int m, cpu, i, num_cpus;
 	num_cpus = rt_numa_bitmask_count(affinity_mask);
@@ -1055,6 +1056,36 @@ static int cpu_for_thread(int thread_num, int max_cpus)
 			cpu++;
 		}
 	}
+	fprintf(stderr, "Bug in cpu mask handling code.\n");
+	return 0;
+}
+
+/* cpu_for_thread AFFINITY_USEALL */
+static int cpu_for_thread_ua(int thread_num, int max_cpus)
+{
+	int res, num_cpus, i, m, cpu;
+	pthread_t thread;
+	cpu_set_t cpuset;
+
+	thread = pthread_self();
+	CPU_ZERO(&cpuset);
+
+	res = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+	if (res != 0) {
+		fatal("pthread_getaffinity_np failed: %s\n", strerror(res));
+	}
+
+	num_cpus = CPU_COUNT(&cpuset);
+	m = thread_num % num_cpus;
+
+	for (i = 0, cpu = 0; i < max_cpus; i++) {
+		if (CPU_ISSET(i, &cpuset)) {
+			if (cpu == m)
+				return i;
+			cpu++;
+		}
+	}
+
 	fprintf(stderr, "Bug in cpu mask handling code.\n");
 	return 0;
 }
@@ -2086,11 +2117,13 @@ int main(int argc, char **argv)
 		switch (setaffinity) {
 		case AFFINITY_UNSPECIFIED: cpu = -1; break;
 		case AFFINITY_SPECIFIED:
-			cpu = cpu_for_thread(i, max_cpus);
+			cpu = cpu_for_thread_sp(i, max_cpus);
 			if (verbose)
 				printf("Thread %d using cpu %d.\n", i, cpu);
 			break;
-		case AFFINITY_USEALL: cpu = i % max_cpus; break;
+		case AFFINITY_USEALL:
+			cpu = cpu_for_thread_ua(i, max_cpus);
+			break;
 		default: cpu = -1;
 		}
 
