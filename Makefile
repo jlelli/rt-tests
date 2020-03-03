@@ -76,19 +76,10 @@ ostype := $(lastword $(subst -, ,$(dumpmachine)))
 machinetype := $(shell echo $(dumpmachine)| \
     sed -e 's/-.*//' -e 's/i.86/i386/' -e 's/mips.*/mips/' -e 's/ppc.*/powerpc/')
 
-# The default is to assume you have libnuma installed, which is fine to do
-# even on non-numa machines. If you don't want to install the numa libs, for
-# example, they might not be available in an embedded environment, then
-# compile with
-# make NUMA=0
-ifneq ($(filter x86_64 i386 ia64 mips powerpc,$(machinetype)),)
-NUMA 	:= 1
-endif
-
-ifeq ($(NUMA),1)
-	CFLAGS += -DNUMA
-	NUMA_LIBS = -lnuma
-endif
+# You have to have libnuma installed, which is fine to do even if you are
+# running on non-numa machines
+CFLAGS += -DNUMA
+NUMA_LIBS = -lnuma
 
 include src/arch/android/Makefile
 

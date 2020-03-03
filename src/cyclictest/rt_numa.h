@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * A numa library for cyclictest.
- * The functions here are designed to work whether cyclictest has been
- * compiled with numa support or not.
  *
  * (C) 2010 John Kacur <jkacur@redhat.com>
  * (C) 2010 Clark Williams <williams@redhat.com>
@@ -17,7 +15,6 @@
 
 static int numa = 0;
 
-#ifdef NUMA
 #include <numa.h>
 
 static void *
@@ -85,70 +82,6 @@ static inline void rt_bitmask_free(struct bitmask *mask)
 {
 	numa_bitmask_free(mask);
 }
-
-
-#else /* ! NUMA */
-
-struct bitmask {
-    unsigned long size; /* number of bits in the map */
-    unsigned long *maskp;
-};
-#define BITS_PER_LONG    (8*sizeof(long))
-
-static inline void *threadalloc(size_t size, int n) { return malloc(size); }
-static inline void threadfree(void *ptr, size_t s, int n) { free(ptr); }
-static inline void rt_numa_set_numa_run_on_node(int n, int c) { }
-static inline int rt_numa_numa_node_of_cpu(int cpu) { return -1; }
-static void *rt_numa_numa_alloc_onnode(size_t s, int n, int c) { return NULL; }
-
-/*
- * Map legacy CPU affinity behavior onto bit mask infrastructure
- */
-static inline unsigned int rt_numa_bitmask_isbitset( const struct bitmask *mask,
-	unsigned long i)
-{
-	long bit = mask->maskp[i/BITS_PER_LONG] & (1<<(i % BITS_PER_LONG));
-	return (bit != 0);
-}
-
-static inline struct bitmask* rt_numa_parse_cpustring(const char* s,
-	int max_cpus)
-{
-	int cpu;
-	struct bitmask *mask = NULL;
-	cpu = atoi(s);
-	if (0 <= cpu && cpu < max_cpus) {
-		mask = malloc(sizeof(*mask));
-		if (mask) {
-			/* Round up to integral number of longs to contain
-			 * max_cpus bits */
-			int nlongs = (max_cpus+BITS_PER_LONG-1)/BITS_PER_LONG;
-
-			mask->maskp = calloc(nlongs, sizeof(unsigned long));
-			if (mask->maskp) {
-				mask->maskp[cpu/BITS_PER_LONG] |=
-					(1UL << (cpu % BITS_PER_LONG));
-				mask->size = max_cpus;
-			} else {
-				free(mask);
-				mask = NULL;
-			}
-		}
-	}
-	return mask;
-}
-
-static inline void rt_bitmask_free(struct bitmask *mask)
-{
-	free(mask->maskp);
-	free(mask);
-}
-
-#endif	/* NUMA */
-
-/*
- * Any behavioral differences above are transparent to these functions
- */
 
 /** Returns number of bits set in mask. */
 static inline unsigned int rt_numa_bitmask_count(const struct bitmask *mask)
