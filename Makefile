@@ -85,17 +85,9 @@ ifneq ($(filter x86_64 i386 ia64 mips powerpc,$(machinetype)),)
 NUMA 	:= 1
 endif
 
-# The default is to assume that you have numa_parse_cpustring_all
-# If you have an older version of libnuma that only has numa_parse_cpustring
-# then compile with
-# make HAVE_PARSE_CPUSTRING_ALL=0
-HAVE_PARSE_CPUSTRING_ALL?=1
 ifeq ($(NUMA),1)
 	CFLAGS += -DNUMA
 	NUMA_LIBS = -lnuma
-	ifeq ($(HAVE_PARSE_CPUSTRING_ALL),1)
-		CFLAGS += -DHAVE_PARSE_CPUSTRING_ALL
-	endif
 endif
 
 include src/arch/android/Makefile

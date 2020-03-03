@@ -78,17 +78,7 @@ static inline unsigned int rt_numa_bitmask_isbitset( const struct bitmask *mask,
 static inline struct bitmask* rt_numa_parse_cpustring(const char* s,
 	int max_cpus)
 {
-#ifdef HAVE_PARSE_CPUSTRING_ALL		/* Currently not defined anywhere.  No
-					   autotools build. */
 	return numa_parse_cpustring_all(s);
-#else
-	/* We really need numa_parse_cpustring_all(), so we can assign threads
-	 * to cores which are part of an isolcpus set, but early 2.x versions of
-	 * libnuma do not have this function.  A work around should be to run
-	 * your command with e.g. taskset -c 9-15 <command>
-	 */
-	return numa_parse_cpustring((char *)s);
-#endif
 }
 
 static inline void rt_bitmask_free(struct bitmask *mask)
