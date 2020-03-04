@@ -1992,6 +1992,17 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("Max CPUs = %d\n", max_cpus);
 
+	/* Restrict the main pid to the affinity specified by the user */
+	if (affinity_mask != NULL) {
+		int res;
+
+		errno = 0;
+		res = numa_sched_setaffinity(getpid(), affinity_mask);
+		if (res != 0) {
+			warn("Couldn't setaffinity in main thread: %s\n", strerror(errno));
+		}
+	}
+
 	if (trigger) {
 		int retval;
 		retval = trigger_init();
