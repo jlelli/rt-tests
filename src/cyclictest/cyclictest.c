@@ -1040,6 +1040,35 @@ static unsigned int is_cpumask_zero(const struct bitmask *mask)
 	return (rt_numa_bitmask_count(mask) == 0);
 }
 
+/* Get available cpus according to getaffinity or according to the
+ * intersection of getaffinity and the user specified affinity
+ * in the case of AFFINITY_SPECIFIED, the function has to be called
+ * after the call to parse_cpumask made in process_options()
+ */
+static int get_available_cpus(void)
+{
+	int num_cpus = 0;
+	int res;
+	pthread_t thread;
+	cpu_set_t cpuset;
+
+
+	if (affinity_mask != NULL) {
+		num_cpus = rt_numa_bitmask_count(affinity_mask);
+	} else {
+		CPU_ZERO(&cpuset);
+		thread = pthread_self();
+		res = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+		if (res != 0) {
+			fatal("pthread_getaffinity_np failed: %s\n", strerror(res));
+		}
+		num_cpus = CPU_COUNT(&cpuset);
+	}
+
+	return num_cpus;
+
+}
+
 /* cpu_for_thread AFFINITY_SPECIFIED */
 static int cpu_for_thread_sp(int thread_num, int max_cpus)
 {
@@ -1358,7 +1387,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			if (numa)
 				fatal("numa and smp options are mutually exclusive\n");
 			smp = 1;
-			num_threads = max_cpus;
+			num_threads = -1; /* update after parsing */
 			setaffinity = AFFINITY_USEALL;
 			break;
 		case 't':
@@ -1372,7 +1401,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			else if (optind<argc && atoi(argv[optind]))
 				num_threads = atoi(argv[optind]);
 			else
-				num_threads = max_cpus;
+				num_threads = -1; /* update after parsing */
 			break;
 		case OPT_TRIGGER:
 			trigger = atoi(optarg);
@@ -1484,6 +1513,9 @@ static void process_options (int argc, char *argv[], int max_cpus)
 
 	if (priority < 0 || priority > 99)
 		error = 1;
+
+	if (num_threads == -1)
+		num_threads = get_available_cpus();
 
 	if (priospread && priority == 0) {
 		fprintf(stderr, "defaulting realtime priority to %d\n",
