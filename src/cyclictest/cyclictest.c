@@ -1135,7 +1135,7 @@ static void use_current_cpuset(const int max_cpus)
 
 	pid = getpid();
 
-	curmask = numa_bitmask_alloc(sizeof(struct bitmask));
+	curmask = numa_bitmask_alloc(max_cpus);
 	numa_sched_getaffinity(pid, curmask);
 
 	/* Clear bits that are not set in both the cpuset from the environment,
