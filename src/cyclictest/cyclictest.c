@@ -1135,7 +1135,7 @@ static void use_current_cpuset(const int max_cpus)
 
 	pid = getpid();
 
-	curmask = numa_bitmask_alloc(max_cpus);
+	curmask = numa_allocate_cpumask();
 	numa_sched_getaffinity(pid, curmask);
 
 	/* Clear bits that are not set in both the cpuset from the environment,
@@ -1225,6 +1225,20 @@ enum option_values {
 	OPT_TRACEMARK, OPT_POSIX_TIMERS,
 };
 
+/* numa_available() must be called before any other calls to the numa library */
+static void numa_initialize(void)
+{
+	static int is_initialized;
+
+	if (is_initialized == 1)
+		return;
+
+	if (numa_available() != -1)
+		numa = 1;
+
+	is_initialized = 1;
+}
+
 /* Process commandline options */
 static void process_options (int argc, char *argv[], int max_cpus)
 {
@@ -1288,6 +1302,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			/* smp sets AFFINITY_USEALL in OPT_SMP */
 			if (smp)
 				break;
+			numa_initialize();
 			if (optarg != NULL) {
 				parse_cpumask(optarg, max_cpus);
 				setaffinity = AFFINITY_SPECIFIED;
@@ -1460,12 +1475,9 @@ static void process_options (int argc, char *argv[], int max_cpus)
 	/* if smp wasn't requested, test for numa automatically */
 	if (!smp) {
 #ifdef NUMA
-		if (numa_available() != -1) {
-			numa = 1;
-			if (setaffinity == AFFINITY_UNSPECIFIED) {
-				setaffinity = AFFINITY_USEALL;
-			}
-		}
+		numa_initialize();
+		if (setaffinity == AFFINITY_UNSPECIFIED)
+			setaffinity = AFFINITY_USEALL;
 #else
 		warn("cyclictest was not built with the numa option\n");
 		numa = 0;
