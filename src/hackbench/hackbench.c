@@ -92,7 +92,7 @@ static void print_usage_exit()
 {
 	printf("Usage: hackbench [-p|--pipe] [-s|--datasize <bytes>] [-l|--loops <num loops>]\n"
 	       "\t\t [-g|--groups <num groups] [-f|--fds <num fds>]\n"
-	       "\t\t [-T|--threads] [-P|--process] [--help]\n");
+	       "\t\t [-T|--threads] [-P|--process] [-F|--fifo] [--help]\n");
 	exit(1);
 }
 

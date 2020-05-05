@@ -7,7 +7,7 @@ hackbench \- scheduler benchmark/stress test
 .RI "[\-l|\-\-loops " <num\-loops> "] "
 .RI "[\-g|\-\-groups "<num\-groups> "] "
 .RI "[\-f|\-\-fds <num\-fds>] "
-.RI "[\-T|\-\-threads] [\-P|\-\-process] [\-\-help]"
+.RI "[\-T|\-\-threads] [\-P|\-\-process] [\-F|\-\-fifo] [\-\-help]"
 
 .SH "DESCRIPTION"
 Hackbench is both a benchmark and a stress test for the Linux kernel
@@ -45,6 +45,10 @@ Each sender/receiver child will be a POSIX thread of the parent.
 .TP 
 .B \-P, \-\-process
 Hackbench will use fork() on all children (default behaviour)
+.TP
+.B \-F,\-\-fifo
+Change the main thread to SCHED_FIFO after creating workers.
+This allows the management thread to run after many workers are created.
 .TP 
 .B \-\-help
 .br 
