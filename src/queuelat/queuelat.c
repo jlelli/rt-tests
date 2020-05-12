@@ -354,9 +354,9 @@ static void trace_write(char *buf, int len)
 
 static void run_n(int n)
 {
-	u64 a, b;
+	u64 a, b, delta;
 	void *dest, *src;
-	int i, delta, loops = 50000;
+	int i, loops = 50000;
 
 	init_buckets();
 
@@ -445,9 +445,8 @@ static void print_exit_info(void)
 
 void main_loop(void)
 {
-	u64 a, b;
+	u64 a, b, delta;
 	void *dest, *src;
-	int delta;
 	int queue_size = 0;
 
 	trace_open();
@@ -500,7 +499,7 @@ void main_loop(void)
 			continue;
 
 		ret = sprintf(buf, "memmove block queue_size=%d queue_dec=%d"
-			           " queue_inc=%d delta=%d ns\n", queue_size,
+			           " queue_inc=%d delta=%llu ns\n", queue_size,
 				   nr_packets_drain_per_block,
 				   nr_packets_fill, delta);
 		trace_write(buf, ret);
@@ -536,7 +535,7 @@ static void install_signals(void)
 
 int calculate_nr_packets_drain_per_block(void)
 {
-	int maxcount;
+	unsigned long long maxcount;
 	int i, time;
 	int found = 0;
 	int bucket_nr = find_highest_count_bucket();
