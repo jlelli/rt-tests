@@ -1921,7 +1921,6 @@ static int rstat_shm_open(void)
 	pid_t pid;
 
 	pid = getpid();
-	printf("pid = %d", pid);
 
 	snprintf(shm_name, SHM_BUF_SIZE, "%s%d", "/cyclictest", pid);
 
