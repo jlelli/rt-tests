@@ -15,8 +15,6 @@ pi_stress \- a stress test for POSIX Priority Inheritance mutexes
 .B pi_stress
 .RB [ \-i|\-\-inversions
 .IR inversions ]
-.RB [ \-t|\-\-duration
-.IR seconds ]
 .RB [ \-g|\-\-groups
 .IR groups
 .RB [ \-d|\-\-debug ]
@@ -50,10 +48,6 @@ Run for
 .I n
 number of inversion conditions. This is the total number of inversions
 for all inversion groups. Default is \-1 for infinite.
-.IP "\-t n|\-\-duration=n"
-Run the test for 
-.I n
-seconds and then terminate.
 .IP "\-g n|\-\-groups=n"
 The number of inversion groups to run. Defaults to 10.
 .IP \-d|\-\-debug
