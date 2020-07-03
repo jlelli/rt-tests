@@ -2,9 +2,9 @@
 .SH "NAME"
 .LP
 \fBptsematest\fR \- Start two threads and measure the latency of interprocess communication with POSIX mutex.
-.SH "SYNTAX"
+.SH "SYNOPSIS"
 .LP
-ptsematest [-a|-a PROC] [-b USEC] [-d DIST] [-i INTV] [-l loops] [-p PRIO] [-t|-t NUM]
+ptsematest [-a|--affinity [PROC]] [-b|--breaktrace USEC] [-d|--distance DIST] [-D|--duration TIME][-i|--interval INTV] [-l|--loops LOOPS] [-p|--prio PRIO] [-S|--smp] [-t|--threads [NUM]]
 .br
 .SH "DESCRIPTION"
 .LP
@@ -35,7 +35,7 @@ Set the number of loops. The default is 0 (endless). This option is useful for a
 .B \-p, \-\-prio=PRIO
 Set the priority of the process.
 .TP
-.B \-s, \-\-smp
+.B \-S, \-\-smp
 SMP testing: options -a -t and same priority
 .TP
 .B \-t, \-\-threads[=NUM]
