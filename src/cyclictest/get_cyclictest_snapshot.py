@@ -19,6 +19,14 @@ args = parser.parse_args()
 class Snapshot:
     """ Class for getting a snapshot of a running cyclictest instance """
 
+    warned = False
+
+    def print_warning():
+        """ print a warning one time only even if called multiple times """
+        if not Snapshot.warned:
+            Snapshot.warned = True
+            print("No cyclictest instance found")
+
     def __init__(self):
         self.pids = []
         self.shm_files = []
@@ -36,18 +44,27 @@ class Snapshot:
     def take_snapshot(self, spids=None):
         """ Send USR2 to all running instances of cyclictest,
             or just to a specific pid (spids) if specified. """
-        for pid in self.pids:
-            if (spids is None) or (pid in spids):
+        if spids is None:
+            if not self.pids:
+                Snapshot.print_warning()
+            for pid in self.pids:
+                subprocess.run(["kill", "-s", "USR2", pid])
+        else:
+            for pid in spids:
                 subprocess.run(["kill", "-s", "USR2", pid])
 
     def print_pids(self):
         """ Print the list of pids of running cyclictest instances. """
+        if not self.pids:
+            Snapshot.print_warning()
         for pid in self.pids:
             print(pid)
 
     def print(self, spids=None):
         """ Print the data in /dev/shm/cyclictest* """
         if spids is None:
+            if not self.shm_files:
+                Snapshot.print_warning()
             for shm_file in self.shm_files:
                 with open(shm_file, 'r') as f:
                     data = f.read()
@@ -59,6 +76,8 @@ class Snapshot:
                     with open(shm_file, 'r') as f:
                         data = f.read()
                     print(data)
+                else:
+                    Snapshot.print_warning()
 
 snapshot = Snapshot()
 
