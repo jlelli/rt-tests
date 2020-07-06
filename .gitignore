@@ -6,6 +6,10 @@
 *.d
 *.patch
 *.a
+*.gz
+*.bz2
+*.xz
+*.asc
 tmp
 patches
 ChangeLog
@@ -34,8 +38,10 @@ SRPMS
 /deadline_test
 /queuelat
 /ssdd
+/get_cyclictest_snapshot
 
 rt-tests.spec
 tags
 TAGS
 cscope.*
+src/cyclictest/__pycache__/
