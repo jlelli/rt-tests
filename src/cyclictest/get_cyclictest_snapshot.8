@@ -1,0 +1,44 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH GET_CYCLICTEST_SNAPSHOT 8 "July 6, 2020"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+get_cyclictest_snapshot \- Get a snapshot of running instances of cyclictest
+.SH SYNOPSIS
+.SY get_cyclictest_snapshot
+.OP [\-h]\ [\-l]\ [\-s\ [pid [pid ...]]]
+.br
+.OP [\-p\ [pid\ [pid ...]]]
+.SH OPTIONS
+Without options, this program will send USR2 to cyclictest to create a snapshot and then print it out.
+.br
+.TP
+Optional arguments:
+.TP
+.B  -h, --help
+show this help message and exit
+.TP
+.B -l, --list
+list the main pid(s) of running instances of cyclictest
+.TP
+.B -s [pid [pid ...]], --snapshot [pid [pid ...]]
+take a snapshot of running instances of cyclictest
+.br
+by sending USR2 to cyclictest
+.TP
+.B -p [pid [pid ...]], --print [pid [pid ...]]
+print the snapshots
+.SH SEE ALSO
+.BR cyclictest (8),
+.SH AUTHOR
+get_cyclictest_snapshot was written by John Kacur <jkacur at redhat dot com>
