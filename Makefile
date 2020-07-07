@@ -47,7 +47,8 @@ MANPAGES = src/cyclictest/cyclictest.8 \
 	   src/queuelat/queuelat.8 \
 	   src/sched_deadline/deadline_test.8 \
 	   src/ssdd/ssdd.8 \
-	   src/sched_deadline/cyclicdeadline.8
+	   src/sched_deadline/cyclicdeadline.8 \
+	   src/cyclictest/get_cyclictest_snapshot.8
 
 ifdef PYLIB
 	MANPAGES += src/hwlatdetect/hwlatdetect.8
