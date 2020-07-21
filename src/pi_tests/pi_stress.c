@@ -1327,6 +1327,12 @@ void process_command_line(int argc, char **argv)
 			break;
 		case 'g':
 			ngroups = strtol(optarg, NULL, 10);
+			if (ngroups > num_processors) {
+					pi_error("the number of groups cannot exceed "
+					 "the number of online processors (%ld)\n",
+					 num_processors);
+				exit(-1);
+			}
 			pi_info("number of groups set to %d\n", ngroups);
 			break;
 		case 'r':
