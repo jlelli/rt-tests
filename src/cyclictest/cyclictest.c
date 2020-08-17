@@ -219,8 +219,6 @@ static pthread_barrier_t align_barr;
 static pthread_barrier_t globalt_barr;
 static struct timespec globalt;
 
-static char *procfileprefix = "/proc/sys/kernel/";
-static char *fileprefix;
 static char fifopath[MAX_PATH];
 static char histfile[MAX_PATH];
 
@@ -328,89 +326,6 @@ static inline int64_t calctime(struct timespec t)
 	time = USEC_PER_SEC * t.tv_sec;
 	time += ((int) t.tv_nsec) / 1000;
 	return time;
-}
-
-static int trace_file_exists(char *name)
-{
-       struct stat sbuf;
-       char *tracing_prefix = get_debugfileprefix();
-       char path[MAX_PATH];
-       strcat(strcpy(path, tracing_prefix), name);
-       return stat(path, &sbuf) ? 0 : 1;
-}
-
-#define TRACEBUFSIZ 1024
-static __thread char tracebuf[TRACEBUFSIZ];
-
-static void tracemark(char *fmt, ...) __attribute__((format(printf, 1, 2)));
-static void tracemark(char *fmt, ...)
-{
-	va_list ap;
-	int len;
-
-	/* bail out if we're not tracing */
-	/* or if the kernel doesn't support trace_mark */
-	if (tracemark_fd < 0 || trace_fd < 0)
-		return;
-
-	va_start(ap, fmt);
-	len = vsnprintf(tracebuf, TRACEBUFSIZ, fmt, ap);
-	va_end(ap);
-
-	/* write the tracemark message */
-	write(tracemark_fd, tracebuf, len);
-
-	/* now stop any trace */
-	write(trace_fd, "0\n", 2);
-}
-
-static void open_tracemark_fd(void)
-{
-	char path[MAX_PATH];
-
-	/*
-	 * open the tracemark file if it's not already open
-	 */
-	if (tracemark_fd < 0) {
-		sprintf(path, "%s/%s", fileprefix, "trace_marker");
-		tracemark_fd = open(path, O_WRONLY);
-		if (tracemark_fd < 0) {
-			warn("unable to open trace_marker file: %s\n", path);
-			return;
-		}
-	}
-
-	/*
-	 * if we're not tracing and the tracing_on fd is not open,
-	 * open the tracing_on file so that we can stop the trace
-	 * if we hit a breaktrace threshold
-	 */
-	if (trace_fd < 0) {
-		sprintf(path, "%s/%s", fileprefix, "tracing_on");
-		if ((trace_fd = open(path, O_WRONLY)) < 0)
-			warn("unable to open tracing_on file: %s\n", path);
-	}
-}
-
-static void debugfs_prepare(void)
-{
-	if (mount_debugfs(NULL))
-		fatal("could not mount debugfs");
-
-	fileprefix = get_debugfileprefix();
-	if (!trace_file_exists("tracing_enabled") &&
-	    !trace_file_exists("tracing_on"))
-		warn("tracing_enabled or tracing_on not found\n"
-		     "debug fs not mounted");
-}
-
-static void enable_trace_mark(void)
-{
-	if (!trace_marker)
-		return;
-
-	debugfs_prepare();
-	open_tracemark_fd();
 }
 
 /*
@@ -1498,9 +1413,6 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			      "on this processor\n");
 	}
 
-	if (tracelimit)
-		fileprefix = procfileprefix;
-
 	if (clocksel < 0 || clocksel > ARRAY_SIZE(clocksources))
 		error = 1;
 
@@ -2065,7 +1977,7 @@ int main(int argc, char **argv)
 	/* use the /dev/cpu_dma_latency trick if it's there */
 	set_latency_target();
 
-	if (tracelimit)
+	if (tracelimit && trace_marker)
 		enable_trace_mark();
 
 	if (check_timer())

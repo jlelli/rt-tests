@@ -24,7 +24,13 @@
 #include "rt-sched.h"
 #include "error.h"
 
+#define  TRACEBUFSIZ  1024
+
 static char debugfileprefix[MAX_PATH];
+static char *fileprefix;
+static int trace_fd = -1;
+static int tracemark_fd = -1;
+static __thread char tracebuf[TRACEBUFSIZ];
 
 /*
  * Finds the tracing directory in a mounted debugfs
@@ -354,4 +360,80 @@ int parse_time_string(char *val)
 		}
 	}
 	return t;
+}
+
+void open_tracemark_fd(void)
+{
+	char path[MAX_PATH];
+
+	/*
+	 * open the tracemark file if it's not already open
+	 */
+	if (tracemark_fd < 0) {
+		sprintf(path, "%s/%s", fileprefix, "trace_marker");
+		tracemark_fd = open(path, O_WRONLY);
+		if (tracemark_fd < 0) {
+			warn("unable to open trace_marker file: %s\n", path);
+			return;
+		}
+	}
+
+	/*
+	 * if we're not tracing and the tracing_on fd is not open,
+	 * open the tracing_on file so that we can stop the trace
+	 * if we hit a breaktrace threshold
+	 */
+	if (trace_fd < 0) {
+		sprintf(path, "%s/%s", fileprefix, "tracing_on");
+		if ((trace_fd = open(path, O_WRONLY)) < 0)
+			warn("unable to open tracing_on file: %s\n", path);
+	}
+}
+
+int trace_file_exists(char *name)
+{
+       struct stat sbuf;
+       char *tracing_prefix = get_debugfileprefix();
+       char path[MAX_PATH];
+       strcat(strcpy(path, tracing_prefix), name);
+       return stat(path, &sbuf) ? 0 : 1;
+}
+
+void debugfs_prepare(void)
+{
+	if (mount_debugfs(NULL))
+		fatal("could not mount debugfs");
+
+	fileprefix = get_debugfileprefix();
+	if (!trace_file_exists("tracing_enabled") &&
+	    !trace_file_exists("tracing_on"))
+		warn("tracing_enabled or tracing_on not found\n"
+		     "debug fs not mounted");
+}
+
+void tracemark(char *fmt, ...)
+{
+	va_list ap;
+	int len;
+
+	/* bail out if we're not tracing */
+	/* or if the kernel doesn't support trace_mark */
+	if (tracemark_fd < 0 || trace_fd < 0)
+		return;
+
+	va_start(ap, fmt);
+	len = vsnprintf(tracebuf, TRACEBUFSIZ, fmt, ap);
+	va_end(ap);
+
+	/* write the tracemark message */
+	write(tracemark_fd, tracebuf, len);
+
+	/* now stop any trace */
+	write(trace_fd, "0\n", 2);
+}
+
+void enable_trace_mark(void)
+{
+	debugfs_prepare();
+	open_tracemark_fd();
 }
