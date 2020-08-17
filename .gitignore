@@ -39,6 +39,7 @@ SRPMS
 /queuelat
 /ssdd
 /get_cyclictest_snapshot
+/oslat
 
 rt-tests.spec
 tags

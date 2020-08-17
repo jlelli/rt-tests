@@ -17,7 +17,8 @@ sources = cyclictest.c \
 	  cyclicdeadline.c \
 	  deadline_test.c \
 	  queuelat.c \
-	  ssdd.c
+	  ssdd.c \
+	  oslat.c
 
 TARGETS = $(sources:.c=)
 LIBS	= -lrt -lpthread
@@ -48,7 +49,8 @@ MANPAGES = src/cyclictest/cyclictest.8 \
 	   src/sched_deadline/deadline_test.8 \
 	   src/ssdd/ssdd.8 \
 	   src/sched_deadline/cyclicdeadline.8 \
-	   src/cyclictest/get_cyclictest_snapshot.8
+	   src/cyclictest/get_cyclictest_snapshot.8 \
+	   src/oslat/oslat.8
 
 ifdef PYLIB
 	MANPAGES += src/hwlatdetect/hwlatdetect.8
@@ -97,6 +99,7 @@ VPATH	+= src/hackbench:
 VPATH	+= src/sched_deadline:
 VPATH	+= src/queuelat:	
 VPATH	+= src/ssdd:
+VPATH	+= src/oslat:
 
 $(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) -D VERSION=$(VERSION) -c $< $(CFLAGS) $(CPPFLAGS) -o $@
@@ -163,6 +166,9 @@ queuelat: $(OBJDIR)/queuelat.o $(OBJDIR)/librttest.a
 
 ssdd: $(OBJDIR)/ssdd.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
+
+oslat: $(OBJDIR)/oslat.o $(OBJDIR)/librttest.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(NUMA_LIBS)
 
 %.8.gz: %.8
 	gzip -nc $< > $@
