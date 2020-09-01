@@ -32,8 +32,6 @@
 #include "rt-get_cpu.h"
 #include "error.h"
 
-#define USEC_PER_SEC 1000000
-
 #define SEM_WAIT_FOR_RECEIVER 0
 #define SEM_WAIT_FOR_SENDER 1
 

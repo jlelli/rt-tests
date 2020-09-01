@@ -27,13 +27,9 @@
 
 #include <pthread.h>
 
-#define USEC_PER_SEC 1000000
-
 #define SYNCMQ_NAME "/syncmsg%d"
 #define TESTMQ_NAME "/testmsg%d"
 #define MSG_SIZE 8
-#define MSEC_PER_SEC 1000
-#define NSEC_PER_SEC 1000000000
 
 char *syncmsg = "Syncing";
 char *testmsg = "Testing";

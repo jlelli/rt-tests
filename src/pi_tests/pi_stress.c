@@ -50,15 +50,6 @@
 
 #include "error.h"
 
-/* conversions */
-#define USEC_PER_SEC 	1000000
-#define NSEC_PER_SEC 	1000000000
-#define USEC_TO_NSEC(u) ((u) * 1000)
-#define USEC_TO_SEC(u) 	((u) / USEC_PER_SEC)
-#define NSEC_TO_USEC(n) ((n) / 1000)
-#define SEC_TO_NSEC(s) 	((s) * NSEC_PER_SEC)
-#define SEC_TO_USEC(s) 	((s) * USEC_PER_SEC)
-
 /* test timeout */
 #define TIMEOUT 2
 

@@ -30,8 +30,14 @@ int parse_time_string(char *val);
 void enable_trace_mark(void);
 void tracemark(char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
+#define MSEC_PER_SEC		1000
 #define USEC_PER_SEC		1000000
 #define NSEC_PER_SEC		1000000000
+#define USEC_TO_NSEC(u)		((u) * 1000)
+#define USEC_TO_SEC(u)		(u) / USEC_PER_SEC)
+#define NSEC_TO_USEC(n)		((n) / 1000)
+#define SEC_TO_NSEC(s)		((s) * NSEC_PER_SEC)
+#define SEC_TO_USEC(s)		((s) * USEC_PER_SEC)
 
 static inline void tsnorm(struct timespec *ts)
 {

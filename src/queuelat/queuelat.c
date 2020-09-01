@@ -17,7 +17,7 @@
 #include <signal.h>
 #include <time.h>
 
-#define NSEC_PER_SEC 1000000000
+#include "rt-utils.h"
 
 /* Program parameters:
  * max_queue_len: maximum latency allowed, in nanoseconds (int).

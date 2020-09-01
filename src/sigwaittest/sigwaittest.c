@@ -43,8 +43,6 @@
 
 #include <pthread.h>
 
-#define USEC_PER_SEC 1000000
-
 enum {
 	AFFINITY_UNSPECIFIED,
 	AFFINITY_SPECIFIED,
