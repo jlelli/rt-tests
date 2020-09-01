@@ -32,8 +32,6 @@
 #include "error.h"
 #include "rt-utils.h"
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
 /* Must be power of 2 ! */
 #define VALBUF_SIZE		16384
 

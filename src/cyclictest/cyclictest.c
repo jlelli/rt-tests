@@ -49,8 +49,6 @@
 #define SCHED_NORMAL SCHED_OTHER
 #endif
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
 #define sigev_notify_thread_id _sigev_un._tid
 
 #ifdef __UCLIBC__

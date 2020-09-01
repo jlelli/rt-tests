@@ -8,6 +8,8 @@
 #define STR(x) _STR(x)
 #define MAX_PATH 256
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 int check_privs(void);
 char *get_debugfileprefix(void);
 int mount_debugfs(char *);
