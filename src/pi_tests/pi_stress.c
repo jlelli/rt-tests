@@ -519,14 +519,6 @@ int pending_interrupt(void)
 	return interrupted = sigismember(&pending, SIGINT);
 }
 
-static inline void tsnorm(struct timespec *ts)
-{
-	while (ts->tv_nsec >= NSEC_PER_SEC) {
-		ts->tv_nsec -= NSEC_PER_SEC;
-		ts->tv_sec++;
-	}
-}
-
 /*
  * this routine serves two purposes:
  *   1. report progress

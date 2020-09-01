@@ -30,4 +30,44 @@ int parse_time_string(char *val);
 void enable_trace_mark(void);
 void tracemark(char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
+#define USEC_PER_SEC		1000000
+#define NSEC_PER_SEC		1000000000
+
+static inline void tsnorm(struct timespec *ts)
+{
+	while (ts->tv_nsec >= NSEC_PER_SEC) {
+		ts->tv_nsec -= NSEC_PER_SEC;
+		ts->tv_sec++;
+	}
+}
+
+static inline int tsgreater(struct timespec *a, struct timespec *b)
+{
+	return ((a->tv_sec > b->tv_sec) ||
+		(a->tv_sec == b->tv_sec && a->tv_nsec > b->tv_nsec));
+}
+
+static inline int64_t calcdiff(struct timespec t1, struct timespec t2)
+{
+	int64_t diff = USEC_PER_SEC * (long long)((int) t1.tv_sec - (int) t2.tv_sec);
+	diff += ((int) t1.tv_nsec - (int) t2.tv_nsec) / 1000;
+	return diff;
+}
+
+static inline int64_t calcdiff_ns(struct timespec t1, struct timespec t2)
+{
+	int64_t diff;
+	diff = NSEC_PER_SEC * (int64_t)((int) t1.tv_sec - (int) t2.tv_sec);
+	diff += ((int) t1.tv_nsec - (int) t2.tv_nsec);
+	return diff;
+}
+
+static inline int64_t calctime(struct timespec t)
+{
+	int64_t time;
+	time = USEC_PER_SEC * t.tv_sec;
+	time += ((int) t.tv_nsec) / 1000;
+	return time;
+}
+
 #endif	/* __RT_UTILS.H */
