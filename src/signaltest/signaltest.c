@@ -417,7 +417,7 @@ int main(int argc, char **argv)
 			pthread_kill(stat[i].thread, SIGTERM);
 		if (stat[i].threadstarted) {
 			pthread_join(stat[i].thread, NULL);
-			if (quiet)
+			if (quiet && (i == 0))
 				print_stat(&par[i], i, 0);
 		}
 		if (stat[i].values)
