@@ -69,7 +69,9 @@ static inline void frc(uint64_t *pval)
 	__asm__ __volatile__("mfspr %0, 268\n" : "=r" (*pval));
 }
 # else
-#  error Need frc() for this platform.
+#  define relax()          do { } while (0)
+#  define frc(x)
+#  define FRC_MISSING
 # endif
 #else
 # error Need to add support for this compiler.
@@ -809,6 +811,12 @@ int main(int argc, char *argv[])
 	struct thread *threads;
 	int i, n_cores;
 	cpu_set_t cpu_set;
+
+#ifdef FRC_MISSING
+	printf("This architecture is not yet supported. "
+	       "Please implement frc() function first for %s.\n", argv[0]);
+	return 0;
+#endif
 
 	CPU_ZERO(&cpu_set);
 
