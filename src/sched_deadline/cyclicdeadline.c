@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <signal.h>
+#include <getopt.h>
 
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -635,18 +636,19 @@ static void usage(int error)
 	printf("cyclicdeadline V %1.2f\n", VERSION);
 	printf("Usage:\n"
 	       "cyclicdeadline <options>\n\n"
-	       "-a                         Use all CPUs\n"
-	       "-c CPUSET                  Comma/hyphen separated list of CPUs to run deadline\n"
-	       "                           tasks on.\n"
-	       "-D TIME                    Specify a length for the test run.\n"
+	       "-a [CPUSET] --affinity     Comma/hyphen separated list of CPUs to run deadline\n"
+	       "                           tasks on. An empty CPUSET runs on all CPUs a deadline\n"
+	       "                           task.\n"
+	       "                           on CPU 4, and thread #5 on CPU 5.\n"
+	       "-D TIME     --duration     Specify a length for the test run.\n"
 	       "                           Append 'm', 'h', or 'd' to specify minutes, hours or\n"
 	       "                           days\n"
-	       "-h                         Show this help menu.\n"
-	       "-i INTV                    The shortest deadline for the tasks in us\n"
+	       "-h          --help         Show this help menu.\n"
+	       "-i INTV     --interval     The shortest deadline for the tasks in us\n"
 	       "                           (default 1000us).\n"
-	       "-s STEP                    The amount to increase the deadline for each task in us\n"
+	       "-s STEP     --step         The amount to increase the deadline for each task in us\n"
 	       "                           (default 500us).\n"
-	       "-t NUM                     The number of threads to run as deadline (default 1).\n"
+	       "-t NUM      --threads      The number of threads to run as deadline (default 1).\n"
 	       );
 	exit(error);
 }
@@ -1033,15 +1035,29 @@ int main (int argc, char **argv)
 		exit(-1);
 	}
 
-	while ((c = getopt(argc, argv, "+hac:i:s:t:D:")) >= 0) {
+	for (;;) {
+		static struct option options[] = {
+			{ "affinity",	optional_argument,	NULL,	'a' },
+			{ "duration",	required_argument,	NULL,	'D' },
+			{ "help",	no_argument,		NULL,	'h' },
+			{ "interval",	required_argument,	NULL,	'i' },
+			{ "threads",	required_argument,	NULL,	't' },
+			{ NULL,		0,			NULL,	0   },
+		};
+		c = getopt_long(argc, argv, "a::c:D:hi:t:", options, NULL);
+		if (c == -1)
+			break;
 		switch (c) {
 		case 'a':
-			all_cpus = 1;
+		case 'c':
 			if (!nr_threads)
 				nr_threads = cpu_count;
-			break;
-		case 'c':
-			setcpu = optarg;
+			if (optarg)
+				setcpu = optarg;
+			else if (optind < argc)
+				setcpu = argv[optind];
+			else
+				all_cpus = 1;
 			break;
 		case 'i':
 			interval = atoi(optarg);
