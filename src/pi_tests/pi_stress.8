@@ -10,25 +10,26 @@
 pi_stress \- a stress test for POSIX Priority Inheritance mutexes
 .\"}}}
 .\"{{{ Synopsis
-.\" Usage:  pi_stress [-i n ] [-g n] [-v] [-d] [-s] [-r] [-p] [-u] [-m]
+.\" Usage:  pi_stress [-d] [-D TIME] [-g N] [-h] [-i N ] [-m] [-p] [-q] [-r] [-s OPTS] [-u] [-v] [-V]
 .SH SYNOPSIS
 .B pi_stress
-.RB [ \-i|\-\-inversions
-.IR inversions ]
+.RB [ \-d|\-\-debug]
+.RB [ \-D|\-\-duration
+.iR TIME ]
 .RB [ \-g|\-\-groups
-.IR groups
-.RB [ \-d|\-\-debug ]
-.RB [ \-v|\-\-verbose ]
-.RB [ \-s|\-\-sched
-.IR sched_opts ]
-.RB [ \-r|\-\-rr ]
-.RB [ \-p|\-\-prompt ]
+.IR N ]
+.RB [ \-i|\-\-inversions
+.IR INV ]
 .RB [ \-m|\-\-mlockall ]
+.RB [ \-p|\-\-prompt ]
+.RB [ \-q|\-\-quiet ]
+.RB [ \-r|\-\-rr ]
+.RB [ \-s|\-\-sched
+.IR OPTS ]
 .RB [ \-u|\-\-uniprocessor ]
+.RB [ \-v|\-\-verbose ]
+.RB [ \-V|\-\-version ]
 .br
-.\" help
-.B pi_stress
-.RB \-h|\-\-help
 .SH DESCRIPTION
 .B pi_stress
 is a program used to stress the
@@ -43,38 +44,46 @@ condition that will deadlock if
 doesn't work.
 
 .SH OPTIONS
-.IP "\-i n|\-\-inversions=n"
-Run for
-.I n
-number of inversion conditions. This is the total number of inversions
-for all inversion groups. Default is \-1 for infinite.
-.IP "\-g n|\-\-groups=n"
-The number of inversion groups to run. Defaults to 10.
-.IP \-d|\-\-debug
+.IP "\-d|\-\-debug"
 Run in debug mode; lots of extra prints
-.IP "\-D, \-\-duration=TIME"
+.IP "\-D TIME, \-\-duration=TIME"
 Specify a length for the test run.
 .br
 Append 'm', 'h', or 'd' to specify minutes, hours or days.
-.IP \-v|\-\-verbose
-Run with verbose messages
-.IP \-r|\-\-rr
+.IP "\-g N|\-\-groups=N"
+The number of inversion groups to run. Defaults to 10.
+.IP "\-h|\-\-help"
+Display a short help message and options.
+.IP "\-i N|\-\-inversions=N"
+.I N
+number of inversion conditions. This is the total number of inversions
+for all inversion groups. Default is \-1 for infinite.
+.IP "\-m|\-\-mlockall"
+Call mlockall to lock current and future memory allocations and
+prevent being paged out
+.IP "\-p|\-\-prompt"
+Prompt before actually starting the stress test
+.IP "\-q|\-\-quiet"
+Suppress running output
+.IP "\-r|\-\-rr"
 Run inversion group threads as SCHED_RR (round-robin). The default is
 to run the inversion threads as SCHED_FIFO.
-.IP \-s|\-\-sched
+.IP "\-s OPTS|\-\-sched OPTS"
 scheduling options per thread type:
-id=[high|med|low],policy=[fifo,rr],priority=<n>,policy=deadline,runtime=<n>,deadline=<n>,period=<n>
-.IP \-p|\-\-prompt
-Prompt before actually starting the stress test
-.IP \-u|\-\-uniprocessor
+.br
+id=[high|med|low],
+.br
+policy=[fifo,rr],priority=N,
+.br
+policy=deadline,runtime=N,deadline=N,period=N
+.IP "\-u|\-\-uniprocessor"
 Run all threads on one processor. The default is to run all inversion
 group threads on one processor and the admin threads (reporting
 thread, keyboard reader, etc.) on a different processor.
-.IP \-m|\-\-mlockall
-Call mlockall to lock current and future memory allocations and
-prevent being paged out
-.IP \-h|\-\-help
-Display a short help message and options.
+.IP "\-v|\-\-verbose"
+Run with verbose messages
+.IP "\-V|\-\-version"
+Print version number
 .SH CAVEATS
 The pi_stress test threads run as SCHED_FIFO or SCHED_RR threads,
 which means that they can starve critical system threads. It is

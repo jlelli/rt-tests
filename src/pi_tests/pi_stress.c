@@ -121,24 +121,6 @@ int uniprocessor = 0;
 /* lock all memory */
 int lockall = 0;
 
-/* command line options */
-struct option options[] = {
-	{"duration", required_argument, NULL, 'D'},
-	{"verbose", no_argument, NULL, 'v'},
-	{"quiet", no_argument, NULL, 'q'},
-	{"groups", required_argument, NULL, 'g'},
-	{"inversions", required_argument, NULL, 'i'},
-	{"rr", no_argument, NULL, 'r'},
-	{"sched", required_argument, NULL, 's'},
-	{"uniprocessor", no_argument, NULL, 'u'},
-	{"prompt", no_argument, NULL, 'p'},
-	{"debug", no_argument, NULL, 'd'},
-	{"version", no_argument, NULL, 'V'},
-	{"mlockall", no_argument, NULL, 'm'},
-	{"help", no_argument, NULL, 'h'},
-	{NULL, 0, NULL, 0},
-};
-
 #define NUM_TEST_THREADS 3
 #define NUM_ADMIN_THREADS 1
 
@@ -219,7 +201,7 @@ int setup_thread_attr(pthread_attr_t * attr, struct sched_attr * sa,
 		      cpu_set_t * mask);
 int set_cpu_affinity(cpu_set_t * test_mask, cpu_set_t * admin_mask);
 void process_command_line(int argc, char **argv);
-void usage(void);
+void usage(int error);
 int block_signals(void);
 int allow_sigterm(void);
 void set_shutdown_flag(void);
@@ -989,27 +971,35 @@ void *high_priority(void *arg)
 	return NULL;
 }
 
-void usage(void)
+void usage(int error)
 {
-	printf("usage: pi_stress <options>\n\n");
-	printf("-v\t--verbose\t- lots of output\n");
-	printf("-q\t--quiet\t\t- suppress running output\n");
-	printf ("-D TIME\t--duration=TIME\n\t\t\t- length of test run in seconds (default is infinite)\n");
-	printf("\t\t\t  Append 'm', 'h', or 'd'\n\t\t\t  to specify minutes, hours or days.\n");
-	printf("-g\t--groups=<n>\t- set the number of inversion groups [%d]\n",
-	       ngroups);
-	printf ("-i INVERSIONS\t\t--inversions=INVERSIONS\n\t\t\t  number of inversions per group (default is infinite)\n");
-	printf("-r\t--rr\t\t- use SCHED_RR for test threads [SCHED_FIFO]\n");
-	printf("-s SCHED_OPTS\t--sched\t\t- scheduling options per thread type:\n");
-	printf("\t\tid=[high|med|low]\t\t\t- select thread\n");
-	printf("\t\t,policy=[fifo,rr],priority=<n>\t\t- SCHED_FIFO or SCHED_RR\n");
-	printf("\t\t,policy=deadline,runtime=<n>,deadline=<n>,period=<n>\t- SCHED_DEADLINE\n");
-	printf("-p\t--prompt\t- prompt before starting the test\n");
-	printf ("-u\t--uniprocessor\t- force all threads to run on one processor\n");
-	printf("-m\t--mlockall\t- lock current and future memory\n");
-	printf("-d\t--debug\t\t- turn on debug prints\n");
-	printf("-V\t--version\t- print version number on output\n");
-	printf("-h\t--help\t\t- print this message\n");
+	printf("pi_stress V %1.2f\n", VERSION);
+	printf("Usage:\n"
+	       "pi_stress <options>\n\n"
+	       "-d       --debug           turn on debug prints\n"
+	       "-D TIME  --duration=TIME   length of test run in seconds (default is infinite)\n"
+	       "                           Append 'm', 'h', or 'd'\n"
+	       "                           to specify minutes, hours or days.\n"
+	       "-g N     --groups=N        set the number of inversion groups\n"
+	       "-h       --help            print this message\n"
+	       "-i INV   --inversions=INV  number of inversions per group (default is infinite)\n"
+	       "-m       --mlockall        lock current and future memory\n"
+	       "-p       --prompt          prompt before starting the test\n"
+	       "-q       --quiet           suppress running output\n"
+	       "-r       --rr              use SCHED_RR for test threads [SCHED_FIFO]\n"
+	       "-s OPTS  --sched OPTS      scheduling options per thread type:\n"
+	       "   tid=[high|med|low]      select thread\n"
+	       "   ,policy=[fifo,rr]       scheduling class [SCHED_FIFO, SCHED_RR]\n"
+	       "     ,priority=N           scheduling priority\n"
+	       "   ,policy=[deadline]      scheduling class [DEADLINE]\n"
+               "     ,runtime=N\n"
+	       "     ,deadline=N\n"
+	       "     ,period=N\n"
+	       "-u       --uniprocessor    force all threads to run on one processor\n"
+	       "-v       --verbose         lots of output\n"
+	       "-V       --version         print version number on output\n"
+	       );
+	exit(error);
 }
 
 /* block all signals (called from main) */
@@ -1287,26 +1277,33 @@ int process_sched_line(const char *arg)
 
 void process_command_line(int argc, char **argv)
 {
-	int opt;
-	while ((opt = getopt_long(argc, argv, "+hD:vqi:g:rs:pdVum", options, NULL)) != -1) {
-		switch (opt) {
-		case 'h':
-			usage();
-			exit(0);
+	for (;;) {
+		struct option options[] = {
+			{"debug",		no_argument,		NULL, 'd'},
+			{"duration",		required_argument,	NULL, 'D'},
+			{"groups",		required_argument,	NULL, 'g'},
+			{"help",		no_argument,		NULL, 'h'},
+			{"inversions",		required_argument,	NULL, 'i'},
+			{"mlockall",		no_argument,		NULL, 'm'},
+			{"prompt",		no_argument,		NULL, 'p'},
+			{"quiet",		no_argument,		NULL, 'q'},
+			{"rr",			no_argument,		NULL, 'r'},
+			{"sched",		required_argument,	NULL, 's'},
+			{"uniprocessor",	no_argument,		NULL, 'u'},
+			{"verbose",		no_argument,		NULL, 'v'},
+			{"version",		no_argument,		NULL, 'V'},
+			{NULL, 0, NULL, 0},
+		};
+
+		int c = getopt_long(argc, argv, "+hD:vqi:g:rs:pdVum", options, NULL);
+		if (c == -1)
+			break;
+		switch (c) {
+		case 'd':
+			debugging = 1;
+			break;
 		case 'D':
 			duration = parse_time_string(optarg);
-			break;
-		case 'v':
-			verbose = 1;
-			quiet = 0;
-			break;
-		case 'q':
-			verbose = 0;
-			quiet = 1;
-			break;
-		case 'i':
-			inversions = strtol(optarg, NULL, 10);
-			pi_info("doing %d inversion per group\n", inversions);
 			break;
 		case 'g':
 			ngroups = strtol(optarg, NULL, 10);
@@ -1318,6 +1315,23 @@ void process_command_line(int argc, char **argv)
 			}
 			pi_info("number of groups set to %d\n", ngroups);
 			break;
+		case 'h':
+			usage(0);
+			break;
+		case 'i':
+			inversions = strtol(optarg, NULL, 10);
+			pi_info("doing %d inversion per group\n", inversions);
+			break;
+		case 'm':
+			lockall = 1;
+			break;
+		case 'p':
+			prompt = 1;
+			break;
+		case 'q':
+			verbose = 0;
+			quiet = 1;
+			break;
 		case 'r':
 			policy = SCHED_RR;
 			break;
@@ -1325,20 +1339,18 @@ void process_command_line(int argc, char **argv)
 			if (process_sched_line(optarg))
 				pi_error("ignoring invalid options '%s'\n", optarg);
 			break;
-		case 'p':
-			prompt = 1;
+		case 'u':
+			uniprocessor = 1;
 			break;
-		case 'd':
-			debugging = 1;
+		case 'v':
+			verbose = 1;
+			quiet = 0;
 			break;
 		case 'V':
 			printf("pi_stress v%1.2f ", VERSION);
 			exit(0);
-		case 'u':
-			uniprocessor = 1;
-			break;
-		case 'm':
-			lockall = 1;
+		default:
+			usage(1);
 			break;
 		}
 	}
