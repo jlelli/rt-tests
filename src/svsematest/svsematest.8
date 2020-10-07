@@ -4,15 +4,15 @@
 \fBsvsematest\fR \- Start two threads or fork two processes and measure the latency of SYSV semaphores
 .SH "SYNTAX"
 .LP
-svsematest [-a|-a PROC] [-b USEC] [-d DIST] [-f] [-i INTV] [-l loops] [-p PRIO] [-t|-t NUM]
+svsematest [-a|--affinity NUM] [-b|--breaktrace USEC] [-d|--distance DIST] [-D|--duration TIME] [-f|--fork [OPT]] [-i|--interval INTV] [-l|--loops LOOPS] [-p|--prio PRIO] [-S|--smp] [-t|--threads [NUM]]
 .br
 .SH "DESCRIPTION"
 .LP
 The program \fBsvsematest\fR starts two threads or, optionally, forks two processes that are synchronized via SYSV semaphores and measures the latency between releasing a semaphore on one side and getting it on the other side.
 .SH "OPTIONS"
 .TP
-.B \-a, \-\-affinity[=PROC]
-Run on processor number PROC. If PROC is not specified, run on current processor.
+.B \-a, \-\-affinity[=NUM]
+Run on processor number NUM. If PROC is not specified, run on current processor.
 .TP
 .B \-b, \-\-breaktrace=USEC
 Send break trace command when latency > USEC. This is a debugging option to control the latency tracer in the realtime preemption patch.
