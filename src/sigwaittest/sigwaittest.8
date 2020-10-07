@@ -4,7 +4,7 @@
 \fBsigwaittest\fR \- Start two threads or fork two processes and measure the latency between sending and receiving a signal
 .SH "SYNTAX"
 .LP
-sigwaittest [-a|-a PROC] [-b USEC] [-d DIST] [-f] [-i INTV] [-l loops] [-p PRIO] [-t|-t NUM]
+sigwaittest [-a|--affinity PROC] [-b|--breaktrace USEC] [-d|--distance DIST] [-D|--duration TIME] [-f|--fork [OPT]] [-i|--interval INTV] [-l|--loops LOOPS] [-p|--prio PRIO] [-t|--threads [NUM]]
 .br
 .SH "DESCRIPTION"
 .LP
@@ -26,7 +26,7 @@ Specify a length for the test run.
 .br
 Append 'm', 'h', or 'd' to specify minutes, hours or days.
 .TP
-.B \-f, \-\-fork
+.B \-f, \-\-fork[=OPT]
 Instead of creating threads (which is the default), fork new processes
 .TP
 .B \-i, \-\-interval=INTV
