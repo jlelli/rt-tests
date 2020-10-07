@@ -509,42 +509,37 @@ static void handle_alarm(int code)
 	g.cmd = STOP;
 }
 
-const char *helpmsg =
-"Usage: %s [options]\n"
-"\n"
-"This is an OS latency detector by running busy loops on specified cores.\n"
-"Please run this tool using root.\n"
-"\n"
-"Available options:\n"
-"\n"
-"  -b, --bucket-size      Specify the number of the buckets (4-1024)\n"
-"  -B, --bias             Add a bias to all the buckets using the estimated mininum\n"
-"  -c, --cpu-list         Specify CPUs to run on, e.g. '1,3,5,7-15'\n"
-"  -C, --cpu-main-thread  Specify which CPU the main thread runs on.  Default is cpu0.\n"
-"  -f, --rtprio           Using SCHED_FIFO priority (1-99)\n"
-"  -m, --workload-mem     Size of the memory to use for the workload (e.g., 4K, 1M).\n"
-"                         Total memory usage will be this value multiplies 2*N,\n"
-"                         because there will be src/dst buffers for each thread, and\n"
-"                         N is the number of processors for testing.\n"
-"  -s, --single-preheat   Use a single thread when measuring latency at preheat stage\n"
-"                         NOTE: please make sure the CPU frequency on all testing cores\n"
-"                         are locked before using this parmater.  If you don't know how\n"
-"                         to lock the freq then please don't use this parameter.\n"
-"  -t, --runtime          Specify test duration, e.g., 60, 20m, 2H\n"
-"                         (m/M: minutes, h/H: hours, d/D: days)\n"
-"  -T, --trace-threshold  Stop the test when threshold triggered (in us),\n"
-"                         print a marker in ftrace and stop ftrace too.\n"
-"  -v, --version          Display the version of the software.\n"
-"  -w, --workload         Specify a kind of workload, default is no workload\n"
-"                         (options: no, memmove)\n"
-"  -z, --zero-omit        Don't display buckets in the output histogram if all zeros.\n"
-"\n"
-;
-
-static void usage(void)
+static void usage(int error)
 {
-	printf(helpmsg, g.app_name);
-	exit(1);
+	printf("oslat V %1.2f\n", VERSION);
+	printf("Usage:\n"
+	       "oslat <options>\n\n"
+	       "This is an OS latency detector by running busy loops on specified cores.\n"
+	       "Please run this tool using root.\n\n"
+	       "Available options:\n\n"
+	       "-b, --bucket-size      Specify the number of the buckets (4-1024)\n"
+	       "-B, --bias             Add a bias to all the buckets using the estimated mininum\n"
+	       "-c, --cpu-list         Specify CPUs to run on, e.g. '1,3,5,7-15'\n"
+	       "-C, --cpu-main-thread  Specify which CPU the main thread runs on.  Default is cpu0.\n"
+	       "-D, --duration         Specify test duration, e.g., 60, 20m, 2H\n"
+	       "                       (m/M: minutes, h/H: hours, d/D: days)\n"
+	       "-f, --rtprio           Using SCHED_FIFO priority (1-99)\n"
+	       "-m, --workload-mem     Size of the memory to use for the workload (e.g., 4K, 1M).\n"
+	       "                       Total memory usage will be this value multiplies 2*N,\n"
+	       "                       because there will be src/dst buffers for each thread, and\n"
+	       "                       N is the number of processors for testing.\n"
+	       "-s, --single-preheat   Use a single thread when measuring latency at preheat stage\n"
+	       "                       NOTE: please make sure the CPU frequency on all testing cores\n"
+	       "                       are locked before using this parmater.  If you don't know how\n"
+	       "                       to lock the freq then please don't use this parameter.\n"
+	       "-T, --trace-threshold  Stop the test when threshold triggered (in us),\n"
+	       "                       print a marker in ftrace and stop ftrace too.\n"
+	       "-v, --version          Display the version of the software.\n"
+	       "-w, --workload         Specify a kind of workload, default is no workload\n"
+	       "                       (options: no, memmove)\n"
+	       "-z, --zero-omit        Don't display buckets in the output histogram if all zeros.\n"
+	       );
+	exit(error);
 }
 
 /* TODO: use libnuma? */
@@ -663,7 +658,7 @@ static void parse_options(int argc, char *argv[])
 			{ "bucket-size", required_argument, NULL, 'b' },
 			{ "cpu-list", required_argument, NULL, 'c' },
 			{ "cpu-main-thread", required_argument, NULL, 'C'},
-			{ "runtime", required_argument, NULL, 't' },
+			{ "duration", required_argument, NULL, 'D' },
 			{ "rtprio", required_argument, NULL, 'f' },
 			{ "help", no_argument, NULL, 'h' },
 			{ "trace-threshold", required_argument, NULL, 'T' },
@@ -675,7 +670,7 @@ static void parse_options(int argc, char *argv[])
 			{ "version", no_argument, NULL, 'v'},
 			{ NULL, 0, NULL, 0 },
 		};
-		int i, c = getopt_long(argc, argv, "b:Bc:C:f:hm:st:w:T:vz",
+		int i, c = getopt_long(argc, argv, "b:Bc:C:D:f:hm:sw:T:vz",
 				       options, NULL);
 		long ncores;
 
@@ -706,7 +701,7 @@ static void parse_options(int argc, char *argv[])
 				exit(1);
 			}
 			break;
-		case 't':
+		case 'D':
 			g.runtime = parse_runtime(optarg);
 			if (!g.runtime) {
 				printf("Illegal runtime: %s\n", optarg);
@@ -763,8 +758,11 @@ static void parse_options(int argc, char *argv[])
 		case 'z':
 			g.output_omit_zero_buckets = 1;
 			break;
+		case 'h':
+			usage(0);
+			break;
 		default:
-			usage();
+			usage(1);
 			break;
 		}
 	}
@@ -828,8 +826,6 @@ int main(int argc, char *argv[])
 	g.workload_mem_size = WORKLOAD_MEM_SIZE;
 	/* Run the main thread on cpu0 by default */
 	g.cpu_main_thread = 0;
-
-	printf("\nVersion: %1.2f\n\n", VERSION);
 
 	parse_options(argc, argv);
 
