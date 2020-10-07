@@ -68,13 +68,16 @@ static int got_sigchld;
 
 enum option_value { OPT_NFORKS=1, OPT_NITERS, OPT_HELP };
 
-static void usage()
+static void usage(int error)
 {
-	printf("ssdd <options>\n");
-	printf("\t-f --forks=<number of forks>\n");
-	printf("\t-i --iters=<number of iterations>\n");
-	printf("\t-h --help\n");
-	exit(0);
+	printf("ssdd V %1.2f\n", VERSION);
+	printf("Usage:\n"
+	       "ssdd <options>\n\n"
+	       "-f       --forks=NUM       number of forks\n"
+	       "-h       --help            print this message\n"
+	       "-i       --iters=NUM       number of iterations\n"
+	       );
+	exit(error);
 }
 
 static int do_wait(pid_t *wait_pid, int *ret_sig)
@@ -292,27 +295,30 @@ int main(int argc, char **argv)
 		int option_index = 0;
 
 		static struct option long_options[] = {
-			{"forks", required_argument, NULL, OPT_NFORKS},
-			{"iters", required_argument, NULL, OPT_NITERS},
-			{"help", no_argument, NULL, OPT_HELP},
+			{"forks",		required_argument,	NULL, OPT_NFORKS},
+			{"help",		no_argument,		NULL, OPT_HELP},
+			{"iters",		required_argument,	NULL, OPT_NITERS},
 			{NULL, 0, NULL, 0},
 		};
-		int c = getopt_long(argc, argv, "f:i:h", long_options, &option_index);
+		int c = getopt_long(argc, argv, "f:hi:", long_options, &option_index);
 		if (c == -1)
 			break;
 		switch(c) {
-			case 'f':
-			case OPT_NFORKS:
-				nforks = atoi(optarg);
-				break;
-			case 'i':
-			case OPT_NITERS:
-				nsteps = atoi(optarg);
-				break;
-			case 'h':
-			case OPT_HELP:
-				usage();
-				break;
+		case 'f':
+		case OPT_NFORKS:
+			nforks = atoi(optarg);
+			break;
+		case 'h':
+		case OPT_HELP:
+			usage(0);
+			break;
+		case 'i':
+		case OPT_NITERS:
+			nsteps = atoi(optarg);
+			break;
+		default:
+			usage(1);
+			break;
 		}
 	}
 
