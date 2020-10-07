@@ -46,33 +46,30 @@
 
 /**
  * usage - show the usage of the program and exit.
- * @argv: The program passed in args
+ * @error: Exit error code to be used
  *
- * This is defined here to show people looking at this code how
+ * This is defined here to show peoplde looking at this code how
  * to use this program as well. 
  */
-static void usage(char **argv)
+static void usage(int error)
 {
-	char *arg = argv[0];
-	char *p = arg+strlen(arg);
-
-	while (p >= arg && *p != '/')
-		p--;
-	p++;
-
-	printf("usage: %s [options]\n"
-	       " -h - Show this help menu\n"
-	       " -b - Bind on the last cpu. (shortcut for -c <lastcpu>)\n"
-	       " -r prio - Add an RT task with given prio to stress system\n"
-	       " -c cpulist - Comma/hyphen separated list of CPUs to run deadline tasks on\n"
-	       " -i interval - The shortest deadline for the tasks\n"
-	       " -p percent - The percent of bandwidth to use (1-90%%)\n"
-	       " -P percent - The percent of runtime for execution completion\n"
-	       "              (Default 100%%)\n"
-	       " -t threads - The number of threads to run as deadline (default 1)\n"
-	       " -s step(us) - The amount to increase the deadline for each task (default 500us)\n"
-	       "\n", p);
-	exit(-1);
+	printf("deadline_test V %1.2f\n", VERSION);
+	printf("Usage:\n"
+	       "deadline_test <options>\n"
+	       "-b                         Bind on the last cpu. (shortcut for -c <lastcpu>)\n"
+	       "-c CPUSET                  Comma/hyphen separated list of CPUs to run deadline\n"
+	       "                           tasks on\n"
+	       "-h                         Show this help menu\n"
+	       "-i INTV                    The shortest deadline for the tasks\n"
+	       "-p PERCENT                 The percent of bandwidth to use (1-90%%)\n"
+	       "-P PERCENT                 The percent of runtime for execution completion\n"
+	       "                           (default 100%%)\n"
+	       "-r PRIO                    Add an RT task with given prio to stress system\n"
+	       "-s STEP                    The amount to increase the deadline for each task in us\n"
+	       "                           (default 500us)\n"
+	       "-t NUM                     The number of threads to run as deadline (default 1)\n"
+	       );
+	exit(error);
 }
 
 #define _STR(x) #x
@@ -1753,8 +1750,10 @@ int main (int argc, char **argv)
 			rt_task = atoi(optarg);
 			break;
 		case 'h':
+			usage(0);
+			break;
 		default:
-			usage(argv);
+			usage(1);
 		}
 	}
 

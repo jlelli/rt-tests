@@ -19,45 +19,44 @@ deadline_test \- High resolution test program
 This program is used to test the deadline scheduler (SCHED_DEADLINE tasks)
 .SH SYNOPSIS
 .B deadline_test
-.RI "[ \-hb ] [ \-r prio ] [ \-c cpulist ] [ \-i interval ] [ \-p percent ] [ \-P percent ] [ \-t threads ] [ \-s step[us) ]"
-
+.RI "[ \-hb ] [ \-c CPUSET ] [ \-i INTV ] [ \-p PERCENT ] [ \-P PERCENT ] \
+[ \-r PRIO ]  [ \-s STEP ] [ \-t NUM ]"
 .SH OPTIONS
-.TP
-.B \-h
-Show this help menu
-.br
 .TP
 .B \-b
 Bind on the last cpu. (shortcut for -c <lastcpu>)
 .br
 .TP
-.B \-r prio
-Add an RT task with given prio to stress system
-.br
-.TP
-.B \-c cpulist
+.B \-c CPUSET
 Comma/hyphen separated list of CPUs to run deadline tasks on
 .br
 .TP
-.B \-i interval
+.B \-h
+Show this help menu
+.br
+.TP
+.B \-i INTV
 The shortest deadline for the tasks
 .br
 .TP
-.B \-p percent
+.B \-p PERCENT
 The percent of bandwidth to use (1-90%)
 .br
 .TP
-.B \-P percent
-The percent of runtime for execution completion
-              (Default 100%)
+.B \-P PERCENT
+The percent of runtime for execution completion (default 100%)
 .br
 .TP
-.B \-t threads
+.B \-r PRIO
+Add an RT task with given prio to stress system
+.br
+.TP
+.B \-s STEP
+The amount to increase the deadline for each task in us (default 500us)
+.br
+.TP
+.B \-t NUM
 The number of threads to run as deadline (default 1)
-.br
-.TP
-.B \-s step(us)
-The amount to increase the deadline for each task (default 500us)
 .br
 .SH AUTHOR
 Deadline test was written by Steven Rostedt <rostedt@goodmis.org>
