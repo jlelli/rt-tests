@@ -4,7 +4,7 @@
 \fBpmqtest\fR \- Start pairs of threads and measure the latency of interprocess communication with POSIX messages queues
 .SH "SYNTAX"
 .LP
-pmqtest [-a|-a PROC] [-b USEC] [-d DIST] [-i INTV] [-l loops] [-p PRIO] [-S] [-t|-t NUM] [-T TO]
+pmqtest [-a|-a PROC] [-b USEC] [-d DIST] [-D TIME] [-f TO] [-h] [-i INTV] [-l LOOPS] [-p PRIO] [-S] [-t|-t NUM]
 .br
 .SH "DESCRIPTION"
 .LP
@@ -25,6 +25,9 @@ Set the distance of thread intervals in microseconds (default is 500 us). When p
 Specify a length for the test run.
 .br
 Append 'm', 'h', or 'd' to specify minutes, hours or days.
+.TP
+.B \-h, \-\-help
+Print help message
 .TP
 .B \-f, \-\-forcetimeout=TO
 Set an artificial delay of the send function to force timeout of the receiver, requires the -T option

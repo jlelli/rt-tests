@@ -217,35 +217,35 @@ void *pmqthread(void *param)
 	return NULL;
 }
 
-
-static void display_help(void)
+static void display_help(int error)
 {
 	printf("pmqtest V %1.2f\n", VERSION);
-	puts("Usage: pmqtest <options>");
-	puts("Function: test POSIX message queue latency");
-	puts(
-	"Options:\n"
-	"-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
-	"                           with NUM pin all threads to the processor NUM\n"
-	"-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
-	"-d DIST  --distance=DIST   distance of thread intervals in us default=500\n"
-	"-f TO    --forcetimeout=TO force timeout of mq_timedreceive(), requires -T\n"
-	"-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
-	"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
-	"-D       --duration=TIME   specify a length for the test run.\n"
-	"                           Append 'm', 'h', or 'd' to specify minutes, hours or days.\n"
-	"-p PRIO  --prio=PRIO       priority\n"
-	"-S       --smp             SMP testing: options -a -t and same priority\n"
-        "                           of all threads\n"
-	"-t       --threads         one thread per available processor\n"
-	"-t [NUM] --threads=NUM     number of threads:\n"
-	"                           without NUM, threads = max_cpus\n"
-	"                           without -t default = 1\n"
-	"-T TO    --timeout=TO      use mq_timedreceive() instead of mq_receive()\n"
-	"                           with timeout TO in seconds\n");
-	exit(1);
+	printf("Usage:\n"
+	       "pmqtest <options>\n\n"
+	       "Function: test POSIX message queue latency\n\n"
+	       "Available options:\n\n"
+	       "-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
+	       "                           with NUM pin all threads to the processor NUM\n"
+	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
+	       "-d DIST  --distance=DIST   distance of thread intervals in us default=500\n"
+	       "-D TIME  --duration=TIME   specify a length for the test run.\n"
+	       "                           Append 'm', 'h', or 'd' to specify\n"
+	       "                           minutes, hours or days.\n"
+	       "-f TO    --forcetimeout=TO force timeout of mq_timedreceive(), requires -T\n"
+	       "-h       --help            print this help message\n"
+	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
+	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+	       "-p PRIO  --prio=PRIO       priority\n"
+	       "-S       --smp             SMP testing: options -a -t and same priority\n"
+	       "                           of all threads\n"
+	       "-t       --threads         one thread per available processor\n"
+	       "-t [NUM] --threads=NUM     number of threads:\n"
+	       "                           without NUM, threads = max_cpus\n"
+	       "                           without -t default = 1\n"
+	       "-T TO    --timeout=TO      use mq_timedreceive() instead of mq_receive()\n"
+	       "                           with timeout TO in seconds\n");
+	exit(error);
 }
-
 
 static int setaffinity = AFFINITY_UNSPECIFIED;
 static int affinity;
@@ -270,21 +270,21 @@ static void process_options (int argc, char *argv[])
 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
-			{"affinity", optional_argument, NULL, 'a'},
-			{"breaktrace", required_argument, NULL, 'b'},
-			{"distance", required_argument, NULL, 'd'},
-			{"forcetimeout", required_argument, NULL, 'f'},
-			{"interval", required_argument, NULL, 'i'},
-			{"loops", required_argument, NULL, 'l'},
-			{"duration", required_argument, NULL, 'D'},
-			{"priority", required_argument, NULL, 'p'},
-			{"smp", no_argument, NULL, 'S'},
-			{"threads", optional_argument, NULL, 't'},
-			{"timeout", required_argument, NULL, 'T'},
-			{"help", no_argument, NULL, '?'},
+			{"affinity",		optional_argument,	NULL, 'a'},
+			{"breaktrace",		required_argument,	NULL, 'b'},
+			{"distance",		required_argument,	NULL, 'd'},
+			{"duration",		required_argument,	NULL, 'D'},
+			{"forcetimeout",	required_argument,	NULL, 'f'},
+			{"help",		no_argument,		NULL, 'h'},
+			{"interval",		required_argument,	NULL, 'i'},
+			{"loops",		required_argument,	NULL, 'l'},
+			{"priority",		required_argument,	NULL, 'p'},
+			{"smp",			no_argument,		NULL, 'S'},
+			{"threads",		optional_argument,	NULL, 't'},
+			{"timeout",		required_argument,	NULL, 'T'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:d:f:i:l:D:p:St::T:",
+		int c = getopt_long (argc, argv, "a::b:d:D:f:i:l:p:St::T:",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -306,10 +306,12 @@ static void process_options (int argc, char *argv[])
 			break;
 		case 'b': tracelimit = atoi(optarg); break;
 		case 'd': distance = atoi(optarg); break;
+		case 'D': duration = parse_time_string(optarg); break;
 		case 'f': forcetimeout = atoi(optarg); break;
+		case '?':
+		case 'h': display_help(0); break;
 		case 'i': interval = atoi(optarg); break;
 		case 'l': max_cycles = atoi(optarg); break;
-		case 'D': duration = parse_time_string(optarg); break;
 		case 'p': priority = atoi(optarg); break;
 		case 'S':
 			smp = 1;
@@ -329,7 +331,9 @@ static void process_options (int argc, char *argv[])
 				num_threads = max_cpus;
 			break;
 		case 'T': timeout = atoi(optarg); break;
-		case '?': error = 1; break;
+		default:
+			display_help(1);
+			break;
 		}
 	}
 
@@ -362,7 +366,7 @@ static void process_options (int argc, char *argv[])
 		sameprio = 1;
 
 	if (error)
-		display_help ();
+		display_help (error);
 }
 
 
