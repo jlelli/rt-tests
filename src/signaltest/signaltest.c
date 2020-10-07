@@ -180,23 +180,25 @@ out:
 
 
 /* Print usage information */
-static void display_help(void)
+static void display_help(int error)
 {
 	printf("signaltest V %1.2f\n", VERSION);
 	printf("Usage:\n"
 		"signaltest <options>\n\n"
 		"-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
-		"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 		"-D       --duration=TIME   specify a length for the test run.\n"
-		"                           Append 'm', 'h', or 'd' to specify minutes, hours or days.\n"
+		"                           Append 'm', 'h', or 'd' to specify minutes, hours or\n"
+		"                           days.\n"
+		"-h       --help            display usage information\n"
+		"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+		"-m       --mlockall        lock current and future memory allocations\n"
 		"-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 		"-q       --quiet           print a summary only on exit\n"
 		"-t NUM   --threads=NUM     number of threads: default=2\n"
-		"-m       --mlockall        lock current and future memory allocations\n"
 		"-v       --verbose         output values on stdout for statistics\n"
 		"                           format: n:c:v n=tasknum c=count v=value in us\n"
-		"--help			    display usage information\n");
-	exit(0);
+		);
+	exit(error);
 }
 
 static int priority;
@@ -208,38 +210,39 @@ static int quiet;
 static int lockall = 0;
 
 /* Process commandline options */
-static void process_options (int argc, char *argv[])
+static void process_options(int argc, char *argv[])
 {
 	int error = 0;
 	for (;;) {
 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
-			{"breaktrace", required_argument, NULL, 'b'},
-			{"loops", required_argument, NULL, 'l'},
-			{"duration", required_argument, NULL, 'D'},
-			{"priority", required_argument, NULL, 'p'},
-			{"quiet", no_argument, NULL, 'q'},
-			{"threads", required_argument, NULL, 't'},
-			{"verbose", no_argument, NULL, 'v'},
-			{"mlockall", no_argument, NULL, 'm'},
-			{"help", no_argument, NULL, '?'},
+			{"breaktrace",		required_argument,	NULL, 'b'},
+			{"duration",		required_argument,	NULL, 'D'},
+			{"help",		no_argument,		NULL, 'h'},
+			{"loops",		required_argument,	NULL, 'l'},
+			{"mlockall",		no_argument,		NULL, 'm'},
+			{"priority",		required_argument,	NULL, 'p'},
+			{"quiet",		no_argument,		NULL, 'q'},
+			{"threads",		required_argument,	NULL, 't'},
+			{"verbose",		no_argument,		NULL, 'v'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "b:c:d:i:l:D:np:qrsmt:v",
-			long_options, &option_index);
+		int c = getopt_long(argc, argv, "b:D:hl:mp:qt:v",
+				long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
 		case 'b': tracelimit = atoi(optarg); break;
-		case 'l': max_cycles = atoi(optarg); break;
 		case 'D': duration = parse_time_string(optarg); break;
+		case '?':
+		case 'h': display_help(0); break;
+		case 'l': max_cycles = atoi(optarg); break;
+		case 'm': lockall = 1; break;
 		case 'p': priority = atoi(optarg); break;
 		case 'q': quiet = 1; break;
 		case 't': num_threads = atoi(optarg); break;
-		case 'm': lockall = 1; break;
 		case 'v': verbose = 1; break;
-		case '?': error = 1; break;
 		}
 	}
 
@@ -253,7 +256,7 @@ static void process_options (int argc, char *argv[])
 		error = 1;
 
 	if (error)
-		display_help ();
+		display_help(error);
 }
 
 static void check_kernel(void)
