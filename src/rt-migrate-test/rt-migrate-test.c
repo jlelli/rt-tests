@@ -146,71 +146,67 @@ static void print_progress_bar(int percent)
 	fflush(stderr);
 }
 
-static void usage(char **argv)
+static void usage(int error)
 {
-	char *arg = argv[0];
-	char *p = arg+strlen(arg);
-
-	while (p >= arg && *p != '/')
-		p--;
-	p++;
-
-	printf("%s %1.2f\n", p, VERSION);
+	printf("rt-migrate-test %1.2f\n", VERSION);
 	printf("Usage:\n"
-	       "%s <options> nr_tasks\n\n"
-	       "-p prio --prio  prio        base priority to start RT tasks with (2)\n"
-	       "-r time --run-time time     Run time (ms) to busy loop the threads (20)\n"
-	       "-s time --sleep-time time   Sleep time (ms) between intervals (100)\n"
-	       "-m time --maxerr time       Max allowed error (microsecs)\n"
-	       "-l loops --loops loops      Number of iterations to run (50)\n"
-	       "-D       --duration=TIME    specify a length for the test run.\n"
-	       "                            Append 'm', 'h', or 'd' to specify minutes, hours or days.\n"
-	       "-e                          Use equal prio for #CPU-1 tasks (requires > 2 CPUS)\n"
-	       "-c    --check               Stop if lower prio task is quicker than higher (off)\n"
-	       "-h    --help\n"
-	       "  () above are defaults \n",
-		p);
-	exit(0);
+	       "rt-migrate-test <options> [NR_TASKS]\n\n"
+	       "-c       --check           Stop if lower prio task is quicker than higher (off)\n"
+	       "-D TIME  --duration=TIME   Specify a length for the test run.\n"
+	       "                           Append 'm', 'h', or 'd' to specify minutes, hours or\n"
+	       "                           days.\n"
+	       "-e       --equal           Use equal prio for #CPU-1 tasks (requires > 2 CPUS)\n"
+	       "-h       --help            Print this help message\n"
+	       "-l LOOPS --loops=LOOPS     Number of iterations to run (50)\n"
+	       "-m TIME  --maxerr=TIME     Max allowed error (microsecs)\n"
+	       "-p PRIO  --prio=PRIO       base priority to start RT tasks with (2)\n"
+	       "-r TIME  --run-time=TIME   Run time (ms) to busy loop the threads (20)\n"
+	       "-s TIME  --sleep-time=TIME Sleep time (ms) between intervals (100)\n\n"
+	       "  () above are defaults \n"
+	       );
+	exit(error);
 }
 
-static void parse_options (int argc, char *argv[])
+static void parse_options(int argc, char *argv[])
 {
 	for (;;) {
 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
-			{"prio", required_argument, NULL, 'p'},
-			{"run-time", required_argument, NULL, 'r'},
-			{"sleep-time", required_argument, NULL, 's'},
-			{"maxerr", required_argument, NULL, 'm'},
-			{"loops", required_argument, NULL, 'l'},
-			{"duration", required_argument, NULL, 'D'},
-			{"check", no_argument, NULL, 'c'},
-			{"help", no_argument, NULL, '?'},
+			{"check",	no_argument,		NULL, 'c'},
+			{"duration",	required_argument,	NULL, 'D'},
+			{"equal",	no_argument,		NULL, 'e'},
+			{"help",	no_argument,		NULL, 'h'},
+			{"loops",	required_argument,	NULL, 'l'},
+			{"maxerr",	required_argument,	NULL, 'm'},
+			{"prio",	required_argument,	NULL, 'p'},
+			{"run-time",	required_argument,	NULL, 'r'},
+			{"sleep-time",	required_argument,	NULL, 's'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "p:r:s:m:l:D:ech",
+		int c = getopt_long(argc, argv, "cD:ehl:m:p:r:s:",
 			long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
+		case 'c': check = 1; break;
+		case 'D': duration = parse_time_string(optarg); break;
+		case 'e': equal = 1; break;
+		case '?':
+		case 'h':
+			usage(0);
+			break;
+		case 'l': nr_runs = atoi(optarg); break;
+		case 'm': max_err = usec2nano(atoi(optarg)); break;
 		case 'p': prio_start = atoi(optarg); break;
 		case 'r':
 			run_interval = atoi(optarg);
 			break;
 		case 's': interval = atoi(optarg); break;
-		case 'l': nr_runs = atoi(optarg); break;
-		case 'D': duration = parse_time_string(optarg); break;
-		case 'm': max_err = usec2nano(atoi(optarg)); break;
-		case 'e': equal = 1; break;
-		case 'c': check = 1; break;
-		case '?':
-		case 'h':
-			usage(argv);
-			break;
+		default:
+			usage(1);
 		}
 	}
-
 }
 
 static unsigned long long get_time(void)
