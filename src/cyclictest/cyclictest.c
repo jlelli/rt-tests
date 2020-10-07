@@ -920,26 +920,10 @@ static unsigned int is_cpumask_zero(const struct bitmask *mask)
  */
 static int get_available_cpus(void)
 {
-	int num_cpus = 0;
-	int res;
-	pthread_t thread;
-	cpu_set_t cpuset;
+	if (affinity_mask)
+		return numa_bitmask_weight(affinity_mask);
 
-
-	if (affinity_mask != NULL) {
-		num_cpus = rt_numa_bitmask_count(affinity_mask);
-	} else {
-		CPU_ZERO(&cpuset);
-		thread = pthread_self();
-		res = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-		if (res != 0) {
-			fatal("pthread_getaffinity_np failed: %s\n", strerror(res));
-		}
-		num_cpus = CPU_COUNT(&cpuset);
-	}
-
-	return num_cpus;
-
+	return numa_num_task_cpus();
 }
 
 /* cpu_for_thread AFFINITY_SPECIFIED */
