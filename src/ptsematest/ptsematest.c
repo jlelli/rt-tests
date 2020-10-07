@@ -141,29 +141,31 @@ void *semathread(void *param)
 }
 
 
-static void display_help(void)
+static void display_help(int error)
 {
 	printf("ptsematest V %1.2f\n", VERSION);
-	puts("Usage: ptsematest <options>");
-	puts("Function: test POSIX threads mutex latency");
-	puts(
-	"Options:\n"
-	"-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
-	"                           with NUM pin all threads to the processor NUM\n"
-	"-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
-	"-d DIST  --distance=DIST   distance of thread intervals in us default=500\n"
-	"-D       --duration=TIME   specify a length for the test run.\n"
-	"                           Append 'm', 'h', or 'd' to specify minutes, hours or days.\n"
-	"-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
-	"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
-	"-p PRIO  --prio=PRIO       priority\n"
-	"-S       --smp             SMP testing: options -a -t and same priority\n"
-        "                           of all threads\n"
-	"-t       --threads         one thread per available processor\n"
-	"-t [NUM] --threads=NUM     number of threads:\n"
-	"                           without NUM, threads = max_cpus\n"
-	"                           without -t default = 1\n");
-	exit(1);
+	printf("Usage:\n"
+	       "ptsematest <options>\n\n"
+	       "Function: test POSIX threads mutex latency\n\n"
+	       "Available options:\n"
+	       "-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
+	       "                           with NUM pin all threads to the processor NUM\n"
+	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
+	       "-d DIST  --distance=DIST   distance of thread intervals in us default=500\n"
+	       "-D       --duration=TIME   specify a length for the test run.\n"
+	       "                           Append 'm', 'h', or 'd' to specify minutes, hours or\n"
+	       "                           days.\n"
+	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
+	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+	       "-p PRIO  --prio=PRIO       priority\n"
+	       "-S       --smp             SMP testing: options -a -t and same priority\n"
+	       "                           of all threads\n"
+	       "-t       --threads         one thread per available processor\n"
+	       "-t [NUM] --threads=NUM     number of threads:\n"
+	       "                           without NUM, threads = max_cpus\n"
+	       "                           without -t default = 1\n"
+	       );
+	exit(0);
 }
 
 
@@ -188,16 +190,16 @@ static void process_options (int argc, char *argv[])
 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
-			{"affinity", optional_argument, NULL, 'a'},
-			{"breaktrace", required_argument, NULL, 'b'},
-			{"distance", required_argument, NULL, 'd'},
-			{"interval", required_argument, NULL, 'i'},
-			{"loops", required_argument, NULL, 'l'},
-			{"duration", required_argument, NULL, 'D'},
-			{"priority", required_argument, NULL, 'p'},
-			{"smp", no_argument, NULL, 'S'},
-			{"threads", optional_argument, NULL, 't'},
-			{"help", no_argument, NULL, '?'},
+			{"affinity",	optional_argument,	NULL, 'a'},
+			{"breaktrace",	required_argument,	NULL, 'b'},
+			{"distance",	required_argument,	NULL, 'd'},
+			{"duration",	required_argument,	NULL, 'D'},
+			{"help",	no_argument,		NULL, 'h'},
+			{"interval",	required_argument,	NULL, 'i'},
+			{"loops",	required_argument,	NULL, 'l'},
+			{"priority",	required_argument,	NULL, 'p'},
+			{"smp",		no_argument,		NULL, 'S'},
+			{"threads",	optional_argument,	NULL, 't'},
 			{NULL, 0, NULL, 0}
 		};
 		int c = getopt_long (argc, argv, "a::b:d:i:l:D:p:St::h",
@@ -222,9 +224,11 @@ static void process_options (int argc, char *argv[])
 			break;
 		case 'b': tracelimit = atoi(optarg); break;
 		case 'd': distance = atoi(optarg); break;
-		case 'i': interval = atoi(optarg); break;
-		case 'l': max_cycles = atoi(optarg); break;
 		case 'D': duration = parse_time_string(optarg); break;
+		case 'i': interval = atoi(optarg); break;
+		case '?':
+		case 'h': display_help(0); break;
+		case 'l': max_cycles = atoi(optarg); break;
 		case 'p': priority = atoi(optarg); break;
 		case 'S':
 			smp = 1;
@@ -243,9 +247,9 @@ static void process_options (int argc, char *argv[])
 			else
 				num_threads = max_cpus;
 			break;
-		case 'h':
-			display_help();
-		case '?': error = 1; break;
+		default:
+			display_help(1);
+			break;
 		}
 	}
 
@@ -275,7 +279,7 @@ static void process_options (int argc, char *argv[])
 		sameprio = 1;
 
 	if (error)
-		display_help();
+		display_help(error);
 }
 
 
