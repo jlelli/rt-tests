@@ -67,18 +67,42 @@ struct State *statep;
 const int policy = SCHED_FIFO;
 const int prio_min;	/* Initialized for the minimum priority of policy */
 
-struct option long_options[] = {
-    { "usleep", required_argument, 0, 0 },
-    { 0,        0,                 0, 0 },
-};
+static void usage(int error)
+{
+	printf("pip_stress V %1.2f\n", VERSION);
+	printf("Usage:\n"
+	       "pip_stress <options>\n"\
+	       "-h	--help                  Show this help menu.\n"
+	       );
+	exit(error);
+}
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	void *mptr;	/* memory pointer */
 	pid_t pid1, pid2;
 	cpu_set_t set, *setp = &set;
 	int res;
 	int *minimum_priority = (int*)&prio_min;
+
+	for (;;) {
+		struct option long_options[] = {
+			{ "help",	no_argument,		NULL,	'h' },
+			{ NULL,		0,			NULL,	0 },
+		};
+
+		int c = getopt_long(argc, argv, "s:h", long_options, NULL);
+		if (c == -1)
+			break;
+		switch (c) {
+		case 'h':
+			usage(0);
+			break;
+		default:
+			usage(1);
+			break;
+		};
+	}
 
 	*minimum_priority = sched_get_priority_min(policy);
 
