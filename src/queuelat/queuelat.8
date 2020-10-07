@@ -15,9 +15,8 @@
 .SH NAME
 queuelat \- Queue latency test program
 .SH SYNOPSIS
-.B queuelat
-.RI "[\-h] [\-m " max-queue-len "] [\-c " cycles-per-packet "] [\-p " mpps "] [\-f " tsc-freq "] [\-t " timeout "] \
-
+.LP
+queuelat [-c|--cycles N] [-f|--freq F] [-h|--help] [-m|--max-len LEN] [-p|--packets F] [-q|--queue-len N] [-t|--timeout TIME]
 .SH DESCRIPTION
 queuelat simulates a network queue checking for latency
 violations in packet processing.
@@ -25,36 +24,26 @@ violations in packet processing.
 .SH OPTIONS
 A summary of options is included below.
 .TP
-.B \-h
-Show help
-.br
+.B \-c, \-\-cycles=N
+Estimated number of cycles it takes to process one packet. This value should come from the envisioned packet forwarding application being simulated.
 .TP
-.B \-m max-queue-len
-Maximum allowed latency, in nanoseconds. If latency to process
-.br
-any packet exceeds this value, the program quits,
-writing
-.br
-a message to the trace buffer.
-.TP
-.B \-c cycles-per-packet
-Estimated number of cycles it takes to process one packet.
-.br
-This value should come from the envisioned packet
-.br
-forwarding application being simulated.
-.TP
-.B \-p mpps
-Million packets per second that arrive for processing.
-.TP
-.B \-f tsc-freq-mhz
+.B \-f, \-\-freq=F
 TSC frequency in MHz.
 .TP
-.B \-t timeout
-Timeout in seconds to quit the program.
+.B \-h, \-\-help
+Show help
 .TP
-.B \-q min_queue_len_to_print_trace
+.B \-m, \-\-max-len=N
+Maximum allowed latency, in nanoseconds. If latency to process any packet exceeds this value, the program quits, writing a message to the trace buffer.
+.TP
+.B \-p, \-\-packets=F
+Million packets per second that arrive for processing.
+.TP
+.B \-q, \-\-queue-len=N
 Minimum queue length to print in the trace
+.TP
+.B \-t, \-\-timeout=TIME
+Timeout in seconds to quit the program.
 
 .SH AUTHOR
 queuelat was written by Marcelo Tosatti <mtosatti@redhat.com>

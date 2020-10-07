@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <time.h>
+#include <getopt.h>
 
 #include "rt-utils.h"
 
@@ -560,17 +561,20 @@ int calculate_nr_packets_drain_per_block(void)
 	return nr_packets_drain_per_block;
 }
 
-
-void print_help(void)
+static void print_help(int error)
 {
-	printf("usage: queuelat [options]\n");
-	printf("-h show this help menu\n");
-	printf("-m max-queue-len (maximum latency allowed, in nanoseconds) (int)\n");
-	printf("-c cycles-per-packet (number of cycles to process one packet (int)\n");
-	printf("-p million-packet-per-sec (million packets per second) (float)\n");
-	printf("-f tsc-freq-mhz (TSC frequency in MHz) (float)\n");
-	printf("-t timeout (timeout, in seconds) (int)\n");
-	printf("-q min_queue_len_to_print_trace (int)\n");
+	printf("queuelat V %1.2f\n", VERSION);
+	printf("Usage:\n"
+	       "queuelat <options>\n\n"
+	       "-c N     --cycles N        number of cycles to process one packet (int)\n"
+	       "-f F     --freq F          TSC frequency in MHz (float)\n"
+	       "-h       --help            show this help menu\n"
+	       "-m LEN   --max-len LEN     maximum latency allowed, in nanoseconds (int)\n"
+	       "-p F     --packets F       million packets per second (float)\n"
+	       "-q N     --queue-len N     minimum queue len to print trace (int)\n"
+	       "-t TIME  --timeout TIME    timeout, in seconds (int)\n"
+	       );
+	exit(error);
 }
 
 int main(int argc, char **argv)
@@ -584,60 +588,58 @@ int main(int argc, char **argv)
 	char *tvalue = NULL;
 	char *qvalue = NULL;
 	int index;
-	int c;
-
-	install_signals();
 
 	opterr = 0;
 
-	while ((c = getopt (argc, argv, "m:c:p:f:t:q:h")) != -1)
-		switch (c)
-		{
-		case 'm':
-			mvalue = optarg;
+	for (;;) {
+		static struct option options[] = {
+			{"cycles",	required_argument,	NULL, 'c'},
+			{"freq",	required_argument,	NULL, 'f'},
+			{"help",	no_argument,		NULL, 'h'},
+			{"max-len",	required_argument,	NULL, 'm'},
+			{"packets",	required_argument,	NULL, 'p'},
+			{"queue-len",	required_argument,	NULL, 'q'},
+			{"timeout",	required_argument,	NULL, 't'},
+			{NULL, 0, NULL, 0}
+		};
+		int c = getopt_long(argc, argv, "c:f:hm:p:q:t:", options, NULL);
+		if (c == -1)
 			break;
+		switch (c) {
 		case 'c':
 			cvalue = optarg;
-			break;
-		case 'p':
-			pvalue = optarg;
 			break;
 		case 'f':
 			fvalue = optarg;
 			break;
-		case 't':
-			tvalue = optarg;
+		case '?':
+		case 'h':
+			print_help(0);
+			break;
+		case 'm':
+			mvalue = optarg;
+			break;
+		case 'p':
+			pvalue = optarg;
 			break;
 		case 'q':
 			qvalue = optarg;
 			break;
-		case 'h':
-			print_help();
-			return 0;
-		case '?':
-			if (optopt == 'm' || optopt == 'c' || optopt == 'p' ||
-			    optopt == 'f' || optopt == 't' || optopt == 'q') {
-				printf ("Option -%c requires an argument.\n", optopt);
-			} else if (isprint (optopt)) {
-				printf ("Unknown option `-%c'.\n", optopt);
-				print_help();
-				return 1;
-			} else {
-				printf ( "Unknown option character `\\x%x'.\n", optopt);
-				print_help();
-				return 1;
-			}
+		case 't':
+			tvalue = optarg;
 			break;
 		default:
-			abort ();
+			print_help(1);
+			break;
 		}
-
-	if (mvalue == NULL || cvalue == NULL || pvalue == NULL ||
-	    fvalue == NULL) {
-		printf("options -m, -c, -p and -f are required.\n");
-		printf("usage: %s -m maxlatency -c cycles_per_packet -p mpps(million-packet-per-sec) -f tsc_freq_mhz [-t timeout (in secs)] [-q min_queue_len_to_print_trace]\n", argv[0]);
-		return 1;
 	}
+
+	if (mvalue == NULL || cvalue == NULL || pvalue == NULL || fvalue == NULL) {
+		printf("options -m, -c, -p and -f are required\n");
+		exit(1);
+	}
+
+	install_signals();
 
 	maxlatency = atoi(mvalue);
         cycles_per_packet = atoi(cvalue);
@@ -652,13 +654,6 @@ int main(int argc, char **argv)
 
 	if (qvalue) {
 		min_queue_size_to_print = atoi(qvalue);
-	}
-
-	if (optind != argc) {
-		for (index = optind; index < argc; index++) {
-			printf ("Error, non-option argument %s\n", argv[index]);
-		}
-		return 1;
 	}
 
 	convert_to_ghz(tsc_freq_mhz);
