@@ -17,7 +17,7 @@ cyclicdeadline \- This program is used to test the deadline scheduler (SCHED_DEA
 .PP
 .SH SYNOPSIS
 .B cyclicdeadline
-.RI "[-ha] [-c cpulist] [-i interval] [-s step] [-t nr_threads] [-D duration]
+.RI "[-ha] [-c CPUSET] [-D TIME] [-i INTV] [-s STEP] [-t NUM]"
 .PP
 .SH DESCRIPTION
 .B cyclicdeadline
@@ -25,28 +25,28 @@ is a cyclictest style program for testing the deadline scheduler
 .PP
 .SH OPTIONS
 .TP
-.B \-h
-Show this help menu
-.TP
 .B \-a
 Use all CPUs
 .TP
-.B \-c cpulist
+.B \-c CPUSET
 Comma / hypen separated list of CPUs to run deadline tasks on
 .TP
-.B \-i interval
+.B \-D TIME
+Specify a length for the test to run
+Append 'm', 'h', or 'd' to specify minutes, hours, or days
+.TP
+.B \-h
+Show this help menu
+.TP
+.B \-i INTV
 The shortest deadline for the tasks in us. (default 1000us)
 .TP
-.B \-s step
+.B \-s STEP
 The amount to increase the deadline for each task in us. (default 500us)
 .TP
-.B \-t nr_threads
+.B \-t NUM
 The number of threads to run as deadline (default 1)
-.TP
-.B \-D time
-Specify a length for the test to run
 .br
-Append 'm', 'h', or 'd' to specify minutes, hours, or days
 .SH AUTHOR
 cyclicdeadline was written by Steven Rostedt <rostedt@goodmis.org>
 .PP
