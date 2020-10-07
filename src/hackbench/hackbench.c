@@ -88,12 +88,22 @@ static void barf(const char *msg)
 	exit(1);
 }
 
-static void print_usage_exit()
+static void print_usage_exit(int error)
 {
-	printf("Usage: hackbench [-p|--pipe] [-s|--datasize <bytes>] [-l|--loops <num loops>]\n"
-	       "\t\t [-g|--groups <num groups] [-f|--fds <num fds>]\n"
-	       "\t\t [-T|--threads] [-P|--process] [-F|--fifo] [--help]\n");
-	exit(1);
+	printf("hackbench V %1.2f\n", VERSION);
+	printf("Usage:\n"
+	       "hackbench <options>\n\n"
+	       "-f       --fds=NUM         number of fds\n"
+	       "-F       --fifo            use SCHED_FIFO for main thread\n"
+	       "-g       --groups=NUM      number of groups to be used\n"
+	       "-h       --help            print this message\n"
+	       "-l       --loops=LOOPS     how many message should be send\n"
+	       "-p       --pipe            send data via a pipe\n"
+	       "-s       --datasize=SIZE   message size\n"
+	       "-T       --threads         use POSIX threads\n"
+	       "-P       --process         use fork (default)\n"
+	       );
+	exit(error);
 }
 
 static void fdpair(int fds[2])
@@ -342,85 +352,71 @@ static unsigned int group(childinfo_t *child,
 	return num_fds * 2;
 }
 
-static void process_options (int argc, char *argv[])
+static void process_options(int argc, char *argv[])
 {
-	int error = 0;
-
-	while( 1 ) {
+	for(;;) {
 		int optind = 0;
 
 		static struct option longopts[] = {
-			{"pipe",      no_argument,	 NULL, 'p'},
-			{"datasize",  required_argument, NULL, 's'},
-			{"loops",     required_argument, NULL, 'l'},
-			{"groups",    required_argument, NULL, 'g'},
-			{"fds",	      required_argument, NULL, 'f'},
-			{"threads",   no_argument,	 NULL, 'T'},
-			{"processes", no_argument,	 NULL, 'P'},
-			{"fifo",      no_argument,       NULL, 'F'},
-			{"help",      no_argument,	 NULL, 'h'},
+			{"fds",		required_argument,	NULL, 'f'},
+			{"fifo",	no_argument,		NULL, 'F'},
+			{"groups",	required_argument,	NULL, 'g'},
+			{"help",	no_argument,		NULL, 'h'},
+			{"loops",	required_argument,	NULL, 'l'},
+			{"pipe",	no_argument,		NULL, 'p'},
+			{"datasize",	required_argument,	NULL, 's'},
+			{"threads",	no_argument,		NULL, 'T'},
+			{"processes",	no_argument,		NULL, 'P'},
 			{NULL, 0, NULL, 0}
 		};
 
-		int c = getopt_long(argc, argv, "ps:l:g:f:TPFh",
+		int c = getopt_long(argc, argv, "f:Fg:hl:ps:TP",
 				    longopts, &optind);
 		if (c == -1) {
 			break;
 		}
 		switch (c) {
-		case 'p':
-			use_pipes = 1;
-			break;
-
-		case 's':
-			if (!(argv[optind] && (datasize = atoi(optarg)) > 0)) {
-				fprintf(stderr, "%s: --datasize|-s requires an integer > 0\n", argv[0]);
-				error = 1;
-			}
-			break;
-
-		case 'l':
-			if (!(argv[optind] && (loops = atoi(optarg)) > 0)) {
-				fprintf(stderr, "%s: --loops|-l requires an integer > 0\n", argv[0]);
-				error = 1;
-			}
-			break;
-
-		case 'g':
-			if (!(argv[optind] && (num_groups = atoi(optarg)) > 0)) {
-				fprintf(stderr, "%s: --groups|-g requires an integer > 0\n", argv[0]);
-				error = 1;
-			}
-			break;
-
 		case 'f':
 			if (!(argv[optind] && (num_fds = atoi(optarg)) > 0)) {
 				fprintf(stderr, "%s: --fds|-f requires an integer > 0\n", argv[0]);
-				error = 1;
+				print_usage_exit(1);
 			}
 			break;
-
+		case 'F':
+			fifo = 1;
+			break;
+		case 'g':
+			if (!(argv[optind] && (num_groups = atoi(optarg)) > 0)) {
+				fprintf(stderr, "%s: --groups|-g requires an integer > 0\n", argv[0]);
+				print_usage_exit(1);
+			}
+			break;
+		case 'h':
+			print_usage_exit(0);
+		case 'l':
+			if (!(argv[optind] && (loops = atoi(optarg)) > 0)) {
+				fprintf(stderr, "%s: --loops|-l requires an integer > 0\n", argv[0]);
+				print_usage_exit(1);
+			}
+			break;
+		case 'p':
+			use_pipes = 1;
+			break;
+		case 's':
+			if (!(argv[optind] && (datasize = atoi(optarg)) > 0)) {
+				fprintf(stderr, "%s: --datasize|-s requires an integer > 0\n", argv[0]);
+				print_usage_exit(1);
+			}
+			break;
 		case 'T':
 			process_mode = THREAD_MODE;
 			break;
 		case 'P':
 			process_mode = PROCESS_MODE;
 			break;
-
-		case 'F':
-			fifo = 1;
-			break;
-
-		case 'h':
-			print_usage_exit();
-
 		default:
-			error = 1;
+			print_usage_exit(1);
 		}
-	}
-
-	if( error ) {
-		exit(1);
 	}
 }
 

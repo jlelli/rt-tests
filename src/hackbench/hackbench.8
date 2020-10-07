@@ -1,13 +1,17 @@
-.TH "hackbench" "8" "February  23, 2010" "" ""
+.TH "hackbench" "8" "September  19, 2020" "" ""
 .SH "NAME"
 hackbench \- scheduler benchmark/stress test
 .SH "SYNOPSIS"
 .B hackbench
-.RI "[\-p|\-\-pipe] [\-s|\-\-datasize " <bytes> "] " 
-.RI "[\-l|\-\-loops " <num\-loops> "] "
-.RI "[\-g|\-\-groups "<num\-groups> "] "
-.RI "[\-f|\-\-fds <num\-fds>] "
-.RI "[\-T|\-\-threads] [\-P|\-\-process] [\-F|\-\-fifo] [\-\-help]"
+.RI "[\-f|\-\-fds NUM] "
+.RI "[\-F|\-\-fifo] "
+.RI "[\-g|\-\-groups NUM] "
+.RI "[\-h|\-\-help] "
+.RI "[\-l|\-\-loops LOOPS] "
+.RI "[\-p|\-\-pipe] "
+.RI "[\-s|\-\-datasize SIZE] "
+.RI "[\-T|\-\-threads]"
+.RI "[\-P|\-\-process]"
 
 .SH "DESCRIPTION"
 Hackbench is both a benchmark and a stress test for the Linux kernel
@@ -19,45 +23,45 @@ each pair to send data back and forth.
 .SH "OPTIONS"
 These programs follow the usual GNU command line syntax, with long
 options starting with two dashes ("\-\-").
-.br 
+.br
 A summary of options is included below.
-.TP 
-.B \-p, \-\-pipe
-Sends the data via a pipe instead of the socket (default)
-.TP 
-.B \-s, \-\-datasize=<size in bytes>
-Sets the amount of data to send in each message
-.TP 
-.B \-l, \-\-loops=<number of loops>
-How many messages each sender/receiver pair should send
-.TP 
-.B \-g, \-\-groups=<number of groups>
-Defines how many groups of senders and receivers should be started
-.TP 
-.B \-f, \-\-fds=<number of file descriptors>
-Defines how many file descriptors each child should use. 
+.TP
+.B \-f, \-\-fds=NUM
+Defines how many file descriptors each child should use.
 Note that the effective number will be twice the amount you set here,
-as the sender and receiver children will each open the given amount of 
+as the sender and receiver children will each open the given amount of
 file descriptors.
-.TP 
-.B \-T, \-\-threads
-Each sender/receiver child will be a POSIX thread of the parent.
-.TP 
-.B \-P, \-\-process
-Hackbench will use fork() on all children (default behaviour)
 .TP
 .B \-F,\-\-fifo
 Change the main thread to SCHED_FIFO after creating workers.
 This allows the management thread to run after many workers are created.
-.TP 
-.B \-\-help
-.br 
+.TP
+.B \-g, \-\-groups=NUM
+Defines how many groups of senders and receivers should be started
+.TP
+.B \-h, \-\-help
+.TP
+.B \-l, \-\-loops=LOOPS
+How many messages each sender/receiver pair should send
+.TP
+.B \-p, \-\-pipe
+Sends the data via a pipe instead of the socket (default)
+.TP
+.B \-s, \-\-datasize=SIZE
+Sets the amount of data to send in each message
+.TP
+.B \-T, \-\-threads
+Each sender/receiver child will be a POSIX thread of the parent.
+.TP
+.B \-P, \-\-process
+Hackbench will use fork() on all children (default behaviour)
+.br
 Shows a simple help screen
 .SH "EXAMPLES"
-.LP 
+.LP
 Running hackbench without any options will give default behaviour,
 using fork() and sending data between senders and receivers via sockets.
-.LP 
+.LP
 user@host: ~ $ hackbench
 .br 
 Running in process mode with 10 groups using 40 file descriptors each (== 400 tasks)
