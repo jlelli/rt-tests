@@ -35,6 +35,11 @@ LDFLAGS ?=
 
 PYLIB  ?= $(shell python3 -c 'import distutils.sysconfig;  print (distutils.sysconfig.get_python_lib())')
 
+# Check for errors, such as python3 not available
+ifeq (${PYLIB},)
+	undefine PYLIB
+endif
+
 MANPAGES = src/cyclictest/cyclictest.8 \
 	   src/pi_tests/pi_stress.8 \
 	   src/ptsematest/ptsematest.8 \
