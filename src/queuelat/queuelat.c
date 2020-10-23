@@ -587,7 +587,6 @@ int main(int argc, char **argv)
 	char *fvalue = NULL;
 	char *tvalue = NULL;
 	char *qvalue = NULL;
-	int index;
 
 	opterr = 0;
 
