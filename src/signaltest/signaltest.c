@@ -61,8 +61,8 @@ struct thread_stat {
 };
 
 static int shutdown;
-static int tracelimit = 0;
-static int oldtrace = 0;
+static int tracelimit;
+static int oldtrace;
 
 
 /*
@@ -107,7 +107,7 @@ void *signalthread(void *param)
 
 	if (tracelimit) {
 		if (oldtrace)
-			gettimeofday(0,(struct timezone *)1);
+			gettimeofday(0, (struct timezone *)1);
 		else
 			prctl(0, 1);
 	}
@@ -153,7 +153,7 @@ void *signalthread(void *param)
 		if (!stopped && tracelimit && (diff > tracelimit)) {
 			stopped++;
 			if (oldtrace)
-				gettimeofday(0,0);
+				gettimeofday(0, 0);
 			else
 				prctl(0, 0);
 			shutdown++;
@@ -207,12 +207,13 @@ static int max_cycles;
 static int duration;
 static int verbose;
 static int quiet;
-static int lockall = 0;
+static int lockall;
 
 /* Process commandline options */
 static void process_options(int argc, char *argv[])
 {
 	int error = 0;
+
 	for (;;) {
 		int option_index = 0;
 		/** Options for getopt */
@@ -326,7 +327,7 @@ int main(int argc, char **argv)
 
 	sigemptyset(&sigset);
 	sigaddset(&sigset, signum);
-	sigprocmask (SIG_BLOCK, &sigset, NULL);
+	sigprocmask(SIG_BLOCK, &sigset, NULL);
 
 	signal(SIGINT, sighand);
 	signal(SIGTERM, sighand);
@@ -400,7 +401,7 @@ int main(int argc, char **argv)
 		}
 
 		print_stat(&par[0], 0, verbose);
-		if(max_cycles && stat[0].cycles >= max_cycles)
+		if (max_cycles && stat[0].cycles >= max_cycles)
 			allstopped++;
 
 		usleep(10000);
