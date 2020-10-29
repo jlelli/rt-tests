@@ -147,7 +147,7 @@ static pid_t parent;
 static int nforks = 10;
 static int nsteps = 10000;
 
-static void sigchld(int sig, unused siginfo_t * info, unused void *arg)
+static void sigchld(int sig, unused siginfo_t *info, unused void *arg)
 {
 	got_sigchld = 1;
 }
@@ -218,7 +218,7 @@ static int forktests(int testid)
 		       ret_sig);
 		exit(1);
 	}
-	else if (!check_sigchld()) {
+	if (!check_sigchld()) {
 		printf("forktest#%d/%d: EXITING, ERROR: "
 		       "wait on PTRACE_ATTACH saw a SIGCHLD count of %d, should be 1\n",
 		       testid, getpid(), got_sigchld);
