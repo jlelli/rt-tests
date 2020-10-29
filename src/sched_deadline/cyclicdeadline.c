@@ -112,7 +112,7 @@ static int find_mount(const char *mount, char *debugfs)
 	char type[100];
 	FILE *fp;
 
-	if ((fp = fopen("/proc/mounts","r")) == NULL)
+	if ((fp = fopen("/proc/mounts", "r")) == NULL)
 		return 0;
 
 	while (fscanf(fp, "%*s %"
@@ -139,7 +139,7 @@ static const char *find_debugfs(void)
 
 	if (!find_mount("debugfs", debugfs))
 		return "";
-	
+
 	debugfs_found = 1;
 
 	return debugfs;
@@ -518,8 +518,8 @@ static const char *make_cpuset(const char *name, const char *cpus,
 		fd = open_cpuset(path, "tasks");
 
 		snprintf(path, MAXPATH - 1, "%s/tasks", CPUSET_PATH);
-		if ((fp = fopen(path,"r")) == NULL) {
-			close (fd);
+		if ((fp = fopen(path, "r")) == NULL) {
+			close(fd);
 			return "opening cpuset tasks";
 		}
 
@@ -565,7 +565,7 @@ static void destroy_cpuset(const char *name, int print)
 
  again:
 	strncat(path, "/tasks", MAXPATH - 1);
-	if ((fp = fopen(path,"r")) == NULL) {
+	if ((fp = fopen(path, "r")) == NULL) {
 		fprintf(stderr, "Failed opening %s\n", path);
 		perror("fopen");
 		return;
@@ -792,7 +792,7 @@ void *run_deadline(void *data)
 
 	sched_yield();
 	period = get_time_us();
-	
+
 	while (!shutdown) {
 		period = do_runtime(tid, sd, period);
 		sched_yield();
@@ -997,19 +997,17 @@ static void loop(struct sched_data *sched_data, int nr_threads)
 	int i;
 
 	while (!shutdown) {
-		for (i = 0; i < nr_threads; i++) {
+		for (i = 0; i < nr_threads; i++)
 			print_stat(stdout, &sched_data[i], i, 0, 0);
-		}
 		usleep(10000);
 		printf("\033[%dA", nr_threads);
 	}
 	usleep(10000);
-	for (i = 0; i < nr_threads; i++) {
+	for (i = 0; i < nr_threads; i++)
 		printf("\n");
-	}
 }
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
 	struct sched_data *sched_data;
 	struct sched_data *sd;
@@ -1111,9 +1109,8 @@ int main (int argc, char **argv)
 	if (setcpu)
 		make_other_cpu_list(setcpu, &allcpu_buf);
 
-	if (mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+	if (mlockall(MCL_CURRENT|MCL_FUTURE) == -1)
 		perror("mlockall");
-	}
 
 	setup_ftrace_marker();
 
