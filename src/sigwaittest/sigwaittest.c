@@ -93,15 +93,15 @@ void *semathread(void *param)
 	if (par->cpu != -1) {
 		CPU_ZERO(&mask);
 		CPU_SET(par->cpu, &mask);
-		if(sched_setaffinity(0, sizeof(mask), &mask) == -1)
+		if (sched_setaffinity(0, sizeof(mask), &mask) == -1)
 			fprintf(stderr,	"WARNING: Could not set CPU affinity "
 				"to CPU #%d\n", par->cpu);
 	} else {
-        	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
+		int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
 
-        	if (max_cpus > 1)
-		        mustgetcpu = 1;
-	        else
+		if (max_cpus > 1)
+			mustgetcpu = 1;
+		else
 			par->cpu = 0;
 	}
 
@@ -133,12 +133,11 @@ void *semathread(void *param)
 			else
 				pthread_kill(neighbor->threadid, SIGUSR2);
 			par->samples++;
-			if(par->max_cycles && par->samples >= par->max_cycles)
+			if (par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
 
-			if (mustgetcpu) {
+			if (mustgetcpu)
 				par->cpu = get_cpu();
-			}
 			sigwait(&sigset, &sig);
 		} else {
 			/* Receiver */
@@ -160,9 +159,8 @@ void *semathread(void *param)
 			if (par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
 
-			if (mustgetcpu) {
+			if (mustgetcpu)
 				par->cpu = get_cpu();
-		        }
 			/*
 			 * Latency is the time spent between sending and
 			 * receiving the signal.
@@ -242,7 +240,7 @@ static int duration;
 static int interval = 1000;
 static int distance = 500;
 
-static void process_options (int argc, char *argv[])
+static void process_options(int argc, char *argv[])
 {
 	int error = 0;
 	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
@@ -273,7 +271,7 @@ static void process_options (int argc, char *argv[])
 			if (optarg != NULL) {
 				affinity = atoi(optarg);
 				setaffinity = AFFINITY_SPECIFIED;
-			} else if (optind<argc && atoi(argv[optind])) {
+			} else if (optind < argc && atoi(argv[optind])) {
 				affinity = atoi(argv[optind]);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else {
@@ -304,7 +302,7 @@ static void process_options (int argc, char *argv[])
 		case 't':
 			if (optarg != NULL)
 				num_threads = atoi(optarg);
-			else if (optind<argc && atoi(argv[optind]))
+			else if (optind < argc && atoi(argv[optind]))
 				num_threads = atoi(argv[optind]);
 			else
 				num_threads = max_cpus;
@@ -339,7 +337,7 @@ static void process_options (int argc, char *argv[])
 		tracelimit = thistracelimit;
 	}
 	if (error)
-		display_help (error);
+		display_help(error);
 }
 
 
@@ -386,7 +384,7 @@ int main(int argc, char *argv[])
 		totalsize = num_threads * sizeof(struct params) * 2;
 
 		shm_unlink("/sigwaittest");
-  		shmem = shm_open("/sigwaittest", O_CREAT|O_EXCL|O_RDWR,
+		shmem = shm_open("/sigwaittest", O_CREAT|O_EXCL|O_RDWR,
 		    S_IRUSR|S_IWUSR);
 		if (shmem < 0) {
 			fprintf(stderr, "Could not create shared memory\n");
@@ -629,7 +627,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
- 	nomem:
+nomem:
 	if (mustfork) {
 		munmap(param, totalsize);
 		shm_unlink("/sigwaittest");
