@@ -211,8 +211,8 @@ unsigned long total_inversions(void);
 void banner(void);
 void summary(void);
 void wait_for_termination(void);
-int barrier_init(pthread_barrier_t * b, const pthread_barrierattr_t * attr,
-		 unsigned count, const char *name);
+int barrier_init(pthread_barrier_t *b, const pthread_barrierattr_t *attr,
+		 unsigned int count, const char *name);
 void setup_sched_attr(struct sched_attr *attr, int policy, int prio);
 void setup_sched_config(int policy);
 
@@ -1422,8 +1422,8 @@ void summary(void)
 }
 
 int
-barrier_init(pthread_barrier_t * b, const pthread_barrierattr_t * attr,
-	     unsigned count, const char *name)
+barrier_init(pthread_barrier_t *b, const pthread_barrierattr_t *attr,
+	     unsigned int count, const char *name)
 {
 	int status;
 
