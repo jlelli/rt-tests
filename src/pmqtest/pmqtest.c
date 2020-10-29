@@ -83,7 +83,7 @@ void *pmqthread(void *param)
 	if (par->cpu != -1) {
 		CPU_ZERO(&mask);
 		CPU_SET(par->cpu, &mask);
-		if(sched_setaffinity(0, sizeof(mask), &mask) == -1)
+		if (sched_setaffinity(0, sizeof(mask), &mask) == -1)
 			fprintf(stderr,	"WARNING: Could not set CPU affinity "
 				"to CPU #%d\n", par->cpu);
 	} else
@@ -97,7 +97,7 @@ void *pmqthread(void *param)
 			/* Optionally force receiver timeout */
 			if (par->forcetimeout) {
 				struct timespec senddelay;
-				
+
 				senddelay.tv_sec = par->forcetimeout;
 				senddelay.tv_nsec = 0;
 				clock_nanosleep(CLOCK_MONOTONIC, 0, &senddelay, NULL);
@@ -110,7 +110,7 @@ void *pmqthread(void *param)
 				par->shutdown = 1;
 			}
 			par->samples++;
-			if(par->max_cycles && par->samples >= par->max_cycles)
+			if (par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
 			if (mustgetcpu)
 				par->cpu = get_cpu();
@@ -118,17 +118,17 @@ void *pmqthread(void *param)
 			if (par->timeout) {
 				clock_gettime(CLOCK_REALTIME, &ts);
 				ts.tv_sec += par->timeout;
-	
+
 				if (mq_timedreceive(par->syncmq, par->recvsyncmsg, MSG_SIZE, NULL, &ts)
 				    != strlen(syncmsg)) {
 					fprintf(stderr, "could not receive sync message\n");
-					par->shutdown = 1;				
+					par->shutdown = 1;
 				}
-			} 
+			}
 			if (mq_receive(par->syncmq, par->recvsyncmsg, MSG_SIZE, NULL) !=
 			    strlen(syncmsg)) {
 				perror("could not receive sync message");
-				par->shutdown = 1;				
+				par->shutdown = 1;
 			}
 			if (!par->shutdown && strcmp(syncmsg, par->recvsyncmsg)) {
 				fprintf(stderr, "ERROR: Sync message mismatch detected\n");
@@ -156,8 +156,7 @@ void *pmqthread(void *param)
 						}
 					} else
 						break;
-				}
-				while (1);
+				} while (1);
 			} else {
 				if (mq_receive(par->testmq, par->recvtestmsg, MSG_SIZE, NULL) !=
 				    strlen(testmsg)) {
@@ -261,7 +260,7 @@ static int sameprio;
 static int timeout;
 static int forcetimeout;
 
-static void process_options (int argc, char *argv[])
+static void process_options(int argc, char *argv[])
 {
 	int error = 0;
 	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
@@ -297,7 +296,7 @@ static void process_options (int argc, char *argv[])
 			if (optarg != NULL) {
 				affinity = atoi(optarg);
 				setaffinity = AFFINITY_SPECIFIED;
-			} else if (optind<argc && atoi(argv[optind])) {
+			} else if (optind < argc && atoi(argv[optind])) {
 				affinity = atoi(argv[optind]);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else {
@@ -325,7 +324,7 @@ static void process_options (int argc, char *argv[])
 			}
 			if (optarg != NULL)
 				num_threads = atoi(optarg);
-			else if (optind<argc && atoi(argv[optind]))
+			else if (optind < argc && atoi(argv[optind]))
 				num_threads = atoi(argv[optind]);
 			else
 				num_threads = max_cpus;
@@ -366,7 +365,7 @@ static void process_options (int argc, char *argv[])
 		sameprio = 1;
 
 	if (error)
-		display_help (error);
+		display_help(error);
 }
 
 
@@ -523,7 +522,7 @@ int main(int argc, char *argv[])
 			if (minsamples < 1)
 				printf("Collecting ...\n\033[1A");
 		}
-		
+
 		fflush(NULL);
 
 		oldsamples = 0;
@@ -564,7 +563,7 @@ int main(int argc, char *argv[])
 		mq_unlink(mqname);
 	}
 
-	nomem:
+nomem:
 
 	return 0;
 }
