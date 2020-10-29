@@ -552,7 +552,7 @@ int main (int argc, char **argv)
 
 		nanosleep(&intv, NULL);
 
-		print_progress_bar((loop * 100)/ nr_runs);
+		print_progress_bar((loop * 100)/nr_runs);
 
 		end = get_time();
 		ftrace_write("Loop %d end now=%lld diff=%lld\n", loop, end, end - now);
