@@ -94,16 +94,16 @@ void *semathread(void *param)
 	if (par->cpu != -1) {
 		CPU_ZERO(&mask);
 		CPU_SET(par->cpu, &mask);
-		if(sched_setaffinity(0, sizeof(mask), &mask) == -1)
+		if (sched_setaffinity(0, sizeof(mask), &mask) == -1)
 			snprintf(par->error, sizeof(par->error),
 			    "WARNING: Could not set CPU affinity "
 			    "to CPU #%d\n", par->cpu);
 	} else {
-        	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
+		int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
 
-        	if (max_cpus > 1)
-		        mustgetcpu = 1;
-	        else
+		if (max_cpus > 1)
+			mustgetcpu = 1;
+		else
 			par->cpu = 0;
 	}
 
@@ -112,8 +112,8 @@ void *semathread(void *param)
 
 	while (!par->shutdown) {
 		if (par->sender) {
- 			sb.sem_num = SEM_WAIT_FOR_SENDER;
- 			sb.sem_op = SEM_UNLOCK;
+			sb.sem_num = SEM_WAIT_FOR_SENDER;
+			sb.sem_op = SEM_UNLOCK;
 			/*
 			 * Unlocking the semaphore:
 			 *   Start of latency measurement ...
@@ -121,29 +121,29 @@ void *semathread(void *param)
 			gettimeofday(&par->unblocked, NULL);
 			semop(par->semid, &sb, 1);
 			par->samples++;
-			if(par->max_cycles && par->samples >= par->max_cycles)
+			if (par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
 
 			if (mustgetcpu)
 				par->cpu = get_cpu();
 
- 			sb.sem_num = SEM_WAIT_FOR_RECEIVER;
- 			sb.sem_op = SEM_LOCK;
+			sb.sem_num = SEM_WAIT_FOR_RECEIVER;
+			sb.sem_op = SEM_LOCK;
 			semop(par->semid, &sb, 1);
 
- 			sb.sem_num = SEM_WAIT_FOR_SENDER;
+			sb.sem_num = SEM_WAIT_FOR_SENDER;
 			sb.sem_op = SEM_LOCK;
 			semop(par->semid, &sb, 1);
 		} else {
 			/* Receiver */
 			struct params *neighbor;
 
- 			if (wasforked)
+			if (wasforked)
 				neighbor = par + par->num_threads;
 			else
 				neighbor = par->neighbor;
 
- 			sb.sem_num = SEM_WAIT_FOR_SENDER;
+			sb.sem_num = SEM_WAIT_FOR_SENDER;
 			sb.sem_op = SEM_LOCK;
 			semop(par->semid, &sb, 1);
 
@@ -185,13 +185,13 @@ void *semathread(void *param)
 				neighbor->shutdown = 1;
 			}
 
- 			sb.sem_num = SEM_WAIT_FOR_RECEIVER;
+			sb.sem_num = SEM_WAIT_FOR_RECEIVER;
 			sb.sem_op = SEM_UNLOCK;
 			semop(par->semid, &sb, 1);
 
 			nanosleep(&par->delay, NULL);
 
- 			sb.sem_num = SEM_WAIT_FOR_SENDER;
+			sb.sem_num = SEM_WAIT_FOR_SENDER;
 			sb.sem_op = SEM_UNLOCK;
 			semop(par->semid, &sb, 1);
 		}
@@ -211,10 +211,10 @@ void *semathread(void *param)
 
 
 union semun {
-       int		val;	/* Value for SETVAL */
-       struct semid_ds *buf;	/* Buffer for IPC_STAT, IPC_SET */
-       unsigned short  *array;	/* Array for GETALL, SETALL */
-       struct seminfo  *__buf;	/* Buffer for IPC_INFO (Linux-specific) */
+	int		val;	/* Value for SETVAL */
+	struct semid_ds *buf;	/* Buffer for IPC_STAT, IPC_SET */
+	unsigned short  *array;	/* Array for GETALL, SETALL */
+	struct seminfo  *__buf;	/* Buffer for IPC_INFO (Linux-specific) */
 };
 
 
@@ -293,7 +293,7 @@ static void process_options(int argc, char *argv[])
 			if (optarg != NULL) {
 				affinity = atoi(optarg);
 				setaffinity = AFFINITY_SPECIFIED;
-			} else if (optind<argc && atoi(argv[optind])) {
+			} else if (optind < argc && atoi(argv[optind])) {
 				affinity = atoi(argv[optind]);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else {
@@ -330,7 +330,7 @@ static void process_options(int argc, char *argv[])
 			}
 			if (optarg != NULL)
 				num_threads = atoi(optarg);
-			else if (optind<argc && atoi(argv[optind]))
+			else if (optind < argc && atoi(argv[optind]))
 				num_threads = atoi(argv[optind]);
 			else
 				num_threads = max_cpus;
@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
 	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
 	int oldsamples = 1;
 	key_t key;
-        union semun args;
+	union semun args;
 	struct params *receiver = NULL;
 	struct params *sender = NULL;
 	sigset_t sigset;
@@ -421,7 +421,7 @@ int main(int argc, char *argv[])
 		totalsize = num_threads * sizeof(struct params) * 2;
 
 		shm_unlink("/sigwaittest");
-  		shmem = shm_open("/sigwaittest", O_CREAT|O_EXCL|O_RDWR,
+		shmem = shm_open("/sigwaittest", O_CREAT|O_EXCL|O_RDWR,
 		    S_IRUSR|S_IWUSR);
 		if (shmem < 0) {
 			fprintf(stderr, "Could not create shared memory\n");
@@ -696,11 +696,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	nosem:
+nosem:
 	for (i = 0; i < num_threads; i++)
 		semctl(receiver[i].semid, -1, IPC_RMID);
 
- 	nomem:
+nomem:
 	if (mustfork) {
 		munmap(param, totalsize);
 		shm_unlink("/sigwaittest");
