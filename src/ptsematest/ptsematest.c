@@ -71,7 +71,7 @@ void *semathread(void *param)
 	if (par->cpu != -1) {
 		CPU_ZERO(&mask);
 		CPU_SET(par->cpu, &mask);
-		if(sched_setaffinity(0, sizeof(mask), &mask) == -1)
+		if (sched_setaffinity(0, sizeof(mask), &mask) == -1)
 			fprintf(stderr,	"WARNING: Could not set CPU affinity "
 				"to CPU #%d\n", par->cpu);
 	} else
@@ -87,7 +87,7 @@ void *semathread(void *param)
 			gettimeofday(&par->unblocked, NULL);
 			pthread_mutex_unlock(&testmutex[par->num]);
 			par->samples++;
-			if(par->max_cycles && par->samples >= par->max_cycles)
+			if (par->max_cycles && par->samples >= par->max_cycles)
 				par->shutdown = 1;
 			if (mustgetcpu)
 				par->cpu = get_cpu();
@@ -181,7 +181,7 @@ static int distance = 500;
 static int smp;
 static int sameprio;
 
-static void process_options (int argc, char *argv[])
+static void process_options(int argc, char *argv[])
 {
 	int error = 0;
 	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
@@ -215,7 +215,7 @@ static void process_options (int argc, char *argv[])
 			if (optarg != NULL) {
 				affinity = atoi(optarg);
 				setaffinity = AFFINITY_SPECIFIED;
-			} else if (optind<argc && atoi(argv[optind])) {
+			} else if (optind < argc && atoi(argv[optind])) {
 				affinity = atoi(argv[optind]);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else {
@@ -242,7 +242,7 @@ static void process_options (int argc, char *argv[])
 			}
 			if (optarg != NULL)
 				num_threads = atoi(optarg);
-			else if (optind<argc && atoi(argv[optind]))
+			else if (optind < argc && atoi(argv[optind]))
 				num_threads = atoi(argv[optind]);
 			else
 				num_threads = max_cpus;
@@ -436,7 +436,7 @@ int main(int argc, char *argv[])
 		pthread_mutex_destroy(&syncmutex[i]);
 	}
 
- 	nomem:
+nomem:
 
 	return 0;
 }
