@@ -392,11 +392,11 @@ void open_tracemark_fd(void)
 
 int trace_file_exists(char *name)
 {
-       struct stat sbuf;
-       char *tracing_prefix = get_debugfileprefix();
-       char path[MAX_PATH];
-       strcat(strcpy(path, tracing_prefix), name);
-       return stat(path, &sbuf) ? 0 : 1;
+	struct stat sbuf;
+	char *tracing_prefix = get_debugfileprefix();
+	char path[MAX_PATH];
+	strcat(strcpy(path, tracing_prefix), name);
+	return stat(path, &sbuf) ? 0 : 1;
 }
 
 void debugfs_prepare(void)
