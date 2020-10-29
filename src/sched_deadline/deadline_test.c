@@ -49,7 +49,7 @@
  * @error: Exit error code to be used
  *
  * This is defined here to show peoplde looking at this code how
- * to use this program as well. 
+ * to use this program as well.
  */
 static void usage(int error)
 {
@@ -185,7 +185,7 @@ static int find_mount(const char *mount, char *debugfs)
 	char type[100];
 	FILE *fp;
 
-	if ((fp = fopen("/proc/mounts","r")) == NULL)
+	if ((fp = fopen("/proc/mounts", "r")) == NULL)
 		return 0;
 
 	while (fscanf(fp, "%*s %"
@@ -218,7 +218,7 @@ static const char *find_debugfs(void)
 
 	if (!find_mount("debugfs", debugfs))
 		return "";
-	
+
 	debugfs_found = 1;
 
 	return debugfs;
@@ -705,8 +705,8 @@ static const char *make_cpuset(const char *name, const char *cpus,
 		fd = open_cpuset(path, "tasks");
 
 		snprintf(path, MAXPATH - 1, "%s/tasks", CPUSET_PATH);
-		if ((fp = fopen(path,"r")) == NULL) {
-			close (fd);
+		if ((fp = fopen(path, "r")) == NULL) {
+			close(fd);
 			return "opening cpuset tasks";
 		}
 
@@ -768,7 +768,7 @@ static void destroy_cpuset(const char *name, int print)
 	 * in this cpuset, that must be moved before destroying the cpuset.
 	 */
 	strncat(path, "/tasks", MAXPATH - 1);
-	if ((fp = fopen(path,"r")) == NULL) {
+	if ((fp = fopen(path, "r")) == NULL) {
 		fprintf(stderr, "Failed opening %s\n", path);
 		perror("fopen");
 		return;
@@ -1276,7 +1276,7 @@ void *run_deadline(void *data)
 
 	sched_yield();
 	period = get_time_us();
-	
+
 	while (!done) {
 		period = do_runtime(tid, sched_data, period);
 		sched_yield();
@@ -1335,9 +1335,8 @@ void *run_rt_spin(void *data)
 	if (fail)
 		return NULL;
 
-	while (!done) {
+	while (!done)
 		get_time_us();
-	}
 
 	return NULL;
 }
@@ -1689,7 +1688,7 @@ static u64 calculate_loops_per_ms(u64 *overhead)
 	return loops;
 }
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
 	struct sched_data *sched_data;
 	struct sched_data *sd;
@@ -1819,9 +1818,8 @@ int main (int argc, char **argv)
 		exit(-1);
 	}
 
-	if (mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+	if (mlockall(MCL_CURRENT|MCL_FUTURE) == -1)
 		perror("mlockall");
-	}
 
 	/*
 	 * Run at prio 99 bound to the last CPU, and try to calculate
@@ -1920,9 +1918,8 @@ int main (int argc, char **argv)
 
 	pthread_barrier_wait(&barrier);
 
-	if (fail) {
+	if (fail)
 		exit(-1);
-	}
 
 	if (!all_cpus) {
 		int *pids;
