@@ -26,12 +26,12 @@
  * mpps(million-packet-per-sec): million packets per second (float).
  * tsc_freq_mhz: TSC frequency in MHz, as measured by TSC PIT calibration 
  * (search for "Detected XXX MHz processor" in dmesg, and use the integer part).
- * 
+ *
  * How it works
  * ============
  *
  *  The program in essence does:
- * 
+ *
  * 		b = rdtsc();
  * 		memmove(dest, src, n);
  * 		a = rdtsc();
@@ -44,8 +44,8 @@
  *		if (queue_size > max_queue_len)
  *			FAIL();
  *
- * packets_processed is fixed, and is estimated as follows: 
- * n is determined first, so that the stats bucket with highest count 
+ * packets_processed is fixed, and is estimated as follows:
+ * n is determined first, so that the stats bucket with highest count
  * takes max_latency/2.
  * for max_latency/2, we calculate how many packets can be drained
  * in that time (using cycles_per_packet).
@@ -74,17 +74,16 @@ int nr_packets_drain_per_block;
 #define VALS_PER_BUCKET 100
 #define NR_BUCKETS LAST_VAL/VALS_PER_BUCKET
 
-unsigned long long int buckets[NR_BUCKETS+1];
-unsigned long long int total_count;
+unsigned long long buckets[NR_BUCKETS+1];
+unsigned long long total_count;
 
 #define OUTLIER_BUCKET NR_BUCKETS
 
 static int val_to_bucket(unsigned long long val)
 {
 	int bucket_nr = val / VALS_PER_BUCKET;
-	if (bucket_nr >= NR_BUCKETS) {
+	if (bucket_nr >= NR_BUCKETS)
 		return OUTLIER_BUCKET;
-	}
 	return bucket_nr;
 }
 
@@ -100,9 +99,8 @@ static unsigned long long total_samples(void)
 	int i;
 	unsigned long long total = 0;
 
-	for (i = 0; i <= OUTLIER_BUCKET; i++) {
+	for (i = 0; i <= OUTLIER_BUCKET; i++)
 		total += buckets[i];
-	}
 
 	return total;
 }
@@ -151,9 +149,8 @@ static void print_max_bucketsec(void)
 
 		bucket_nr = val_to_bucket(val);
 
-		if (buckets[bucket_nr] != 0) {
+		if (buckets[bucket_nr] != 0)
 			highest_val = val;
-		}
 	}
 
 	bucket_nr = val_to_bucket(highest_val);
@@ -196,7 +193,7 @@ static void print_avg_bucketsec(void)
 
 	for (i = 0; i <= OUTLIER_BUCKET; i++) {
 		unsigned long long val = i*VALS_PER_BUCKET;
-		unsigned long long maxtime; 
+		unsigned long long maxtime;
 
 		bucket_nr = val_to_bucket(val);
 
@@ -236,9 +233,9 @@ static void print_all_buckets_drainlength(void)
 			mindelta = val;
 			maxdelta = val + VALS_PER_BUCKET-1;
 
-                	nr_packets_minfill = mindelta * mpps * 1000000 / NSEC_PER_SEC;
-                	nr_packets_maxfill = maxdelta * mpps * 1000000 / NSEC_PER_SEC;
-			
+			nr_packets_minfill = mindelta * mpps * 1000000 / NSEC_PER_SEC;
+			nr_packets_maxfill = maxdelta * mpps * 1000000 / NSEC_PER_SEC;
+
 			printf("[%lld - %lld] = %lld  packetfillrates=[%d - %d]\n", val, 
 						     val + VALS_PER_BUCKET-1,
 						     buckets[bucket_nr],
@@ -275,11 +272,11 @@ typedef unsigned long long u64;
 
 static inline unsigned long long __rdtscll(void)
 {
-        DECLARE_ARGS(val, low, high);
+	DECLARE_ARGS(val, low, high);
 
-        asm volatile("mfence; rdtsc" : EAX_EDX_RET(val, low, high));
+	asm volatile("mfence; rdtsc" : EAX_EDX_RET(val, low, high));
 
-        return EAX_EDX_VAL(val, low, high);
+	return EAX_EDX_VAL(val, low, high);
 }
 
 #define gettick(val) do { (val) = __rdtscll(); } while (0)
@@ -316,7 +313,7 @@ static int find_highest_count_bucket(void)
 {
 	int i;
 	int max_bucket = 0;
-	unsigned long long int max_val = 0;
+	unsigned long long max_val = 0;
 
 	for (i=0; i <= NR_BUCKETS; i++) {
 		if (buckets[i] > max_val) {
@@ -335,7 +332,7 @@ static void trace_open(void)
 
 	fd = open("/sys/kernel/debug/tracing/trace_marker", O_RDWR);
 
-	if (fd == -1) { 
+	if (fd == -1) {
 		perror("open");
 		exit(0);
 	}
@@ -347,7 +344,7 @@ static void trace_write(char *buf, int len)
 	int ret;
 
 	ret = write(tracing_mark_fd, buf, len);
-	if (ret == -1) { 
+	if (ret == -1) {
 		perror("write");
 		exit(0);
 	}
@@ -487,10 +484,10 @@ void main_loop(void)
 		queue_size += nr_packets_fill;
 
 		/* decrease the queue by the amount of packets
- 		 * processed in maxlatency/2 nanoseconds of
- 		 * full processing.
- 		 */
-	
+		 * processed in maxlatency/2 nanoseconds of
+		 * full processing.
+		 */
+
 		queue_size -= nr_packets_drain_per_block;
 
 		if (queue_size < 0)
@@ -641,9 +638,9 @@ int main(int argc, char **argv)
 	install_signals();
 
 	maxlatency = atoi(mvalue);
-        cycles_per_packet = atoi(cvalue);
-        mpps = atof(pvalue);
-        tsc_freq_mhz = atof(fvalue);
+	cycles_per_packet = atoi(cvalue);
+	mpps = atof(pvalue);
+	tsc_freq_mhz = atof(fvalue);
 
 	if (tvalue) {
 		int alarm_secs;
@@ -651,9 +648,8 @@ int main(int argc, char **argv)
 		alarm(alarm_secs);
 	}
 
-	if (qvalue) {
+	if (qvalue)
 		min_queue_size_to_print = atoi(qvalue);
-	}
 
 	convert_to_ghz(tsc_freq_mhz);
 
