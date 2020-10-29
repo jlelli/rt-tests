@@ -26,5 +26,5 @@ int sched_getattr(pid_t pid,
 		  unsigned int size,
 		  unsigned int flags)
 {
-        return syscall(__NR_sched_getattr, pid, attr, size, flags);
+	return syscall(__NR_sched_getattr, pid, attr, size, flags);
 }
