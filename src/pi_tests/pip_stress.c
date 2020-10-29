@@ -216,9 +216,8 @@ void high(pid_t pid)
 	Pthread_mutex_lock(resource);
 	Pthread_mutex_lock(statep->mutex);
 		statep->high_owns_resource = 1;
-		if (!statep->low_owns_resource || !statep->medium_started) {
+		if (!statep->low_owns_resource || !statep->medium_started)
 			statep->inversion = 0;
-		}
 	Pthread_mutex_unlock(statep->mutex);
 	Pthread_mutex_unlock(resource);
 	kill(pid, SIGKILL);	/* kill the medium thread */
@@ -228,9 +227,8 @@ void high(pid_t pid)
 
 	if (statep->inversion)
 		printf("Successfully used priority inheritance to handle an inversion\n");
-	else {
+	else
 		printf("No inversion incurred\n");
-	}
 	Pthread_mutex_unlock(statep->mutex);
 }
 
