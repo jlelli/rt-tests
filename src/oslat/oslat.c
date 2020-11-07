@@ -871,5 +871,7 @@ int main(int argc, char *argv[])
 		g.cpu_list = NULL;
 	}
 
+	disable_trace_mark();
+
 	return 0;
 }
