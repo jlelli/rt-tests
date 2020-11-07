@@ -31,6 +31,7 @@ int parse_time_string(char *val);
 
 void enable_trace_mark(void);
 void tracemark(char *fmt, ...) __attribute__((format(printf, 1, 2)));
+void disable_trace_mark(void);
 
 #define MSEC_PER_SEC		1000
 #define USEC_PER_SEC		1000000
