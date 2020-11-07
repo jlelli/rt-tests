@@ -362,7 +362,7 @@ int parse_time_string(char *val)
 	return t;
 }
 
-void open_tracemark_fd(void)
+static void open_tracemark_fd(void)
 {
 	char path[MAX_PATH];
 
@@ -390,7 +390,7 @@ void open_tracemark_fd(void)
 	}
 }
 
-int trace_file_exists(char *name)
+static int trace_file_exists(char *name)
 {
 	struct stat sbuf;
 	char *tracing_prefix = get_debugfileprefix();
@@ -399,7 +399,7 @@ int trace_file_exists(char *name)
 	return stat(path, &sbuf) ? 0 : 1;
 }
 
-void debugfs_prepare(void)
+static void debugfs_prepare(void)
 {
 	if (mount_debugfs(NULL))
 		fatal("could not mount debugfs");
