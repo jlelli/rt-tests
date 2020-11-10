@@ -58,6 +58,7 @@ struct thread_stat {
 	pthread_t tothread;
 	int threadstarted;
 	int tid;
+	int interrupted;
 };
 
 static int shutdown;
@@ -123,13 +124,16 @@ void *signalthread(void *param)
 
 		diff = calcdiff(after, before);
 		before = now;
+
 		if (diff < stat->min)
 			stat->min = diff;
 		if (diff > stat->max)
 			stat->max = diff;
 		stat->avg += (double) diff;
 
-		if (!stopped && tracelimit && (diff > tracelimit)) {
+		if (!stopped && tracelimit && !par->id  && (diff > tracelimit)) {
+			stat->act = diff;
+			stat->interrupted = 1;
 			stopped++;
 			shutdown++;
 		}
@@ -376,11 +380,12 @@ int main(int argc, char **argv)
 		quiet = 2;
 	for (i = 0; i < num_threads; i++) {
 		if (stat[i].threadstarted > 0)
-			pthread_kill(stat[i].thread, SIGTERM);
+			pthread_kill(stat[i].thread, SIGUSR1);
+		if (stat[i].interrupted)
+			printf("Thread %d exceeded trace limit.\n", i);
 		if (stat[i].threadstarted) {
 			pthread_join(stat[i].thread, NULL);
-			if (quiet && (i == 0))
-				print_stat(&par[i], i, 0);
+			print_stat(&par[i], i, 0);
 		}
 		if (stat[i].values)
 			free(stat[i].values);
