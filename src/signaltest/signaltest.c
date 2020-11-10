@@ -62,7 +62,6 @@ struct thread_stat {
 
 static int shutdown;
 static int tracelimit;
-static int oldtrace;
 
 
 /*
@@ -105,13 +104,6 @@ void *signalthread(void *param)
 
 	stat->threadstarted++;
 
-	if (tracelimit) {
-		if (oldtrace)
-			gettimeofday(0, (struct timezone *)1);
-		else
-			prctl(0, 1);
-	}
-
 	clock_gettime(CLOCK_MONOTONIC, &before);
 
 	while (!shutdown) {
@@ -152,10 +144,6 @@ void *signalthread(void *param)
 
 		if (!stopped && tracelimit && (diff > tracelimit)) {
 			stopped++;
-			if (oldtrace)
-				gettimeofday(0, 0);
-			else
-				prctl(0, 0);
 			shutdown++;
 		}
 		stat->act = diff;
@@ -260,21 +248,6 @@ static void process_options(int argc, char *argv[])
 		display_help(error);
 }
 
-static void check_kernel(void)
-{
-	size_t len;
-	char ver[256];
-	int fd, maj, min, sub;
-
-	fd = open("/proc/version", O_RDONLY, 0666);
-	len = read(fd, ver, 255);
-	close(fd);
-	ver[len-1] = 0x0;
-	sscanf(ver, "Linux version %d.%d.%d", &maj, &min, &sub);
-	if (maj == 2 && min == 6 && sub < 18)
-		oldtrace = 1;
-}
-
 static void sighand(int sig)
 {
 	shutdown = 1;
@@ -322,8 +295,6 @@ int main(int argc, char **argv)
 			perror("mlockall");
 			goto out;
 		}
-
-	check_kernel();
 
 	sigemptyset(&sigset);
 	sigaddset(&sigset, signum);
