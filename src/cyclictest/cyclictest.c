@@ -718,13 +718,14 @@ static void *timerthread(void *param)
 
 		if (!stopped && tracelimit && (diff > tracelimit)) {
 			stopped++;
-			tracemark("hit latency threshold (%llu > %d)",
-				  (unsigned long long) diff, tracelimit);
 			shutdown++;
 			pthread_mutex_lock(&break_thread_id_lock);
-			if (break_thread_id == 0)
+			if (break_thread_id == 0) {
 				break_thread_id = stat->tid;
-			break_thread_value = diff;
+				tracemark("hit latency threshold (%llu > %d)",
+					  (unsigned long long) diff, tracelimit);
+				break_thread_value = diff;
+			}
 			pthread_mutex_unlock(&break_thread_id_lock);
 		}
 		stat->act = diff;
