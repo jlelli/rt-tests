@@ -24,6 +24,7 @@ TARGETS = $(sources:.c=)
 LIBS	= -lrt -lpthread
 RTTESTLIB = -lrttest -L$(OBJDIR)
 EXTRA_LIBS ?= -ldl	# for get_cpu
+RTTESTNUMA = -lrttestnuma -lnuma
 DESTDIR	?=
 prefix  ?= /usr/local
 bindir  ?= $(prefix)/bin
@@ -84,11 +85,6 @@ ostype := $(lastword $(subst -, ,$(dumpmachine)))
 machinetype := $(shell echo $(dumpmachine)| \
     sed -e 's/-.*//' -e 's/i.86/i386/' -e 's/mips.*/mips/' -e 's/ppc.*/powerpc/')
 
-# You have to have libnuma installed, which is fine to do even if you are
-# running on non-numa machines
-CFLAGS += -DNUMA
-NUMA_LIBS = -lnuma
-
 include src/arch/android/Makefile
 
 VPATH	= src/cyclictest:
@@ -122,8 +118,8 @@ $(OBJDIR):
 # Include dependency files, automatically generate them if needed.
 -include $(addprefix $(OBJDIR)/,$(sources:.c=.d))
 
-cyclictest: $(OBJDIR)/cyclictest.o $(OBJDIR)/librttest.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(NUMA_LIBS)
+cyclictest: $(OBJDIR)/cyclictest.o $(OBJDIR)/librttest.a $(OBJDIR)/librttestnuma.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(RTTESTNUMA)
 
 cyclicdeadline: $(OBJDIR)/cyclicdeadline.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
@@ -172,8 +168,8 @@ queuelat: $(OBJDIR)/queuelat.o $(OBJDIR)/librttest.a
 ssdd: $(OBJDIR)/ssdd.o $(OBJDIR)/librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)
 
-oslat: $(OBJDIR)/oslat.o $(OBJDIR)/librttest.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(NUMA_LIBS)
+oslat: $(OBJDIR)/oslat.o $(OBJDIR)/librttest.a $(OBJDIR)/librttestnuma.a
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(RTTESTNUMA)
 
 %.8.gz: %.8
 	gzip -nc $< > $@
@@ -183,6 +179,10 @@ oslat: $(OBJDIR)/oslat.o $(OBJDIR)/librttest.a
 
 LIBOBJS =$(addprefix $(OBJDIR)/,error.o rt-get_cpu.o rt-sched.o rt-utils.o)
 $(OBJDIR)/librttest.a: $(LIBOBJS)
+	$(AR) rcs $@ $^
+
+LIBNUMAOBJS =$(addprefix $(OBJDIR)/,rt-numa.o)
+$(OBJDIR)/librttestnuma.a: $(LIBNUMAOBJS)
 	$(AR) rcs $@ $^
 
 CLEANUP  = $(TARGETS) *.o .depend *.*~ *.orig *.rej *.d *.a *.8.gz *.8.bz2
