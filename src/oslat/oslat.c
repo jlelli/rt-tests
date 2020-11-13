@@ -42,6 +42,7 @@
 #include <sys/syscall.h>
 
 #include "rt-utils.h"
+#include "rt-numa.h"
 #include "error.h"
 
 #ifdef __GNUC__
@@ -542,37 +543,6 @@ static void usage(int error)
 	exit(error);
 }
 
-/* TODO: use libnuma? */
-static int parse_cpu_list(char *cpu_list, cpu_set_t *cpu_set)
-{
-	struct bitmask *cpu_mask;
-	int i, n_cores;
-
-	n_cores = sysconf(_SC_NPROCESSORS_CONF);
-
-	if (!cpu_list) {
-		for (i = 0; i < n_cores; i++)
-			CPU_SET(i, cpu_set);
-		return n_cores;
-	}
-
-	cpu_mask = numa_parse_cpustring_all(cpu_list);
-	if (cpu_mask) {
-		for (i = 0; i < n_cores; i++) {
-			if (numa_bitmask_isbitset(cpu_mask, i))
-				CPU_SET(i, cpu_set);
-		}
-		numa_bitmask_free(cpu_mask);
-	} else {
-		warn("Unknown cpu-list: %s, using all available cpus\n", cpu_list);
-		for (i = 0; i < n_cores; i++)
-			CPU_SET(i, cpu_set);
-	}
-
-	return n_cores;
-}
-
-
 static int workload_select(char *name)
 {
 	int i = 0;
@@ -745,15 +715,18 @@ int main(int argc, char *argv[])
 {
 	struct thread *threads;
 	int i, n_cores;
-	cpu_set_t cpu_set;
+	struct bitmask *cpu_set = NULL;
+	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
 #ifdef FRC_MISSING
 	printf("This architecture is not yet supported. "
 	       "Please implement frc() function first for %s.\n", argv[0]);
 	return 0;
 #endif
-
-	CPU_ZERO(&cpu_set);
+	if (numa_available() == -1) {
+		printf("ERROR: Could not initialize libnuma\n");
+		exit(1);
+	}
 
 	g.app_name = argv[0];
 	g.rtprio = 0;
@@ -768,15 +741,21 @@ int main(int argc, char *argv[])
 
 	TEST(mlockall(MCL_CURRENT | MCL_FUTURE) == 0);
 
-	n_cores = parse_cpu_list(g.cpu_list, &cpu_set);
+	if (!g.cpu_list)
+		g.cpu_list = strdup("all");
+	if (parse_cpumask(g.cpu_list, max_cpus, &cpu_set))
+		exit(1);
+	n_cores = numa_bitmask_weight(cpu_set);
 
-	TEST(threads = calloc(1, CPU_COUNT(&cpu_set) * sizeof(threads[0])));
+	TEST(threads = calloc(1, n_cores * sizeof(threads[0])));
 	for (i = 0; i < n_cores; ++i)
-		if (CPU_ISSET(i, &cpu_set) && move_to_core(i) == 0)
+		if (numa_bitmask_isbitset(cpu_set, i) && move_to_core(i) == 0)
 			threads[g.n_threads_total++].core_i = i;
 
-	if (CPU_ISSET(0, &cpu_set) && g.rtprio)
+	if (numa_bitmask_isbitset(cpu_set, 0) && g.rtprio)
 		printf("WARNING: Running SCHED_FIFO workload on CPU 0 may hang the thread\n");
+
+	numa_bitmask_free(cpu_set);
 
 	TEST(move_to_core(g.cpu_main_thread) == 0);
 
