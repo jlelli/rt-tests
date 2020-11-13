@@ -362,6 +362,36 @@ int parse_time_string(char *val)
 	return t;
 }
 
+int parse_mem_string(char *str, uint64_t *val)
+{
+	char *endptr;
+	int v = strtol(str, &endptr, 10);
+
+	if (!*endptr)
+		return v;
+
+	switch (*endptr) {
+	case 'g':
+	case 'G':
+		v *= 1024;
+	case 'm':
+	case 'M':
+		v *= 1024;
+	case 'k':
+	case 'K':
+		v *= 1024;
+	case 'b':
+	case 'B':
+		break;
+	default:
+		return -1;
+	}
+
+	*val = v;
+
+	return 0;
+}
+
 static void open_tracemark_fd(void)
 {
 	char path[MAX_PATH];

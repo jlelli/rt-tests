@@ -28,6 +28,7 @@ uint32_t string_to_policy(const char *str);
 pid_t gettid(void);
 
 int parse_time_string(char *val);
+int parse_mem_string(char *str, uint64_t *val);
 
 void enable_trace_mark(void);
 void tracemark(char *fmt, ...) __attribute__((format(printf, 1, 2)));
