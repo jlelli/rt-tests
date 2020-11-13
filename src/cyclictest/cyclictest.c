@@ -1327,14 +1327,9 @@ static void process_options(int argc, char *argv[], int max_cpus)
 
 	/* if smp wasn't requested, test for numa automatically */
 	if (!smp) {
-#ifdef NUMA
 		numa_initialize();
 		if (setaffinity == AFFINITY_UNSPECIFIED)
 			setaffinity = AFFINITY_USEALL;
-#else
-		warn("cyclictest was not built with the numa option\n");
-		numa = 0;
-#endif
 	}
 
 	if (option_affinity) {
