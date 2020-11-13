@@ -572,69 +572,6 @@ static int parse_cpu_list(char *cpu_list, cpu_set_t *cpu_set)
 	return n_cores;
 }
 
-static int parse_runtime(const char *str)
-{
-	char *endptr;
-	int v = strtol(str, &endptr, 10);
-
-	if (!*endptr)
-		return v;
-
-	switch (*endptr) {
-	case 'd':
-	case 'D':
-		/* Days */
-		v *= 24;
-	case 'h':
-	case 'H':
-		/* Hours */
-		v *= 60;
-	case 'm':
-	case 'M':
-		/* Minutes */
-		v *= 60;
-	case 's':
-	case 'S':
-		/* Seconds */
-		break;
-	default:
-		printf("Unknown runtime suffix: %s\n", endptr);
-		v = 0;
-		break;
-	}
-
-	return v;
-}
-
-static int parse_mem_size(char *str, uint64_t *val)
-{
-	char *endptr;
-	int v = strtol(str, &endptr, 10);
-
-	if (!*endptr)
-		return v;
-
-	switch (*endptr) {
-	case 'g':
-	case 'G':
-		v *= 1024;
-	case 'm':
-	case 'M':
-		v *= 1024;
-	case 'k':
-	case 'K':
-		v *= 1024;
-	case 'b':
-	case 'B':
-		break;
-	default:
-		return -1;
-	}
-
-	*val = v;
-
-	return 0;
-}
 
 static int workload_select(char *name)
 {
@@ -702,7 +639,7 @@ static void parse_options(int argc, char *argv[])
 			}
 			break;
 		case 'D':
-			g.runtime = parse_runtime(optarg);
+			g.runtime = parse_time_string(optarg);
 			if (!g.runtime) {
 				printf("Illegal runtime: %s\n", optarg);
 				exit(1);
@@ -736,7 +673,7 @@ static void parse_options(int argc, char *argv[])
 			}
 			break;
 		case 'm':
-			if (parse_mem_size(optarg, &g.workload_mem_size)) {
+			if (parse_mem_string(optarg, &g.workload_mem_size)) {
 				printf("Unknown workload memory size '%s'.\n\n", optarg);
 				exit(1);
 			}
