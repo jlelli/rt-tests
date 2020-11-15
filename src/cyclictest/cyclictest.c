@@ -893,84 +893,12 @@ static int interval = DEFAULT_INTERVAL;
 static int distance = -1;
 static struct bitmask *affinity_mask = NULL;
 static int smp = 0;
-
-enum {
-	AFFINITY_UNSPECIFIED,
-	AFFINITY_SPECIFIED,
-	AFFINITY_USEALL
-};
 static int setaffinity = AFFINITY_UNSPECIFIED;
 
 static int clocksources[] = {
 	CLOCK_MONOTONIC,
 	CLOCK_REALTIME,
 };
-
-/* Get available cpus according to getaffinity or according to the
- * intersection of getaffinity and the user specified affinity
- * in the case of AFFINITY_SPECIFIED, the function has to be called
- * after the call to parse_cpumask made in process_options()
- */
-static int get_available_cpus(void)
-{
-	if (affinity_mask)
-		return numa_bitmask_weight(affinity_mask);
-
-	return numa_num_task_cpus();
-}
-
-/* cpu_for_thread AFFINITY_SPECIFIED */
-static int cpu_for_thread_sp(int thread_num, int max_cpus)
-{
-	unsigned int m, cpu, i, num_cpus;
-
-	num_cpus = rt_numa_bitmask_count(affinity_mask);
-
-	if (num_cpus == 0)
-		fatal("No allowable cpus to run on\n");
-
-	m = thread_num % num_cpus;
-
-	/* there are num_cpus bits set, we want position of m'th one */
-	for (i = 0, cpu = 0; i < max_cpus; i++) {
-		if (rt_numa_bitmask_isbitset(affinity_mask, i)) {
-			if (cpu == m)
-				return i;
-			cpu++;
-		}
-	}
-	fprintf(stderr, "Bug in cpu mask handling code.\n");
-	return 0;
-}
-
-/* cpu_for_thread AFFINITY_USEALL */
-static int cpu_for_thread_ua(int thread_num, int max_cpus)
-{
-	int res, num_cpus, i, m, cpu;
-	pthread_t thread;
-	cpu_set_t cpuset;
-
-	thread = pthread_self();
-	CPU_ZERO(&cpuset);
-
-	res = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-	if (res != 0)
-		fatal("pthread_getaffinity_np failed: %s\n", strerror(res));
-
-	num_cpus = CPU_COUNT(&cpuset);
-	m = thread_num % num_cpus;
-
-	for (i = 0, cpu = 0; i < max_cpus; i++) {
-		if (CPU_ISSET(i, &cpuset)) {
-			if (cpu == m)
-				return i;
-			cpu++;
-		}
-	}
-
-	fprintf(stderr, "Bug in cpu mask handling code.\n");
-	return 0;
-}
 
 static void handlepolicy(char *polname)
 {
@@ -1026,20 +954,6 @@ enum option_values {
 	OPT_ALIGNED, OPT_SECALIGNED, OPT_LAPTOP, OPT_SMI,
 	OPT_TRACEMARK, OPT_POSIX_TIMERS,
 };
-
-/* numa_available() must be called before any other calls to the numa library */
-static void numa_initialize(void)
-{
-	static int is_initialized;
-
-	if (is_initialized == 1)
-		return;
-
-	if (numa_available() != -1)
-		numa = 1;
-
-	is_initialized = 1;
-}
 
 /* Process commandline options */
 static void process_options(int argc, char *argv[], int max_cpus)
@@ -1104,7 +1018,9 @@ static void process_options(int argc, char *argv[], int max_cpus)
 			/* smp sets AFFINITY_USEALL in OPT_SMP */
 			if (smp)
 				break;
-			numa_initialize();
+			if (numa_initialize())
+				fatal("Couldn't initialize libnuma");
+			numa = 1;
 			if (optarg) {
 				parse_cpumask(optarg, max_cpus, &affinity_mask);
 				setaffinity = AFFINITY_SPECIFIED;
@@ -1285,7 +1201,9 @@ static void process_options(int argc, char *argv[], int max_cpus)
 
 	/* if smp wasn't requested, test for numa automatically */
 	if (!smp) {
-		numa_initialize();
+		if (numa_initialize())
+			fatal("Couldn't initialize libnuma");
+		numa = 1;
 		if (setaffinity == AFFINITY_UNSPECIFIED)
 			setaffinity = AFFINITY_USEALL;
 	}
@@ -1330,7 +1248,7 @@ static void process_options(int argc, char *argv[], int max_cpus)
 		error = 1;
 
 	if (num_threads == -1)
-		num_threads = get_available_cpus();
+		num_threads = get_available_cpus(affinity_mask);
 
 	if (priospread && priority == 0) {
 		fprintf(stderr, "defaulting realtime priority to %d\n",
@@ -1998,7 +1916,7 @@ int main(int argc, char **argv)
 		switch (setaffinity) {
 		case AFFINITY_UNSPECIFIED: cpu = -1; break;
 		case AFFINITY_SPECIFIED:
-			cpu = cpu_for_thread_sp(i, max_cpus);
+			cpu = cpu_for_thread_sp(i, max_cpus, affinity_mask);
 			if (verbose)
 				printf("Thread %d using cpu %d.\n", i, cpu);
 			break;
