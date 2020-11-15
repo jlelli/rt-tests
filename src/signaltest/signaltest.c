@@ -20,6 +20,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
+#include <sched.h>
 
 #include <linux/unistd.h>
 
@@ -31,6 +33,7 @@
 
 #include "error.h"
 #include "rt-utils.h"
+#include "rt-numa.h"
 
 /* Must be power of 2 ! */
 #define VALBUF_SIZE		16384
@@ -43,6 +46,7 @@ struct thread_param {
 	unsigned long max_cycles;
 	struct thread_stat *stats;
 	int bufmsk;
+	int cpu;
 };
 
 /* Struct for statistics */
@@ -79,8 +83,19 @@ void *signalthread(void *param)
 	int policy = par->prio ? SCHED_FIFO : SCHED_OTHER;
 	int stopped = 0;
 	int first = 1;
+	pthread_t thread;
+	cpu_set_t mask;
 
 	stat->tid = gettid();
+
+	if (par->cpu != -1) {
+		CPU_ZERO(&mask);
+		CPU_SET(par->cpu, &mask);
+		thread = pthread_self();
+		if (pthread_setaffinity_np(thread, sizeof(mask), &mask) != 0)
+			warn("Could not set CPU affinity to CPU #%d\n",
+			     par->cpu);
+	}
 
 	sigemptyset(&sigset);
 	sigaddset(&sigset, par->signal);
@@ -164,6 +179,8 @@ static void display_help(int error)
 	printf("signaltest V %1.2f\n", VERSION);
 	printf("Usage:\n"
 		"signaltest <options>\n\n"
+		"-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
+		"                           with NUM pin all threads to the processor NUM\n"
 		"-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 		"-D       --duration=TIME   specify a length for the test run.\n"
 		"                           Append 'm', 'h', or 'd' to specify minutes, hours or\n"
@@ -187,16 +204,22 @@ static int duration;
 static int verbose;
 static int quiet;
 static int lockall;
+static struct bitmask *affinity_mask = NULL;
+static int smp = 0;
+static int numa = 0;
+static int setaffinity = AFFINITY_UNSPECIFIED;
 
 /* Process commandline options */
-static void process_options(int argc, char *argv[])
+static void process_options(int argc, char *argv[], unsigned int max_cpus)
 {
+	int option_affinity = 0;
 	int error = 0;
 
 	for (;;) {
 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
+			{"affinity",		optional_argument,	NULL, 'a'},
 			{"breaktrace",		required_argument,	NULL, 'b'},
 			{"duration",		required_argument,	NULL, 'D'},
 			{"help",		no_argument,		NULL, 'h'},
@@ -204,15 +227,43 @@ static void process_options(int argc, char *argv[])
 			{"mlockall",		no_argument,		NULL, 'm'},
 			{"priority",		required_argument,	NULL, 'p'},
 			{"quiet",		no_argument,		NULL, 'q'},
+			{"smp",			no_argument,		NULL, 'S'},
 			{"threads",		required_argument,	NULL, 't'},
 			{"verbose",		no_argument,		NULL, 'v'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "b:D:hl:mp:qt:v",
+		int c = getopt_long(argc, argv, "a::b:D:hl:mp:qSt:v",
 				long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
+		case 'a':
+			option_affinity = 1;
+			/* smp sets AFFINITY_USEALL in OPT_SMP */
+			if (smp)
+				break;
+			if (numa_initialize())
+				fatal("Couldn't initialize libnuma");
+			numa = 1;
+			if (optarg) {
+				parse_cpumask(optarg, max_cpus, &affinity_mask);
+				setaffinity = AFFINITY_SPECIFIED;
+			} else if (optind < argc &&
+				   (atoi(argv[optind]) ||
+				    argv[optind][0] == '0' ||
+				    argv[optind][0] == '!')) {
+				parse_cpumask(argv[optind], max_cpus, &affinity_mask);
+				setaffinity = AFFINITY_SPECIFIED;
+			} else {
+				setaffinity = AFFINITY_USEALL;
+			}
+
+			if (setaffinity == AFFINITY_SPECIFIED && !affinity_mask)
+				display_help(1);
+			if (verbose)
+				printf("Using %u cpus.\n",
+					numa_bitmask_weight(affinity_mask));
+			break;
 		case 'b': tracelimit = atoi(optarg); break;
 		case 'D': duration = parse_time_string(optarg); break;
 		case '?':
@@ -221,6 +272,13 @@ static void process_options(int argc, char *argv[])
 		case 'm': lockall = 1; break;
 		case 'p': priority = atoi(optarg); break;
 		case 'q': quiet = 1; break;
+		case 'S':
+			if (numa)
+				fatal("numa and smp options are mutually exclusive\n");
+			smp = 1;
+			num_threads = -1; /* update after parsing */
+			setaffinity = AFFINITY_USEALL;
+			break;
 		case 't': num_threads = atoi(optarg); break;
 		case 'v': verbose = 1; break;
 		}
@@ -232,11 +290,31 @@ static void process_options(int argc, char *argv[])
 	if (priority < 0 || priority > 99)
 		error = 1;
 
+	if (num_threads == -1)
+		num_threads = get_available_cpus(affinity_mask);
+
 	if (num_threads < 2)
 		error = 1;
 
-	if (error)
+	/* if smp wasn't requested, test for numa automatically */
+	if (!smp) {
+		if (numa_initialize())
+			fatal("Couldn't initialize libnuma");
+		numa = 1;
+		if (setaffinity == AFFINITY_UNSPECIFIED)
+			setaffinity = AFFINITY_USEALL;
+	}
+
+	if (option_affinity) {
+		if (smp)
+			warn("-a ignored due to smp mode\n");
+	}
+
+	if (error) {
+		if (affinity_mask)
+			numa_bitmask_free(affinity_mask);
 		display_help(error);
+	}
 }
 
 static void sighand(int sig)
@@ -273,9 +351,10 @@ int main(int argc, char **argv)
 	struct thread_param *par;
 	struct thread_stat *stat;
 	int i, ret = -1;
-	int status;
+	int status, cpu;
+	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
-	process_options(argc, argv);
+	process_options(argc, argv, max_cpus);
 
 	if (check_privs())
 		exit(1);
@@ -286,6 +365,16 @@ int main(int argc, char **argv)
 			perror("mlockall");
 			goto out;
 		}
+
+	/* Restrict the main pid to the affinity specified by the user */
+	if (affinity_mask != NULL) {
+		int res;
+
+		errno = 0;
+		res = numa_sched_setaffinity(getpid(), affinity_mask);
+		if (res != 0)
+			warn("Couldn't setaffinity in main thread: %s\n", strerror(errno));
+	}
 
 	sigemptyset(&sigset);
 	sigaddset(&sigset, signum);
@@ -313,6 +402,22 @@ int main(int argc, char **argv)
 			par[i].bufmsk = VALBUF_SIZE - 1;
 		}
 
+		switch (setaffinity) {
+		case AFFINITY_UNSPECIFIED:
+			cpu = -1;
+			break;
+		case AFFINITY_SPECIFIED:
+			cpu = cpu_for_thread_sp(i, max_cpus, affinity_mask);
+			if (verbose)
+				printf("Thread %d using cpu %d.\n", i, cpu);
+			break;
+		case AFFINITY_USEALL:
+			cpu = cpu_for_thread_ua(i, max_cpus);
+			break;
+		default:
+			cpu = -1;
+		}
+
 		par[i].id = i;
 		par[i].prio = priority;
 #if 0
@@ -322,6 +427,7 @@ int main(int argc, char **argv)
 		par[i].signal = signum;
 		par[i].max_cycles = max_cycles;
 		par[i].stats = &stat[i];
+		par[i].cpu = cpu;
 		stat[i].min = 1000000;
 		stat[i].max = -1000000;
 		stat[i].avg = 0.0;

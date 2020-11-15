@@ -1,14 +1,27 @@
 .\"
-.TH SIGNALTEST 8 "September 18, 2020"
+.TH SIGNALTEST 8 "November 15, 2020"
 .\" Please adjust this date whenever updating this manpage
 .SH NAME
 signaltest \- signal roundtrip test software
 .SH SYNOPSIS
 .LP
-signaltest [ -b|--backtrace USEC ] [-D|--duration TIME] [-h|--help] [-l|--loops LOOPS ] [-p|--prio PRIO] [-q|--quiet] [-t|--threads NUM] [-m|--mlockall ] [-v|--verbose ]
+signaltest [ -a|--affinity NUM] [ -b|--backtrace USEC ] [-D|--duration TIME] [-h|--help] [-l|--loops LOOPS ] [-p|--prio PRIO] [-q|--quiet] [-S|--smp] [-t|--threads NUM] [-m|--mlockall ] [-v|--verbose ]
 .SH OPTIONS
 These programs follow the usual GNU command line syntax, with long options
 starting with two dashes ('\-\-').
+.TP
+.B \-a, \-\-affinity[=PROC-SET]
+Run threads on the set of processors given by PROC-SET.  If PROC-SET is not
+specified, all processors will be used.  Threads will be assigned to processors
+in the set in numeric order, in a round\-robin fashion.
+.br
+The set of processors can be specified as A,B,C, or A-C, or A-B,D-F, and so on*.
+The ! character can be used to negate a set.  For example, !B-D means to use all
+available CPUs except B through D.  The cpu numbers are the same as shown in the
+.I processor
+field in /proc/cpuinfo.  See numa(3) for more information on specifying CPU sets.
+* Support for CPU sets requires libnuma version >= 2.  For libnuma v1, PROC-SET,
+if specified, must be a single CPU number.
 .TP
 .B \-b, \-\-breaktrace=USEC
 Send break trace command when latency > USEC
@@ -30,6 +43,11 @@ Priority of highest priority thread
 .TP
 .B \-q, \-\-quiet
 print a summary only on exit
+.TP
+.B \\-S, \-\-smp
+Set options for standard testing on SMP systems. Equivalent to using
+the options: "\-t \-a" as well keeping any specified priority
+equal across all threads
 .TP
 .B \-t, \-\-threads=NUM
 number of threads: default=2
