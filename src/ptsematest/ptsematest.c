@@ -52,7 +52,6 @@ struct params {
 	struct timeval unblocked, received, diff;
 	pthread_t threadid;
 	struct params *neighbor;
-	char error[MAX_PATH * 2];
 };
 
 void *semathread(void *param)
@@ -121,9 +120,8 @@ void *semathread(void *param)
 					write(tracing_enabled, "0", 1);
 					close(tracing_enabled);
 				} else
-					snprintf(par->error, sizeof(par->error),
-					    "Could not access %s\n",
-					    tracing_enabled_file);
+					fatal("Could not access %s\n",
+					      tracing_enabled_file);
 				par->shutdown = 1;
 				par->neighbor->shutdown = 1;
 			}
@@ -290,6 +288,28 @@ static void sighand(int sig)
 	shutdown = 1;
 }
 
+static void print_stat(FILE *fp, struct params *receiver, struct params *sender,
+		       int verbose, int quiet)
+{
+	int i;
+
+	for (i = 0; i < num_threads; i++) {
+		printf("#%1d: ID%d, P%d, CPU%d, I%ld; #%1d: ID%d, P%d, CPU%d, Cycles %d\n",
+			i*2, receiver[i].tid, receiver[i].priority, receiver[i].cpu,
+			receiver[i].delay.tv_nsec / 1000,
+			i*2+1, sender[i].tid, sender[i].priority, sender[i].cpu,
+			sender[i].samples);
+	}
+	for (i = 0; i < num_threads; i++) {
+		printf("#%d -> #%d, Min %4d, Cur %4d, Avg %4d, Max %4d\n",
+			i*2+1, i*2,
+			receiver[i].mindiff, (int) receiver[i].diff.tv_usec,
+			(int) ((receiver[i].sumdiff / receiver[i].samples) + 0.5),
+			receiver[i].maxdiff);
+	}
+}
+
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -367,40 +387,13 @@ int main(int argc, char *argv[])
 	maindelay.tv_nsec = 50000000; /* 50 ms */
 
 	while (!shutdown) {
-		int printed;
-		int errorlines = 0;
-
 		for (i = 0; i < num_threads; i++)
 			shutdown |= receiver[i].shutdown | sender[i].shutdown;
 
 		if (receiver[0].samples > oldsamples || shutdown) {
-			for (i = 0; i < num_threads; i++) {
-				printf("#%1d: ID%d, P%d, CPU%d, I%ld; #%1d: ID%d, P%d, CPU%d, Cycles %d\n",
-				    i*2, receiver[i].tid, receiver[i].priority, receiver[i].cpu,
-				    receiver[i].delay.tv_nsec / 1000,
-				    i*2+1, sender[i].tid, sender[i].priority, sender[i].cpu,
-				    sender[i].samples);
-			}
-			for (i = 0; i < num_threads; i++) {
-				printf("#%d -> #%d, Min %4d, Cur %4d, Avg %4d, Max %4d\n",
-					i*2+1, i*2,
-					receiver[i].mindiff, (int) receiver[i].diff.tv_usec,
-					(int) ((receiver[i].sumdiff / receiver[i].samples) + 0.5),
-					receiver[i].maxdiff);
-				if (receiver[i].error[0] != '\0') {
-					printf("%s", receiver[i].error);
-					errorlines++;
-					receiver[i].error[0] = '\0';
-				}
-				if (sender[i].error[0] != '\0') {
-					printf("%s", sender[i].error);
-					errorlines++;
-					receiver[i].error[0] = '\0';
-				}
-			}
-			printed = 1;
-		} else
-			printed = 0;
+			print_stat(stdout, receiver, sender, 0, 0);
+			printf("\033[%dA", num_threads*2);
+		}
 
 		sigemptyset(&sigset);
 		sigaddset(&sigset, SIGTERM);
@@ -411,10 +404,8 @@ int main(int argc, char *argv[])
 
 		sigemptyset(&sigset);
 		pthread_sigmask(SIG_SETMASK, &sigset, NULL);
-
-		if (printed && !shutdown)
-			printf("\033[%dA", num_threads*2 + errorlines);
 	}
+	printf("\033[%dB", num_threads*2 + 2);
 
 	for (i = 0; i < num_threads; i++) {
 		receiver[i].shutdown = 1;
