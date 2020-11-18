@@ -17,7 +17,7 @@ cyclicdeadline \- This program is used to test the deadline scheduler (SCHED_DEA
 .PP
 .SH SYNOPSIS
 .B cyclicdeadline
-.RI "[-a [CPUSET]] [-D TIME] [-h]  [-i INTV] [-s STEP] [-t NUM]"
+.RI "[-a [CPUSET]] [-D TIME] [-h]  [-i INTV] [-s STEP] [-t NUM] [-q]"
 .PP
 .SH DESCRIPTION
 .B cyclicdeadline
@@ -43,6 +43,10 @@ The amount to increase the deadline for each task in us. (default 500us)
 .TP
 .B \-t \-\-threads NUM
 The number of threads to run as deadline (default 1)
+.TP
+.B \-q, \-\-quiet
+Print a summary only on exit. Useful for automated tests, where only
+the summary output needs to be captured.
 .br
 .SH AUTHOR
 cyclicdeadline was written by Steven Rostedt <rostedt@goodmis.org>

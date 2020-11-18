@@ -108,6 +108,8 @@ static int use_nsecs;
 
 static int mark_fd;
 
+static int quiet;
+
 static int find_mount(const char *mount, char *debugfs)
 {
 	char type[100];
@@ -627,6 +629,7 @@ static void usage(int error)
 	       "-s STEP     --step         The amount to increase the deadline for each task in us\n"
 	       "                           (default 500us).\n"
 	       "-t NUM      --threads      The number of threads to run as deadline (default 1).\n"
+	       "-q          --quiet        print a summary only on exit\n"
 	       );
 	exit(error);
 }
@@ -966,13 +969,18 @@ static void loop(struct sched_data *sched_data, int nr_threads)
 
 	while (!shutdown) {
 		for (i = 0; i < nr_threads; i++)
-			print_stat(stdout, &sched_data[i], i, 0, 0);
+			print_stat(stdout, &sched_data[i], i, 0, quiet);
 		usleep(10000);
-		printf("\033[%dA", nr_threads);
+		if (!quiet)
+			printf("\033[%dA", nr_threads);
 	}
 	usleep(10000);
-	for (i = 0; i < nr_threads; i++)
-		printf("\n");
+	if (!quiet) {
+		printf("\033[%dB", nr_threads + 2);
+	} else {
+		for (i = 0; i < nr_threads; ++i)
+			print_stat(stdout, &sched_data[i], i, 0, 0);
+	}
 }
 
 int main(int argc, char **argv)
@@ -1006,9 +1014,10 @@ int main(int argc, char **argv)
 			{ "help",	no_argument,		NULL,	'h' },
 			{ "interval",	required_argument,	NULL,	'i' },
 			{ "threads",	required_argument,	NULL,	't' },
+			{ "quiet",	no_argument,		NULL,	'q' },
 			{ NULL,		0,			NULL,	0   },
 		};
-		c = getopt_long(argc, argv, "a::c:D:hi:t:", options, NULL);
+		c = getopt_long(argc, argv, "a::c:D:hi:t:q", options, NULL);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -1034,6 +1043,9 @@ int main(int argc, char **argv)
 			break;
 		case 'D':
 			duration = parse_time_string(optarg);
+			break;
+		case 'q':
+			quiet = 1;
 			break;
 		case 'h':
 			usage(0);
