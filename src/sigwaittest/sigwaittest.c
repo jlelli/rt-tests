@@ -221,6 +221,7 @@ static void display_help(int error)
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 	       "-p PRIO  --prio=PRIO       priority\n"
+	       "-q       --quiet           print a summary only on exit\n"
 	       "-t       --threads         one thread per available processor\n"
 	       "-t [NUM] --threads=NUM     number of threads:\n"
 	       "                           without NUM, threads = max_cpus\n"
@@ -238,6 +239,7 @@ static int max_cycles;
 static int duration;
 static int interval = 1000;
 static int distance = 500;
+static int quiet;
 
 static void process_options(int argc, char *argv[])
 {
@@ -258,10 +260,11 @@ static void process_options(int argc, char *argv[])
 			{"interval",		required_argument,	NULL, 'i'},
 			{"loops",		required_argument,	NULL, 'l'},
 			{"priority",		required_argument,	NULL, 'p'},
+			{"quiet",		no_argument,		NULL, 'q'},
 			{"threads",		optional_argument,	NULL, 't'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:d:D:f::hi:l:p:t::",
+		int c = getopt_long (argc, argv, "a::b:d:D:f::hi:l:p:qt::",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -298,6 +301,7 @@ static void process_options(int argc, char *argv[])
 		case 'i': interval = atoi(optarg); break;
 		case 'l': max_cycles = atoi(optarg); break;
 		case 'p': priority = atoi(optarg); break;
+		case 'q': quiet = 1; break;
 		case 't':
 			if (optarg != NULL)
 				num_threads = atoi(optarg);
@@ -351,6 +355,9 @@ static void print_stat(FILE *fp, struct params *receiver, struct params *sender,
 		       int verbose, int quiet)
 {
 	int i;
+
+	if (quiet)
+		return;
 
 	for (i = 0; i < num_threads; i++) {
 		int receiver_pid, sender_pid;
@@ -577,8 +584,9 @@ int main(int argc, char *argv[])
 			    sender[i].shutdown;
 
 		if (receiver[0].samples > oldsamples || mustshutdown) {
-			print_stat(stdout, receiver, sender, 0, 0);
-			printf("\033[%dA", num_threads*2);
+			print_stat(stdout, receiver, sender, 0, quiet);
+			if (!quiet)
+				printf("\033[%dA", num_threads*2);
 		}
 
 		sigemptyset(&sigset);
@@ -593,7 +601,10 @@ int main(int argc, char *argv[])
 		pthread_sigmask(SIG_SETMASK, &sigset, NULL);
 	}
 
-	printf("\033[%dB", num_threads*2 + 2);
+	if (!quiet)
+		printf("\033[%dB", num_threads*2 + 2);
+	else
+		print_stat(stdout, receiver, sender, 0, 0);
 
 	for (i = 0; i < num_threads; i++) {
 		receiver[i].shutdown = 1;
