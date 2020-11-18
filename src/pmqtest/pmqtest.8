@@ -4,7 +4,7 @@
 \fBpmqtest\fR \- Start pairs of threads and measure the latency of interprocess communication with POSIX messages queues
 .SH "SYNTAX"
 .LP
-pmqtest [-a|-a PROC] [-b USEC] [-d DIST] [-D TIME] [-f TO] [-h] [-i INTV] [-l LOOPS] [-p PRIO] [-S] [-t|-t NUM]
+pmqtest [-a|-a PROC] [-b USEC] [-d DIST] [-D TIME] [-f TO] [-h] [-i INTV] [-l LOOPS] [-p PRIO] [-q] [-S] [-t|-t NUM]
 .br
 .SH "DESCRIPTION"
 .LP
@@ -40,6 +40,9 @@ Set the number of loops. The default is 0 (endless). This option is useful for a
 .TP
 .B \-p, \-\-prio=PRIO
 Set the priority of the process.
+.TP
+.B \-q, \-\-quiet
+Print a summary only on exit. Useful for automated tests, where only the summary output needs to be captured.
 .TP
 .B \-S, \-\-smp
 Test mode for symmetric multi-processing, implies -a and -t and uses the same priority on all threads.
