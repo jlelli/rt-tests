@@ -215,19 +215,6 @@ static int my_vsprintf(char *buf, int size, const char *fmt, va_list ap)
 	return s - buf;
 }
 
-#if 0
-static int my_sprintf(char *buf, int size, const char *fmt, ...)
-{
-	va_list ap;
-	int n;
-
-	va_start(ap, fmt);
-	n = vsnprintf(buf, size, fmt, ap);
-	va_end(ap);
-	return n;
-}
-#endif
-
 static void ftrace_write(char *buf, const char *fmt, ...)
 {
 	va_list ap;
