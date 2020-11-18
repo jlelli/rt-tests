@@ -253,6 +253,7 @@ static int interval = 1000;
 static int distance = 500;
 static int smp;
 static int sameprio;
+static int quiet;
 
 static void process_options(int argc, char *argv[])
 {
@@ -273,11 +274,12 @@ static void process_options(int argc, char *argv[])
 			{"interval",		required_argument,	NULL, 'i'},
 			{"loops",		required_argument,	NULL, 'l'},
 			{"priority",		required_argument,	NULL, 'p'},
+			{"quiet",		no_argument,		NULL, 'q'},
 			{"smp",			no_argument,		NULL, 'S'},
 			{"threads",		optional_argument,	NULL, 't'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "a::b:d:D:f::hi:l:p:St::",
+		int c = getopt_long (argc, argv, "a::b:d:D:f::hi:l:p:qSt::",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -315,6 +317,7 @@ static void process_options(int argc, char *argv[])
 		case 'i': interval = atoi(optarg); break;
 		case 'l': max_cycles = atoi(optarg); break;
 		case 'p': priority = atoi(optarg); break;
+		case 'q': quiet = 1; break;
 		case 'S':
 			smp = 1;
 			num_threads = max_cpus;
@@ -380,6 +383,9 @@ static void print_stat(FILE *fp, struct params *receiver, struct params *sender,
 		       int verbose, int quiet)
 {
 	int i;
+
+	if (quiet)
+		return;
 
 	for (i = 0; i < num_threads; i++) {
 		int receiver_pid, sender_pid;
@@ -646,8 +652,9 @@ int main(int argc, char *argv[])
 			    sender[i].shutdown;
 
 		if (receiver[0].samples > oldsamples || mustshutdown) {
-			print_stat(stdout, receiver, sender, 0, 0);
-			printf("\033[%dA", num_threads*2);
+			print_stat(stdout, receiver, sender, 0, quiet);
+			if (!quiet)
+				printf("\033[%dA", num_threads*2);
 		}
 
 		sigemptyset(&sigset);
@@ -662,7 +669,10 @@ int main(int argc, char *argv[])
 		pthread_sigmask(SIG_SETMASK, &sigset, NULL);
 	}
 
-	printf("\033[%dB", num_threads*2 + 2);
+	if (!quiet)
+		printf("\033[%dB", num_threads*2 + 2);
+	else
+		print_stat(stdout, receiver, sender, 0, 0);
 
 	for (i = 0; i < num_threads; i++) {
 		receiver[i].shutdown = 1;

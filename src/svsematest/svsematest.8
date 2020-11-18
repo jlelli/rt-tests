@@ -4,7 +4,7 @@
 \fBsvsematest\fR \- Start two threads or fork two processes and measure the latency of SYSV semaphores
 .SH "SYNTAX"
 .LP
-svsematest [-a|--affinity NUM] [-b|--breaktrace USEC] [-d|--distance DIST] [-D|--duration TIME] [-f|--fork [OPT]] [-i|--interval INTV] [-l|--loops LOOPS] [-p|--prio PRIO] [-S|--smp] [-t|--threads [NUM]]
+svsematest [-a|--affinity NUM] [-b|--breaktrace USEC] [-d|--distance DIST] [-D|--duration TIME] [-f|--fork [OPT]] [-i|--interval INTV] [-l|--loops LOOPS] [-p|--prio PRIO] [-q|--quiet] [-S|--smp] [-t|--threads [NUM]]
 .br
 .SH "DESCRIPTION"
 .LP
@@ -37,6 +37,9 @@ Set the number of loops. The default is 0 (endless). This option is useful for a
 .TP
 .B \-p, \-\-prio=PRIO
 Set the priority of the process.
+.TP
+.B \-q, \-\-quiet
+Print a summary only on exit. Useful for automated tests, where only the summary output needs to be captured.
 .TP
 .B \-S, \-\-smp
 SMP testing: options -a -t and same priority of all threads
