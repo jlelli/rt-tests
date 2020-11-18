@@ -98,6 +98,7 @@ static unsigned long long now;
 static int done;
 static int loop;
 static int duration;
+static int quiet;
 
 static pthread_barrier_t start_barrier;
 static pthread_barrier_t end_barrier;
@@ -160,6 +161,7 @@ static void usage(int error)
 	       "-l LOOPS --loops=LOOPS     Number of iterations to run (50)\n"
 	       "-m TIME  --maxerr=TIME     Max allowed error (microsecs)\n"
 	       "-p PRIO  --prio=PRIO       base priority to start RT tasks with (2)\n"
+	       "-q       --quiet           print a summary only on exit\n"
 	       "-r TIME  --run-time=TIME   Run time (ms) to busy loop the threads (20)\n"
 	       "-s TIME  --sleep-time=TIME Sleep time (ms) between intervals (100)\n\n"
 	       "  () above are defaults \n"
@@ -180,11 +182,12 @@ static void parse_options(int argc, char *argv[])
 			{"loops",	required_argument,	NULL, 'l'},
 			{"maxerr",	required_argument,	NULL, 'm'},
 			{"prio",	required_argument,	NULL, 'p'},
+			{"quiet",	no_argument,		NULL, 'q'},
 			{"run-time",	required_argument,	NULL, 'r'},
 			{"sleep-time",	required_argument,	NULL, 's'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "cD:ehl:m:p:r:s:",
+		int c = getopt_long(argc, argv, "cD:ehl:m:p:qr:s:",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -199,6 +202,7 @@ static void parse_options(int argc, char *argv[])
 		case 'l': nr_runs = atoi(optarg); break;
 		case 'm': max_err = usec2nano(atoi(optarg)); break;
 		case 'p': prio_start = atoi(optarg); break;
+		case 'q': quiet = 1; break;
 		case 'r':
 			run_interval = atoi(optarg);
 			break;
@@ -532,7 +536,8 @@ int main (int argc, char **argv)
 	intv.tv_sec = nano2sec(INTERVAL);
 	intv.tv_nsec = INTERVAL % sec2nano(1);
 
-	print_progress_bar(0);
+	if (!quiet)
+		print_progress_bar(0);
 
 	setup_ftrace_marker();
 
@@ -552,7 +557,8 @@ int main (int argc, char **argv)
 
 		nanosleep(&intv, NULL);
 
-		print_progress_bar((loop * 100)/nr_runs);
+		if (!quiet)
+			print_progress_bar((loop * 100)/nr_runs);
 
 		end = get_time();
 		ftrace_write("Loop %d end now=%lld diff=%lld\n", loop, end, end - now);
