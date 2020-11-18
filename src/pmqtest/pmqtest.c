@@ -64,7 +64,6 @@ struct params {
 	char recvsyncmsg[MSG_SIZE];
 	char recvtestmsg[MSG_SIZE];
 	struct params *neighbor;
-	char error[MAX_PATH * 2];
 };
 
 void *pmqthread(void *param)
@@ -192,9 +191,7 @@ void *pmqthread(void *param)
 					write(tracing_enabled, "0", 1);
 					close(tracing_enabled);
 				} else
-					snprintf(par->error, sizeof(par->error),
-					    "Could not access %s\n",
-					    tracing_enabled_file);
+					fatal("Could not access %s\n", tracing_enabled_file);
 				par->shutdown = 1;
 				par->neighbor->shutdown = 1;
 			}
@@ -376,6 +373,27 @@ static void sighand(int sig)
 	shutdown = 1;
 }
 
+static void print_stat(FILE *fp, struct params *receiver, struct params *sender,
+		       int verbose, int quiet)
+{
+	int i;
+
+	for (i = 0; i < num_threads; i++) {
+		printf("#%1d: ID%d, P%d, CPU%d, I%ld; #%1d: ID%d, P%d, CPU%d, TO %d, Cycles %d\n",
+			i*2, receiver[i].tid, receiver[i].priority, receiver[i].cpu,
+			receiver[i].delay.tv_nsec / 1000,
+			i*2+1, sender[i].tid, sender[i].priority, sender[i].cpu,
+			receiver[i].timeoutcount, sender[i].samples);
+	}
+	for (i = 0; i < num_threads; i++) {
+		printf("#%d -> #%d, Min %4d, Cur %4d, Avg %4d, Max %4d\n",
+			i*2+1, i*2,
+			receiver[i].mindiff, (int) receiver[i].diff.tv_usec,
+			(int) ((receiver[i].sumdiff / receiver[i].samples) + 0.5),
+			receiver[i].maxdiff);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -385,8 +403,6 @@ int main(int argc, char *argv[])
 	sigset_t sigset;
 	int oldsamples = INT_MAX;
 	int oldtimeoutcount = INT_MAX;
-	int first = 1;
-	int errorlines = 0;
 	struct timespec maindelay;
 	int oflag = O_CREAT|O_RDWR;
 	struct mq_attr mqstat;
@@ -489,38 +505,8 @@ int main(int argc, char *argv[])
 
 		if (minsamples > 1 && (shutdown || newsamples > oldsamples ||
 			newtimeoutcount > oldtimeoutcount)) {
-
-			if (!first)
-				printf("\033[%dA", num_threads*2 + errorlines);
-			first = 0;
-
-			for (i = 0; i < num_threads; i++) {
-				printf("#%1d: ID%d, P%d, CPU%d, I%ld; #%1d: ID%d, P%d, CPU%d, TO %d, Cycles %d   \n",
-				    i*2, receiver[i].tid, receiver[i].priority, receiver[i].cpu,
-				    receiver[i].delay.tv_nsec / 1000,
-				    i*2+1, sender[i].tid, sender[i].priority, sender[i].cpu,
-				    receiver[i].timeoutcount, sender[i].samples);
-			}
-			for (i = 0; i < num_threads; i++) {
-				printf("#%d -> #%d, Min %4d, Cur %4d, Avg %4d, Max %4d\n",
-					i*2+1, i*2,
-					receiver[i].mindiff, (int) receiver[i].diff.tv_usec,
-					(int) ((receiver[i].sumdiff / receiver[i].samples) + 0.5),
-					receiver[i].maxdiff);
-				if (receiver[i].error[0] != '\0') {
-					printf("%s", receiver[i].error);
-					errorlines++;
-					receiver[i].error[0] = '\0';
-				}
-				if (sender[i].error[0] != '\0') {
-					printf("%s", sender[i].error);
-					errorlines++;
-					receiver[i].error[0] = '\0';
-				}
-			}
-		} else {
-			if (minsamples < 1)
-				printf("Collecting ...\n\033[1A");
+			print_stat(stdout, receiver, sender, 0, 0);
+			printf("\033[%dA", num_threads*2);
 		}
 
 		fflush(NULL);
@@ -538,6 +524,8 @@ int main(int argc, char *argv[])
 			shutdown |= receiver[i].shutdown | sender[i].shutdown;
 
 	} while (!shutdown);
+
+	printf("\033[%dB", num_threads*2 + 2);
 
 	for (i = 0; i < num_threads; i++) {
 		receiver[i].shutdown = 1;
