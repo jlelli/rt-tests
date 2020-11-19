@@ -43,7 +43,7 @@
 
 #include "rt-utils.h"
 #include "rt-numa.h"
-#include "error.h"
+#include "rt-error.h"
 
 #ifdef __GNUC__
 # define atomic_inc(ptr)   __sync_add_and_fetch((ptr), 1)

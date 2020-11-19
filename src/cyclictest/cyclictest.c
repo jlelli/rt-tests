@@ -37,6 +37,7 @@
 
 #include "rt-utils.h"
 #include "rt-numa.h"
+#include "rt-error.h"
 
 #include <bionic.h>
 

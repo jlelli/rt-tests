@@ -28,9 +28,10 @@
 #include <sys/sem.h>
 #include <sys/time.h>
 #include <sys/mman.h>
+
 #include "rt-utils.h"
 #include "rt-get_cpu.h"
-#include "error.h"
+#include "rt-error.h"
 
 #define SEM_WAIT_FOR_RECEIVER 0
 #define SEM_WAIT_FOR_SENDER 1

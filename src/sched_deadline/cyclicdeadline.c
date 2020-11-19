@@ -30,9 +30,9 @@
 #include <linux/unistd.h>
 #include <linux/magic.h>
 
-#include <rt-utils.h>
-#include <rt-sched.h>
-#include <error.h>
+#include "rt-utils.h"
+#include "rt-sched.h"
+#include "rt-error.h"
 
 #define _STR(x) #x
 #define STR(x) _STR(x)

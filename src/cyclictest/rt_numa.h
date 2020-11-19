@@ -11,7 +11,7 @@
 #define _RT_NUMA_H
 
 #include "rt-utils.h"
-#include "error.h"
+#include "rt-error.h"
 
 #include <numa.h>
 

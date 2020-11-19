@@ -20,9 +20,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/syscall.h> /* For SYS_gettid definitions */
+
 #include "rt-utils.h"
 #include "rt-sched.h"
-#include "error.h"
+#include "rt-error.h"
 
 #define  TRACEBUFSIZ  1024
 

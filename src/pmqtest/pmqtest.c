@@ -21,11 +21,11 @@
 #include <linux/unistd.h>
 #include <utmpx.h>
 #include <mqueue.h>
+#include <pthread.h>
+
 #include "rt-utils.h"
 #include "rt-get_cpu.h"
-#include "error.h"
-
-#include <pthread.h>
+#include "rt-error.h"
 
 #define SYNCMQ_NAME "/syncmsg%d"
 #define TESTMQ_NAME "/testmsg%d"

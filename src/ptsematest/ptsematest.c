@@ -19,11 +19,11 @@
 #include <sys/mman.h>
 #include <linux/unistd.h>
 #include <utmpx.h>
+#include <pthread.h>
+
 #include "rt-utils.h"
 #include "rt-get_cpu.h"
-#include "error.h"
-
-#include <pthread.h>
+#include "rt-error.h"
 
 enum {
 	AFFINITY_UNSPECIFIED,

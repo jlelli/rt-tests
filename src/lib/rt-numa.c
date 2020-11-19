@@ -10,7 +10,7 @@
 #include <sched.h>
 #include <pthread.h>
 
-#include "error.h"
+#include "rt-error.h"
 #include "rt-numa.h"
 
 /* numa_available() must be called before any other calls to the numa library */

@@ -5,7 +5,7 @@
  * error routines, similar to those found in
  * Advanced Programming in the UNIX Environment 2nd ed.
  */
-#include "error.h"
+#include "rt-error.h"
 
 /* Print an error message, plus a message for err and exit with error err */
 void err_exit(int err, char *fmt, ...)

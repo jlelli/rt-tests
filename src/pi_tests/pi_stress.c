@@ -47,8 +47,7 @@
 
 #include "rt-sched.h"
 #include "rt-utils.h"
-
-#include "error.h"
+#include "rt-error.h"
 
 /* test timeout */
 #define TIMEOUT 2

@@ -31,7 +31,7 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 
-#include "error.h"
+#include "rt-error.h"
 #include "rt-utils.h"
 #include "rt-numa.h"
 
