@@ -59,10 +59,9 @@ MANPAGES = src/cyclictest/cyclictest.8 \
 
 ifdef PYLIB
 	MANPAGES += src/cyclictest/get_cyclictest_snapshot.8 \
-	MANPAGES += src/hwlatdetect/hwlatdetect.8
+	src/hwlatdetect/hwlatdetect.8
 endif
 
-MAN_COMPRESSION ?= gzip
 ifeq ($(MAN_COMPRESSION),gzip)
 	MANPAGES := $(MANPAGES:.8=.8.gz)
 else ifeq ($(MAN_COMPRESSION),bzip2)
