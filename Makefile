@@ -209,7 +209,6 @@ rebuild:
 install: all install_manpages install_hwlatdetect install_get_cyclictest_snapshot
 	mkdir -p "$(DESTDIR)$(bindir)"
 	cp $(TARGETS) "$(DESTDIR)$(bindir)"
-	install src/queuelat/get_cpuinfo_mhz.sh "$(DESTDIR)$(bindir)"
 	install src/queuelat/determine_maximum_mpps.sh "${DESTDIR}${bindir}"
 
 .PHONY: install_hwlatdetect
