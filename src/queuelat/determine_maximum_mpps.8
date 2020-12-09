@@ -1,0 +1,62 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH DETERMINE_MAXIMUM_MPPS 8 "Dec 4, 2020"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+determine_maximum_mpps \- Determine the maximum mpps the machine can handle
+.SH SYNOPSIS
+.LP
+determine_maximum_mpps [-c cpulist] [-m maxlat] [-n cycles] [-f | -r] [-p priority] [-h]
+.SH DESCRIPTION
+determine_maximum_mpps will find the maximum mpps parameter which can sustain
+.PP
+.RS
+1. 10 consecutive 30 second runs.
+.br
+2. 1 run of 10 minutes.
+.PP
+.RE
+Without violating the latency specified with $MAXLAT (default 20000)
+.PP
+.SH TERMINOLOGY
+mpps : million-packets-per-second
+.br
+.SH OPTIONS
+.TP
+.B \-c cpulist
+List of processors to run on. The default is processor 0
+.TP
+.B \-m maxlat
+Maximum latency in nanoseconds. The default is 20000. if the maximum is exceeded, that run of queuelat quits.
+.TP
+.B \-n cycles
+Extimated number of cycles it takes to process one packet. The default is 300
+.TP
+.B \-f
+Set the scheduling policy to SCHED_FIFO. This is the default if not specified.
+.TP
+.B \-r
+Set the scheduling policy to SCHED_RR.
+.TP
+.B \-p priority
+default priority = 1. Valid numbers are from 1 to 99
+.TP
+.B \-h
+help
+.LP
+.SH AUTHOR
+determine_maximum_mpps was written by
+.br
+Marcelo Tosatti <mtosatti@redhat.com>
+.PP
+This man page was written by John Kacur <jkacur@redhat.com>

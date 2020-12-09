@@ -52,6 +52,7 @@ MANPAGES = src/cyclictest/cyclictest.8 \
 	   src/signaltest/signaltest.8 \
 	   src/pi_tests/pip_stress.8 \
 	   src/queuelat/queuelat.8 \
+	   src/queuelat/determine_maximum_mpps.8 \
 	   src/sched_deadline/deadline_test.8 \
 	   src/ssdd/ssdd.8 \
 	   src/sched_deadline/cyclicdeadline.8 \
