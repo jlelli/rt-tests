@@ -18,7 +18,7 @@ usage()
 	echo "Usage:"
 	echo "$(basename $0) [OPTIONS]"
 	echo
-	echo "-c cpulist"
+	echo "-a cpulist"
 	echo "	List of processors to run on. The default is processor 0"
 	echo "	Numbers are separated by commas and may include ranges. Eg. 0,3,7-11"
 	echo "-m maxlat"
@@ -56,9 +56,9 @@ check_sched()
 }
 
 # Process command line options
-while getopts ":c:frp:m:n:h" opt; do
+while getopts ":a:frp:m:n:h" opt; do
 	case ${opt} in
-		c ) CPULIST="${OPTARG}" ;;
+		a ) CPULIST="${OPTARG}" ;;
 		m ) MAXLAT="${OPTARG}" ;;
 		n ) CYCLES_PER_PACKET="${OPTARG}" ;;
 		f ) check_sched; SCHED="-f" ;;
