@@ -1018,9 +1018,6 @@ static void process_options(int argc, char *argv[], int max_cpus)
 			/* smp sets AFFINITY_USEALL in OPT_SMP */
 			if (smp)
 				break;
-			if (numa_initialize())
-				fatal("Couldn't initialize libnuma");
-			numa = 1;
 			if (optarg) {
 				parse_cpumask(optarg, max_cpus, &affinity_mask);
 				setaffinity = AFFINITY_SPECIFIED;
@@ -1126,8 +1123,6 @@ static void process_options(int argc, char *argv[], int max_cpus)
 			use_system = MODE_SYS_OFFSET; break;
 		case 'S':
 		case OPT_SMP: /* SMP testing */
-			if (numa)
-				fatal("numa and smp options are mutually exclusive\n");
 			smp = 1;
 			num_threads = -1; /* update after parsing */
 			setaffinity = AFFINITY_USEALL;
@@ -1201,16 +1196,17 @@ static void process_options(int argc, char *argv[], int max_cpus)
 
 	/* if smp wasn't requested, test for numa automatically */
 	if (!smp) {
-		if (numa_initialize())
-			fatal("Couldn't initialize libnuma");
-		numa = 1;
 		if (setaffinity == AFFINITY_UNSPECIFIED)
 			setaffinity = AFFINITY_USEALL;
 	}
 
-	if (option_affinity) {
-		if (smp)
-			warn("-a ignored due to smp mode\n");
+	if (option_affinity && smp) {
+		warn("-a ignored due to smp mode\n");
+		if (affinity_mask) {
+			numa_bitmask_free(affinity_mask);
+			affinity_mask = NULL;
+		}
+		setaffinity = AFFINITY_USEALL;
 	}
 
 	if (smi) {
@@ -1745,6 +1741,12 @@ int main(int argc, char **argv)
 	int online_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	int i, ret = -1;
 	int status;
+	void *stack;
+	void *currstk;
+	size_t stksize;
+
+	if (numa_initialize())
+		fatal("Couldn't initialize libnuma");
 
 	process_options(argc, argv, max_cpus);
 
@@ -1929,34 +1931,27 @@ int main(int argc, char **argv)
 		default: cpu = -1;
 		}
 
-		node = -1;
-		if (numa) {
-			void *stack;
-			void *currstk;
-			size_t stksize;
+		/* find the memory node associated with the cpu i */
+		node = rt_numa_numa_node_of_cpu(cpu);
 
-			/* find the memory node associated with the cpu i */
-			node = rt_numa_numa_node_of_cpu(cpu);
+		/* get the stack size set for this thread */
+		if (pthread_attr_getstack(&attr, &currstk, &stksize))
+			fatal("failed to get stack size for thread %d\n", i);
 
-			/* get the stack size set for this thread */
-			if (pthread_attr_getstack(&attr, &currstk, &stksize))
-				fatal("failed to get stack size for thread %d\n", i);
+		/* if the stack size is zero, set a default */
+		if (stksize == 0)
+			stksize = PTHREAD_STACK_MIN * 2;
 
-			/* if the stack size is zero, set a default */
-			if (stksize == 0)
-				stksize = PTHREAD_STACK_MIN * 2;
+		/*  allocate memory for a stack on appropriate node */
+		stack = rt_numa_numa_alloc_onnode(stksize, node, cpu);
 
-			/*  allocate memory for a stack on appropriate node */
-			stack = rt_numa_numa_alloc_onnode(stksize, node, cpu);
+		/* touch the stack pages to pre-fault them in */
+		memset(stack, 0, stksize);
 
-			/* touch the stack pages to pre-fault them in */
-			memset(stack, 0, stksize);
-
-			/* set the thread's stack */
-			if (pthread_attr_setstack(&attr, stack, stksize))
-				fatal("failed to set stack addr for thread %d to 0x%x\n",
-				      i, stack+stksize);
-		}
+		/* set the thread's stack */
+		if (pthread_attr_setstack(&attr, stack, stksize))
+			fatal("failed to set stack addr for thread %d to 0x%x\n",
+				i, stack+stksize);
 
 		/* allocate the thread's parameter block  */
 		parameters[i] = par = threadalloc(sizeof(struct thread_param), node);
