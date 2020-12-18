@@ -55,7 +55,7 @@ int cpu_for_thread_sp(int thread_num, int max_cpus, struct bitmask *cpumask)
 			cpu++;
 		}
 	}
-	fprintf(stderr, "Bug in cpu mask handling code.\n");
+	warn("Bug in cpu mask handling code.\n");
 	return 0;
 }
 
@@ -84,7 +84,7 @@ int cpu_for_thread_ua(int thread_num, int max_cpus)
 		}
 	}
 
-	fprintf(stderr, "Bug in cpu mask handling code.\n");
+	warn("Bug in cpu mask handling code.\n");
 	return 0;
 }
 
