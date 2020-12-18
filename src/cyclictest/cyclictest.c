@@ -1020,10 +1020,6 @@ static void process_options(int argc, char *argv[], int max_cpus)
 				    argv[optind][0] == '!')) {
 				parse_cpumask(argv[optind], max_cpus, &affinity_mask);
 			}
-
-			if (verbose)
-				printf("Using %u cpus.\n",
-					numa_bitmask_weight(affinity_mask));
 			break;
 		case 'A':
 		case OPT_ALIGNED:
@@ -1746,6 +1742,10 @@ int main(int argc, char **argv)
 		res = numa_sched_setaffinity(getpid(), affinity_mask);
 		if (res != 0)
 			warn("Couldn't setaffinity in main thread: %s\n", strerror(errno));
+
+		if (verbose)
+			printf("Using %u cpus.\n",
+				numa_bitmask_weight(affinity_mask));
 	}
 
 	if (trigger) {
