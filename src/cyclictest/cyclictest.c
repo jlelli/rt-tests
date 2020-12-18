@@ -893,7 +893,6 @@ static int interval = DEFAULT_INTERVAL;
 static int distance = -1;
 static struct bitmask *affinity_mask = NULL;
 static int smp = 0;
-static int setaffinity = AFFINITY_UNSPECIFIED;
 
 static int clocksources[] = {
 	CLOCK_MONOTONIC,
@@ -1020,19 +1019,13 @@ static void process_options(int argc, char *argv[], int max_cpus)
 				break;
 			if (optarg) {
 				parse_cpumask(optarg, max_cpus, &affinity_mask);
-				setaffinity = AFFINITY_SPECIFIED;
 			} else if (optind < argc &&
 				   (atoi(argv[optind]) ||
 				    argv[optind][0] == '0' ||
 				    argv[optind][0] == '!')) {
 				parse_cpumask(argv[optind], max_cpus, &affinity_mask);
-				setaffinity = AFFINITY_SPECIFIED;
-			} else {
-				setaffinity = AFFINITY_USEALL;
 			}
 
-			if (setaffinity == AFFINITY_SPECIFIED && !affinity_mask)
-				display_help(1);
 			if (verbose)
 				printf("Using %u cpus.\n",
 					numa_bitmask_weight(affinity_mask));
@@ -1125,7 +1118,6 @@ static void process_options(int argc, char *argv[], int max_cpus)
 		case OPT_SMP: /* SMP testing */
 			smp = 1;
 			num_threads = -1; /* update after parsing */
-			setaffinity = AFFINITY_USEALL;
 			break;
 		case 't':
 		case OPT_THREADS:
@@ -1194,23 +1186,16 @@ static void process_options(int argc, char *argv[], int max_cpus)
 		use_nanosleep = MODE_CLOCK_NANOSLEEP;
 	}
 
-	/* if smp wasn't requested, test for numa automatically */
-	if (!smp) {
-		if (setaffinity == AFFINITY_UNSPECIFIED)
-			setaffinity = AFFINITY_USEALL;
-	}
-
 	if (option_affinity && smp) {
 		warn("-a ignored due to smp mode\n");
 		if (affinity_mask) {
 			numa_bitmask_free(affinity_mask);
 			affinity_mask = NULL;
 		}
-		setaffinity = AFFINITY_USEALL;
 	}
 
 	if (smi) {
-		if (setaffinity == AFFINITY_UNSPECIFIED)
+		if (affinity_mask)
 			fatal("SMI counter relies on thread affinity\n");
 
 		if (!has_smi_counter())
@@ -1759,7 +1744,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Restrict the main pid to the affinity specified by the user */
-	if (affinity_mask != NULL) {
+	if (affinity_mask) {
 		int res;
 
 		errno = 0;
@@ -1918,18 +1903,13 @@ int main(int argc, char **argv)
 		if (status != 0)
 			fatal("error from pthread_attr_init for thread %d: %s\n", i, strerror(status));
 
-		switch (setaffinity) {
-		case AFFINITY_UNSPECIFIED: cpu = -1; break;
-		case AFFINITY_SPECIFIED:
+		if (affinity_mask)
 			cpu = cpu_for_thread_sp(i, max_cpus, affinity_mask);
-			if (verbose)
-				printf("Thread %d using cpu %d.\n", i, cpu);
-			break;
-		case AFFINITY_USEALL:
+		else
 			cpu = cpu_for_thread_ua(i, max_cpus);
-			break;
-		default: cpu = -1;
-		}
+
+		if (verbose)
+			printf("Thread %d using cpu %d.\n", i, cpu);
 
 		/* find the memory node associated with the cpu i */
 		node = rt_numa_numa_node_of_cpu(cpu);
