@@ -206,7 +206,6 @@ static int quiet;
 static int lockall;
 static struct bitmask *affinity_mask = NULL;
 static int smp = 0;
-static int numa = 0;
 static int setaffinity = AFFINITY_UNSPECIFIED;
 
 /* Process commandline options */
@@ -214,6 +213,7 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 {
 	int option_affinity = 0;
 	int error = 0;
+	int numa = 0;
 
 	for (;;) {
 		int option_index = 0;
@@ -242,8 +242,6 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 			/* smp sets AFFINITY_USEALL in OPT_SMP */
 			if (smp)
 				break;
-			if (numa_initialize())
-				fatal("Couldn't initialize libnuma");
 			numa = 1;
 			if (optarg) {
 				parse_cpumask(optarg, max_cpus, &affinity_mask);
@@ -298,9 +296,6 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 
 	/* if smp wasn't requested, test for numa automatically */
 	if (!smp) {
-		if (numa_initialize())
-			fatal("Couldn't initialize libnuma");
-		numa = 1;
 		if (setaffinity == AFFINITY_UNSPECIFIED)
 			setaffinity = AFFINITY_USEALL;
 	}
@@ -353,6 +348,9 @@ int main(int argc, char **argv)
 	int i, ret = -1;
 	int status, cpu;
 	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+
+	if (numa_initialize())
+		fatal("Couldn't initialize libnuma");
 
 	process_options(argc, argv, max_cpus);
 
