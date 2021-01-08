@@ -20,6 +20,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/syscall.h> /* For SYS_gettid definitions */
+#include <sys/utsname.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "rt-utils.h"
 #include "rt-sched.h"
@@ -481,4 +484,97 @@ void enable_trace_mark(void)
 void disable_trace_mark(void)
 {
 	close_tracemark_fd();
+}
+
+static char *get_cmdline(int argc, char *argv[])
+{
+	char *cmdline;
+	int len, i;
+
+	len = 0;
+	for (i = 0; i < argc; i++)
+		len += strlen(argv[i]) + 1;
+
+	cmdline = malloc(len);
+	if (!cmdline)
+		err_exit(ENOMEM, "Could not copy cmdline");
+
+	memset(cmdline, 0, len);
+	for (i = 0; i < argc;) {
+		cmdline = strcat(cmdline, argv[i]);
+		i++;
+		if (i < argc)
+			cmdline = strcat(cmdline, " ");
+	}
+
+	return cmdline;
+}
+
+void rt_write_json(const char *filename, int argc, char *argv[],
+		  void (*cb)(FILE *, void *),
+		  void *data)
+{
+	unsigned char buf[1];
+	struct utsname uts;
+	struct timeval tv;
+	char tsbuf[64];
+	struct tm *tm;
+	char *cmdline;
+	FILE *f, *s;
+	time_t t;
+	size_t n;
+	int rt = 0;
+
+	if (!filename || !strcmp("-", filename)) {
+		f = stdout;
+	} else {
+		f = fopen(filename, "w");
+		if (!f)
+			err_exit(errno, "Failed to open '%s'\n", filename);
+	}
+
+	cmdline = get_cmdline(argc, argv);
+	if (!cmdline)
+		err_exit(ENOMEM, "get_cmdline()");
+
+
+	gettimeofday(&tv, NULL);
+	t = tv.tv_sec;
+	tm = localtime(&t);
+	/* RFC 2822-compliant date format */
+	strftime(tsbuf, sizeof(tsbuf), "%a, %d %b %Y %T %z", tm);
+
+	s = fopen("/sys/kernel/realtime", "r");
+	if (s) {
+		n = fread(buf, 1, 1, s);
+		if (n == 1 && buf[0] == '1')
+			rt = 1;
+		fclose(s);
+	}
+
+	if (uname(&uts))
+		err_exit(errno, "Could not retrieve system information");
+
+	fprintf(f, "{\n");
+	fprintf(f, "  \"file_version\": 1,\n");
+	fprintf(f, "  \"cmdline:\": \"%s\",\n", cmdline);
+	fprintf(f, "  \"rt_test_version:\": \"%1.2f\",\n", VERSION);
+	fprintf(f, "  \"finished\": \"%s\",\n", tsbuf);
+	fprintf(f, "  \"sysinfo\": {\n");
+	fprintf(f, "    \"sysname\": \"%s\",\n", uts.sysname);
+	fprintf(f, "    \"nodename\": \"%s\",\n", uts.nodename);
+	fprintf(f, "    \"release\": \"%s\",\n", uts.release);
+	fprintf(f, "    \"version\": \"%s\",\n", uts.version);
+	fprintf(f, "    \"machine\": \"%s\",\n", uts.machine);
+	fprintf(f, "    \"realtime\": %d\n", rt);
+	fprintf(f, "  },\n");
+
+	(cb)(f, data);
+
+	fprintf(f, "}\n");
+
+	free(cmdline);
+
+	if (!filename || strcmp("-", filename))
+		fclose(f);
 }
