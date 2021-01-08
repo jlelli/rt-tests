@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sched.h>
+#include <inttypes.h>
 
 #include <linux/unistd.h>
 
@@ -207,6 +208,14 @@ static int lockall;
 static struct bitmask *affinity_mask = NULL;
 static int smp = 0;
 static int setaffinity = AFFINITY_UNSPECIFIED;
+static char outfile[MAX_PATH];
+
+enum option_values {
+	OPT_AFFINITY=1, OPT_BREAKTRACE,
+	OPT_DURATION, OPT_HELP, OPT_LOOPS,
+	OPT_MLOCKALL, OPT_OUTPUT, OPT_PRIORITY,
+	OPT_QUIET, OPT_SMP, OPT_THREADS, OPT_VERBOSE
+};
 
 /* Process commandline options */
 static void process_options(int argc, char *argv[], unsigned int max_cpus)
@@ -219,17 +228,18 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
-			{"affinity",		optional_argument,	NULL, 'a'},
-			{"breaktrace",		required_argument,	NULL, 'b'},
-			{"duration",		required_argument,	NULL, 'D'},
-			{"help",		no_argument,		NULL, 'h'},
-			{"loops",		required_argument,	NULL, 'l'},
-			{"mlockall",		no_argument,		NULL, 'm'},
-			{"priority",		required_argument,	NULL, 'p'},
-			{"quiet",		no_argument,		NULL, 'q'},
-			{"smp",			no_argument,		NULL, 'S'},
-			{"threads",		required_argument,	NULL, 't'},
-			{"verbose",		no_argument,		NULL, 'v'},
+			{"affinity",	optional_argument,	NULL, OPT_AFFINITY},
+			{"breaktrace",	required_argument,	NULL, OPT_BREAKTRACE},
+			{"duration",	required_argument,	NULL, OPT_DURATION},
+			{"help",	no_argument,		NULL, OPT_HELP},
+			{"loops",	required_argument,	NULL, OPT_LOOPS},
+			{"mlockall",	no_argument,		NULL, OPT_MLOCKALL},
+			{"output",	required_argument,	NULL, OPT_OUTPUT},
+			{"priority",	required_argument,	NULL, OPT_PRIORITY},
+			{"quiet",	no_argument,		NULL, OPT_QUIET},
+			{"smp",		no_argument,		NULL, OPT_SMP},
+			{"threads",	required_argument,	NULL, OPT_THREADS},
+			{"verbose",	no_argument,		NULL, OPT_VERBOSE},
 			{NULL, 0, NULL, 0}
 		};
 		int c = getopt_long(argc, argv, "a::b:D:hl:mp:qSt:v",
@@ -237,6 +247,7 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 		if (c == -1)
 			break;
 		switch (c) {
+		case OPT_AFFINITY:
 		case 'a':
 			option_affinity = 1;
 			/* smp sets AFFINITY_USEALL in OPT_SMP */
@@ -262,14 +273,39 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 				printf("Using %u cpus.\n",
 					numa_bitmask_weight(affinity_mask));
 			break;
-		case 'b': tracelimit = atoi(optarg); break;
-		case 'D': duration = parse_time_string(optarg); break;
+		case OPT_BREAKTRACE:
+		case 'b':
+			tracelimit = atoi(optarg);
+			break;
+		case OPT_DURATION:
+		case 'D':
+			duration = parse_time_string(optarg);
+			break;
+		case OPT_HELP:
 		case '?':
-		case 'h': display_help(0); break;
-		case 'l': max_cycles = atoi(optarg); break;
-		case 'm': lockall = 1; break;
-		case 'p': priority = atoi(optarg); break;
-		case 'q': quiet = 1; break;
+		case 'h':
+			display_help(0);
+			break;
+		case OPT_LOOPS:
+		case 'l':
+			max_cycles = atoi(optarg);
+			break;
+		case OPT_MLOCKALL:
+		case 'm':
+			lockall = 1;
+			break;
+		case OPT_OUTPUT:
+			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
+			break;
+		case OPT_PRIORITY:
+		case 'p':
+			priority = atoi(optarg);
+			break;
+		case OPT_QUIET:
+		case 'q':
+			quiet = 1;
+			break;
+		case OPT_SMP:
 		case 'S':
 			if (numa)
 				fatal("numa and smp options are mutually exclusive\n");
@@ -277,8 +313,13 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 			num_threads = -1; /* update after parsing */
 			setaffinity = AFFINITY_USEALL;
 			break;
-		case 't': num_threads = atoi(optarg); break;
-		case 'v': verbose = 1; break;
+		case OPT_THREADS:
+		case 't':
+			num_threads = atoi(optarg);
+			break;
+		case OPT_VERBOSE:
+		case 'v': verbose = 1;
+			break;
 		}
 	}
 
@@ -337,6 +378,28 @@ static void print_stat(struct thread_param *par, int index, int verbose)
 			stat->cyclesread++;
 		}
 	}
+}
+
+static void write_stats(FILE *f, void *data)
+{
+	struct thread_param *par = data;
+	struct thread_stat *s;
+	unsigned int i;
+
+	fprintf(f, "  \"num_threads\": %d,\n", num_threads);
+	fprintf(f, "  \"thread\": {\n");
+	for (i = 0; i < num_threads; i++) {
+		fprintf(f, "    \"%u\": {\n", i);
+		s = &par->stats[i];
+		fprintf(f, "      \"cycles\": %" PRIu64 ",\n", s->cycles);
+		fprintf(f, "      \"min\": %" PRIu64 ",\n", s->min);
+		fprintf(f, "      \"max\": %" PRIu64 ",\n", s->max);
+		fprintf(f, "      \"avg\": %.2f,\n", s->avg/s->cycles);
+		fprintf(f, "      \"cpu\": %d\n", par->cpu);
+		fprintf(f, "    }%s\n", i == num_threads - 1 ? "" : ",");
+
+	}
+	fprintf(f, "  }\n");
 }
 
 int main(int argc, char **argv)
@@ -494,6 +557,9 @@ int main(int argc, char **argv)
 		if (stat[i].values)
 			free(stat[i].values);
 	}
+	if (strlen(outfile) != 0)
+		rt_write_json(outfile, argc, argv, write_stats, par);
+
 	free(stat);
  outpar:
 	free(par);
