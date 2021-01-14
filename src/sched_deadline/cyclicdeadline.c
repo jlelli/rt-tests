@@ -47,23 +47,6 @@ typedef unsigned long long u64;
 typedef unsigned int u32;
 typedef int s32;
 
-/* Struct to transfer parameters to the thread */
-struct thread_param {
-	u64 runtime_us;
-	u64 deadline_us;
-
-	int mode;
-	int timermode;
-	int signal;
-	int clock;
-	unsigned long max_cycles;
-	struct thread_stat *stats;
-	unsigned long interval;
-	int cpu;
-	int node;
-	int tnum;
-};
-
 /* Struct for statistics */
 struct thread_stat {
 	unsigned long cycles;
