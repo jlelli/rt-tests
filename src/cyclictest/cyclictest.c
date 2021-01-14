@@ -1741,7 +1741,8 @@ int main(int argc, char **argv)
 	int signum = SIGALRM;
 	int mode;
 	int cpu;
-	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	int max_cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int online_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	int i, ret = -1;
 	int status;
 
@@ -1750,8 +1751,10 @@ int main(int argc, char **argv)
 	if (check_privs())
 		exit(EXIT_FAILURE);
 
-	if (verbose)
+	if (verbose) {
 		printf("Max CPUs = %d\n", max_cpus);
+		printf("Online CPUs = %d\n", online_cpus);
+	}
 
 	/* Restrict the main pid to the affinity specified by the user */
 	if (affinity_mask != NULL) {
