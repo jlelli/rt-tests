@@ -807,17 +807,12 @@ static void display_help(int error)
 	printf("cyclictest V %1.2f\n", VERSION);
 	printf("Usage:\n"
 	       "cyclictest <options>\n\n"
-#if LIBNUMA_API_VERSION >= 2
 	       "-a [CPUSET] --affinity     Run thread #N on processor #N, if possible, or if CPUSET\n"
 	       "                           given, pin threads to that set of processors in round-\n"
 	       "                           robin order.  E.g. -a 2 pins all threads to CPU 2,\n"
 	       "                           but -a 3-5,0 -t 5 will run the first and fifth\n"
 	       "                           threads on CPU (0),thread #2 on CPU 3, thread #3\n"
 	       "                           on CPU 4, and thread #5 on CPU 5.\n"
-#else
-	       "-a [NUM] --affinity        run thread #N on processor #N, if possible\n"
-	       "                           with NUM pin all threads to the processor NUM\n"
-#endif
 	       "-A USEC  --aligned=USEC    align thread wakeups to a specific offset\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
 	       "-c CLOCK --clock=CLOCK     select clock\n"
