@@ -1013,11 +1013,12 @@ int main(int argc, char **argv)
 			{ "duration",	required_argument,	NULL,	'D' },
 			{ "help",	no_argument,		NULL,	'h' },
 			{ "interval",	required_argument,	NULL,	'i' },
+			{ "step",	required_argument,	NULL,	's' },
 			{ "threads",	required_argument,	NULL,	't' },
 			{ "quiet",	no_argument,		NULL,	'q' },
 			{ NULL,		0,			NULL,	0   },
 		};
-		c = getopt_long(argc, argv, "a::c:D:hi:t:q", options, NULL);
+		c = getopt_long(argc, argv, "a::c:D:hi:s:t:q", options, NULL);
 		if (c == -1)
 			break;
 		switch (c) {
