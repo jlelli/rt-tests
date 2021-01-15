@@ -164,7 +164,7 @@ static void display_help(int error)
 	       "                           without NUM, threads = max_cpus\n"
 	       "                           without -t default = 1\n"
 	       );
-	exit(0);
+	exit(error);
 }
 
 
