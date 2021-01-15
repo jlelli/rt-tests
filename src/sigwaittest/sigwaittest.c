@@ -39,6 +39,7 @@
 #include <linux/unistd.h>
 #include <utmpx.h>
 #include <pthread.h>
+#include <inttypes.h>
 
 #include "rt-utils.h"
 #include "rt-get_cpu.h"
@@ -220,6 +221,7 @@ static void display_help(int error)
 	       "-f [OPT] --fork[=OPT]      fork new processes instead of creating threads\n"
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
+	       "         --output=FILENAME write final results into FILENAME, JSON formatted\n"
 	       "-p PRIO  --prio=PRIO       priority\n"
 	       "-q       --quiet           print a summary only on exit\n"
 	       "-t       --threads         one thread per available processor\n"
@@ -240,6 +242,13 @@ static int duration;
 static int interval = 1000;
 static int distance = 500;
 static int quiet;
+static char outfile[MAX_PATH];
+
+enum option_value {
+	OPT_AFFINITY=1, OPT_BREAKTRACE, OPT_DISTANCE, OPT_DURATION,
+	OPT_FORK, OPT_HELP, OPT_INTERVAL, OPT_LOOPS, OPT_OUTPUT,
+	OPT_PRIORITY, OPT_QUIET, OPT_THREADS
+};
 
 static void process_options(int argc, char *argv[])
 {
@@ -251,17 +260,18 @@ static void process_options(int argc, char *argv[])
 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
-			{"affinity",		optional_argument,	NULL, 'a'},
-			{"breaktrace",		required_argument,	NULL, 'b'},
-			{"distance",		required_argument,	NULL, 'd'},
-			{"duration",		required_argument,	NULL, 'D'},
-			{"fork",		optional_argument,	NULL, 'f'},
-			{"help",		no_argument,		NULL, 'h'},
-			{"interval",		required_argument,	NULL, 'i'},
-			{"loops",		required_argument,	NULL, 'l'},
-			{"priority",		required_argument,	NULL, 'p'},
-			{"quiet",		no_argument,		NULL, 'q'},
-			{"threads",		optional_argument,	NULL, 't'},
+			{"affinity",	optional_argument,	NULL, OPT_AFFINITY},
+			{"breaktrace",	required_argument,	NULL, OPT_BREAKTRACE},
+			{"distance",	required_argument,	NULL, OPT_DISTANCE},
+			{"duration",	required_argument,	NULL, OPT_DURATION},
+			{"fork",	optional_argument,	NULL, OPT_FORK},
+			{"help",	no_argument,		NULL, OPT_HELP},
+			{"interval",	required_argument,	NULL, OPT_INTERVAL},
+			{"loops",	required_argument,	NULL, OPT_LOOPS},
+			{"output",	required_argument,      NULL, OPT_OUTPUT },
+			{"priority",	required_argument,	NULL, OPT_PRIORITY},
+			{"quiet",	no_argument,		NULL, OPT_QUIET},
+			{"threads",	optional_argument,	NULL, OPT_THREADS},
 			{NULL, 0, NULL, 0}
 		};
 		int c = getopt_long (argc, argv, "a::b:d:D:f::hi:l:p:qt::",
@@ -269,6 +279,7 @@ static void process_options(int argc, char *argv[])
 		if (c == -1)
 			break;
 		switch (c) {
+		case OPT_AFFINITY:
 		case 'a':
 			if (optarg != NULL) {
 				affinity = atoi(optarg);
@@ -280,9 +291,19 @@ static void process_options(int argc, char *argv[])
 				setaffinity = AFFINITY_USEALL;
 			}
 			break;
-		case 'b': thistracelimit = atoi(optarg); break;
-		case 'd': distance = atoi(optarg); break;
-		case 'D': duration = parse_time_string(optarg); break;
+		case OPT_BREAKTRACE:
+		case 'b':
+			thistracelimit = atoi(optarg);
+			break;
+		case OPT_DISTANCE:
+		case 'd':
+			distance = atoi(optarg);
+			break;
+		case OPT_DURATION:
+		case 'D':
+			duration = parse_time_string(optarg);
+			break;
+		case OPT_FORK:
 		case 'f':
 			if (optarg != NULL) {
 				wasforked = 1;
@@ -294,14 +315,31 @@ static void process_options(int argc, char *argv[])
 			} else
 				mustfork = 1;
 			break;
+		case OPT_HELP:
 		case '?':
 		case 'h':
 			display_help(0);
 			break;
-		case 'i': interval = atoi(optarg); break;
-		case 'l': max_cycles = atoi(optarg); break;
-		case 'p': priority = atoi(optarg); break;
-		case 'q': quiet = 1; break;
+		case OPT_INTERVAL:
+		case 'i':
+			interval = atoi(optarg);
+			break;
+		case OPT_LOOPS:
+		case 'l':
+			max_cycles = atoi(optarg);
+			break;
+		case OPT_OUTPUT:
+			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
+			break;
+		case OPT_PRIORITY:
+		case 'p':
+			priority = atoi(optarg);
+			break;
+		case OPT_QUIET:
+		case 'q':
+			quiet = 1;
+			break;
+		case OPT_THREADS:
 		case 't':
 			if (optarg != NULL)
 				num_threads = atoi(optarg);
@@ -386,6 +424,41 @@ static void print_stat(FILE *fp, struct params *receiver, struct params *sender,
 					receiver[i].samples) + 0.5),
 				receiver[i].maxdiff);
 	}
+}
+
+struct params_stats {
+	struct params *receiver;
+	struct params *sender;
+};
+
+static void write_stats(FILE *f, void *data)
+{
+	struct params_stats *ps = data;
+	struct params *s, *r;
+	unsigned int i;
+
+	fprintf(f, "  \"num_threads\": %d,\n", num_threads);
+	fprintf(f, "  \"thread\": {\n");
+	for (i = 0; i < num_threads; i++) {
+		s = &ps->sender[i];
+		r = &ps->receiver[i];
+		fprintf(f, "    \"%u\": {\n", i);
+		fprintf(f, "      \"sender\": {\n");
+		fprintf(f, "        \"cpu\": %d,\n", s->cpu);
+		fprintf(f, "        \"priority\": %d,\n", s->priority);
+		fprintf(f, "        \"samples\": %d,\n", s->samples);
+		fprintf(f, "        \"interval\": %ld\n", r->delay.tv_nsec/1000);
+		fprintf(f, "      },\n");
+		fprintf(f, "      \"receiver\": {\n");
+		fprintf(f, "        \"cpu\": %d,\n", r->cpu);
+		fprintf(f, "        \"priority\": %d,\n", r->priority);
+		fprintf(f, "        \"min\": %d,\n", r->mindiff);
+		fprintf(f, "        \"avg\": %.2f,\n", r->sumdiff/r->samples);
+		fprintf(f, "        \"max\": %d\n", r->maxdiff);
+		fprintf(f, "      }\n");
+		fprintf(f, "    }%s\n", i == num_threads - 1 ? "" : ",");
+	}
+	fprintf(f, "  }\n");
 }
 
 int main(int argc, char *argv[])
@@ -625,6 +698,14 @@ int main(int argc, char *argv[])
 			else
 				pthread_kill(sender[i].threadid, SIGTERM);
 		}
+	}
+
+	if (strlen(outfile) != 0) {
+		struct params_stats ps = {
+			.receiver = receiver,
+			.sender = sender,
+		};
+		rt_write_json(outfile, argc, argv, write_stats, &ps);
 	}
 
 nomem:
