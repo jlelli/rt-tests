@@ -65,7 +65,7 @@ struct State {
 struct State *statep;
 
 const int policy = SCHED_FIFO;
-const int prio_min;	/* Initialized for the minimum priority of policy */
+static int prio_min;	/* Initialized for the minimum priority of policy */
 
 static void usage(int error)
 {
