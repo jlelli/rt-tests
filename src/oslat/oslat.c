@@ -29,7 +29,7 @@
 #include <numa.h>
 #include <math.h>
 #include <limits.h>
-#include <linux/unistd.h>
+#include <inttypes.h>
 
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -40,6 +40,8 @@
 #include <sys/utsname.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
+
+#include <linux/unistd.h>
 
 #include "rt-utils.h"
 #include "rt-numa.h"
@@ -171,6 +173,7 @@ struct global {
 	uint64_t              bias;
 	int                   single_preheat_thread;
 	int                   output_omit_zero_buckets;
+	char                  outfile[MAX_PATH];
 
 	/* Mutable state. */
 	volatile enum command cmd;
@@ -479,6 +482,39 @@ static void write_summary(struct thread *t)
 	printf("\n");
 }
 
+static void write_summary_json(FILE *f, void *data)
+{
+	struct thread *t = data;
+	int i, j, comma;
+
+	fprintf(f, "  \"num_threads\": %d,\n", g.n_threads);
+	fprintf(f, "  \"thread\": {\n");
+	for (i = 0; i < g.n_threads; ++i) {
+		fprintf(f, "    \"%u\": {\n", i);
+		fprintf(f, "      \"cpu\": %d,\n", t[i].core_i);
+		fprintf(f, "      \"freq\": %d,\n", t[i].cpu_mhz);
+		fprintf(f, "      \"min\": %" PRIu64 ",\n", t[i].minlat);
+		fprintf(f, "      \"avg\": %3lf,\n", t[i].average);
+		fprintf(f, "      \"max\": %" PRIu64 ",\n", t[i].maxlat);
+		fprintf(f, "      \"duration\": %.3f,\n",
+			cycles_to_sec(&(t[i]), t[i].runtime));
+		fprintf(f, "      \"histogram\": {");
+		for (j = 0, comma = 0; j < g.bucket_size; j++) {
+			if (t[i].buckets[j] == 0)
+				continue;
+			fprintf(f, "%s", comma ? ",\n" : "\n");
+			fprintf(f, "        \"%" PRIu64 "\": %" PRIu64,
+				g.bias+j+1, t[i].buckets[j]);
+			comma = 1;
+		}
+		if (comma)
+			fprintf(f, "\n");
+		fprintf(f, "      }\n");
+		fprintf(f, "    }%s\n", i == g.n_threads - 1 ? "" : ",");
+	}
+	fprintf(f, "  }\n");
+}
+
 static void run_expt(struct thread *threads, int runtime_secs)
 {
 	int i;
@@ -532,6 +568,7 @@ static void usage(int error)
 	       "                       NOTE: please make sure the CPU frequency on all testing cores\n"
 	       "                       are locked before using this parmater.  If you don't know how\n"
 	       "                       to lock the freq then please don't use this parameter.\n"
+	       "    --output=FILENAME  write final results into FILENAME, JSON formatted\n"
 	       "-T, --trace-threshold  Stop the test when threshold triggered (in us),\n"
 	       "                       print a marker in ftrace and stop ftrace too.\n"
 	       "-v, --version          Display the version of the software.\n"
@@ -556,34 +593,45 @@ static int workload_select(char *name)
 	return -1;
 }
 
+enum option_value {
+	OPT_BUCKETSIZE=1, OPT_CPU_LIST, OPT_CPU_MAIN_THREAD,
+	OPT_DURATION, OPT_RT_PRIO, OPT_HELP, OPT_TRACE_TH,
+	OPT_WORKLOAD, OPT_WORKLOAD_MEM, OPT_BIAS, OPT_OUTPUT,
+	OPT_SINGLE_PREHEAT, OPT_ZERO_OMIT, OPT_VERSION
+
+};
+
 /* Process commandline options */
 static void parse_options(int argc, char *argv[])
 {
 	while (1) {
+		int option_index = 0;
 		static struct option options[] = {
-			{ "bucket-size", required_argument, NULL, 'b' },
-			{ "cpu-list", required_argument, NULL, 'c' },
-			{ "cpu-main-thread", required_argument, NULL, 'C'},
-			{ "duration", required_argument, NULL, 'D' },
-			{ "rtprio", required_argument, NULL, 'f' },
-			{ "help", no_argument, NULL, 'h' },
-			{ "trace-threshold", required_argument, NULL, 'T' },
-			{ "workload", required_argument, NULL, 'w'},
-			{ "workload-mem", required_argument, NULL, 'm'},
-			{ "bias", no_argument, NULL, 'B'},
-			{ "single-preheat", no_argument, NULL, 's'},
-			{ "zero-omit", no_argument, NULL, 'u'},
-			{ "version", no_argument, NULL, 'v'},
+			{ "bucket-size", required_argument,	NULL, OPT_BUCKETSIZE },
+			{ "cpu-list",	required_argument,	NULL, OPT_CPU_LIST },
+			{ "cpu-main-thread", required_argument, NULL, OPT_CPU_MAIN_THREAD},
+			{ "duration",	required_argument,	NULL, OPT_DURATION },
+			{ "rtprio",	required_argument,	NULL, OPT_RT_PRIO },
+			{ "help",	no_argument,		NULL, OPT_HELP },
+			{ "trace-threshold", required_argument,	NULL, OPT_TRACE_TH },
+			{ "workload",	required_argument,	NULL, OPT_WORKLOAD },
+			{ "workload-mem", required_argument,	NULL, OPT_WORKLOAD_MEM },
+			{ "bias",	no_argument,		NULL, OPT_BIAS },
+			{ "single-preheat", no_argument,	NULL, OPT_SINGLE_PREHEAT },
+			{ "output",	required_argument,      NULL, OPT_OUTPUT },
+			{ "zero-omit",	no_argument,		NULL, OPT_ZERO_OMIT },
+			{ "version",	no_argument,		NULL, OPT_VERSION },
 			{ NULL, 0, NULL, 0 },
 		};
 		int i, c = getopt_long(argc, argv, "b:Bc:C:D:f:hm:sw:T:vz",
-				       options, NULL);
+				       options, &option_index);
 		long ncores;
 
 		if (c == -1)
 			break;
 
 		switch (c) {
+		case OPT_BUCKETSIZE:
 		case 'b':
 			g.bucket_size = strtol(optarg, NULL, 10);
 			if (g.bucket_size > 1024 || g.bucket_size <= 4) {
@@ -592,12 +640,15 @@ static void parse_options(int argc, char *argv[])
 				exit(1);
 			}
 			break;
+		case OPT_BIAS:
 		case 'B':
 			g.enable_bias = 1;
 			break;
+		case OPT_CPU_LIST:
 		case 'c':
 			g.cpu_list = strdup(optarg);
 			break;
+		case OPT_CPU_MAIN_THREAD:
 		case 'C':
 			ncores = sysconf(_SC_NPROCESSORS_CONF);
 			g.cpu_main_thread = strtol(optarg, NULL, 10);
@@ -607,6 +658,7 @@ static void parse_options(int argc, char *argv[])
 				exit(1);
 			}
 			break;
+		case OPT_DURATION:
 		case 'D':
 			g.runtime = parse_time_string(optarg);
 			if (!g.runtime) {
@@ -614,6 +666,7 @@ static void parse_options(int argc, char *argv[])
 				exit(1);
 			}
 			break;
+		case OPT_RT_PRIO:
 		case 'f':
 			g.rtprio = strtol(optarg, NULL, 10);
 			if (g.rtprio < 1 || g.rtprio > 99) {
@@ -621,6 +674,10 @@ static void parse_options(int argc, char *argv[])
 				exit(1);
 			}
 			break;
+		case OPT_OUTPUT:
+			strncpy(g.outfile, optarg, strnlen(optarg, MAX_PATH-1));
+			break;
+		case OPT_TRACE_TH:
 		case 'T':
 			g.trace_threshold = strtol(optarg, NULL, 10);
 			if (g.trace_threshold <= 0) {
@@ -629,6 +686,7 @@ static void parse_options(int argc, char *argv[])
 			}
 			enable_trace_mark();
 			break;
+		case OPT_WORKLOAD:
 		case 'w':
 			if (workload_select(optarg)) {
 				printf("Unknown workload '%s'.  Please choose from: ", optarg);
@@ -641,12 +699,14 @@ static void parse_options(int argc, char *argv[])
 				exit(1);
 			}
 			break;
+		case OPT_WORKLOAD_MEM:
 		case 'm':
 			if (parse_mem_string(optarg, &g.workload_mem_size)) {
 				printf("Unknown workload memory size '%s'.\n\n", optarg);
 				exit(1);
 			}
 			break;
+		case OPT_SINGLE_PREHEAT:
 		case 's':
 			/*
 			 * Only use one core for pre-heat.  Then if --bias is used, the
@@ -654,6 +714,7 @@ static void parse_options(int argc, char *argv[])
 			 */
 			g.single_preheat_thread = true;
 			break;
+		case OPT_VERSION:
 		case 'v':
 			/*
 			 * We always print the version before parsing options
@@ -661,9 +722,11 @@ static void parse_options(int argc, char *argv[])
 			 */
 			exit(0);
 			break;
+		case OPT_ZERO_OMIT:
 		case 'z':
 			g.output_omit_zero_buckets = 1;
 			break;
+		case OPT_HELP:
 		case 'h':
 			usage(0);
 			break;
@@ -788,6 +851,10 @@ int main(int argc, char *argv[])
 	printf("Test completed.\n\n");
 
 	write_summary(threads);
+
+	if (strlen(g.outfile) != 0)
+		rt_write_json(g.outfile, argc, argv,
+			write_summary_json, threads);
 
 	if (g.cpu_list) {
 		free(g.cpu_list);
