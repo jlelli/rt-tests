@@ -19,11 +19,14 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/time.h>
-#include <linux/unistd.h>
 #include <sys/syscall.h>
 #include <errno.h>
 #include <sched.h>
 #include <pthread.h>
+#include <inttypes.h>
+
+#include <linux/unistd.h>
+
 #include "rt-utils.h"
 
 int nr_tasks;
@@ -99,6 +102,7 @@ static int done;
 static int loop;
 static int duration;
 static int quiet;
+static char outfile[MAX_PATH];
 
 static pthread_barrier_t start_barrier;
 static pthread_barrier_t end_barrier;
@@ -160,6 +164,7 @@ static void usage(int error)
 	       "-h       --help            Print this help message\n"
 	       "-l LOOPS --loops=LOOPS     Number of iterations to run (50)\n"
 	       "-m TIME  --maxerr=TIME     Max allowed error (microsecs)\n"
+	       "         --output=FILENAME write final results into FILENAME, JSON formatted\n"
 	       "-p PRIO  --prio=PRIO       base priority to start RT tasks with (2)\n"
 	       "-q       --quiet           print a summary only on exit\n"
 	       "-r TIME  --run-time=TIME   Run time (ms) to busy loop the threads (20)\n"
@@ -169,22 +174,29 @@ static void usage(int error)
 	exit(error);
 }
 
+enum option_value {
+	OPT_CHECK=1, OPT_DURATION, OPT_EQUAL, OPT_HELP, OPT_LOOPS,
+	OPT_MAXERR, OPT_OUTPUT, OPT_PRIO, OPT_QUIET, OPT_RUN_TIME,
+	OPT_SLEEP_TIME
+};
+
 static void parse_options(int argc, char *argv[])
 {
 	for (;;) {
 		int option_index = 0;
 		/** Options for getopt */
 		static struct option long_options[] = {
-			{"check",	no_argument,		NULL, 'c'},
-			{"duration",	required_argument,	NULL, 'D'},
-			{"equal",	no_argument,		NULL, 'e'},
-			{"help",	no_argument,		NULL, 'h'},
-			{"loops",	required_argument,	NULL, 'l'},
-			{"maxerr",	required_argument,	NULL, 'm'},
-			{"prio",	required_argument,	NULL, 'p'},
-			{"quiet",	no_argument,		NULL, 'q'},
-			{"run-time",	required_argument,	NULL, 'r'},
-			{"sleep-time",	required_argument,	NULL, 's'},
+			{"check",	no_argument,		NULL, OPT_CHECK},
+			{"duration",	required_argument,	NULL, OPT_DURATION},
+			{"equal",	no_argument,		NULL, OPT_EQUAL},
+			{"help",	no_argument,		NULL, OPT_HELP},
+			{"loops",	required_argument,	NULL, OPT_LOOPS},
+			{"maxerr",	required_argument,	NULL, OPT_MAXERR},
+			{"output",	required_argument,      NULL, OPT_OUTPUT },
+			{"prio",	required_argument,	NULL, OPT_PRIO},
+			{"quiet",	no_argument,		NULL, OPT_QUIET},
+			{"run-time",	required_argument,	NULL, OPT_RUN_TIME},
+			{"sleep-time",	required_argument,	NULL, OPT_SLEEP_TIME},
 			{NULL, 0, NULL, 0}
 		};
 		int c = getopt_long(argc, argv, "cD:ehl:m:p:qr:s:",
@@ -192,21 +204,50 @@ static void parse_options(int argc, char *argv[])
 		if (c == -1)
 			break;
 		switch (c) {
-		case 'c': check = 1; break;
-		case 'D': duration = parse_time_string(optarg); break;
-		case 'e': equal = 1; break;
+		case OPT_CHECK:
+		case 'c':
+			check = 1;
+			break;
+		case OPT_DURATION:
+		case 'D':
+			duration = parse_time_string(optarg);
+			break;
+		case OPT_EQUAL:
+		case 'e':
+			equal = 1;
+			break;
+		case OPT_HELP:
 		case '?':
 		case 'h':
 			usage(0);
 			break;
-		case 'l': nr_runs = atoi(optarg); break;
-		case 'm': max_err = usec2nano(atoi(optarg)); break;
-		case 'p': prio_start = atoi(optarg); break;
-		case 'q': quiet = 1; break;
+		case OPT_LOOPS:
+		case 'l':
+			nr_runs = atoi(optarg);
+			break;
+		case OPT_MAXERR:
+		case 'm':
+			max_err = usec2nano(atoi(optarg));
+			break;
+		case OPT_OUTPUT:
+			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
+			break;
+		case OPT_PRIO:
+		case 'p':
+			prio_start = atoi(optarg);
+			break;
+		case OPT_QUIET:
+		case 'q':
+			quiet = 1;
+			break;
+		case OPT_RUN_TIME:
 		case 'r':
 			run_interval = atoi(optarg);
 			break;
-		case 's': interval = atoi(optarg); break;
+		case OPT_SLEEP_TIME:
+		case 's':
+			interval = atoi(optarg);
+			break;
 		default:
 			usage(1);
 		}
@@ -311,6 +352,44 @@ static void print_results(void)
 		else
 			printf(" Passed!\n");
 	}
+}
+
+static void write_stats(FILE *f, void *data)
+{
+	int i;
+	int t;
+	unsigned long long tasks_max[nr_tasks];
+	unsigned long long tasks_min[nr_tasks];
+	unsigned long long tasks_avg[nr_tasks];
+
+	memset(tasks_max, 0, sizeof(tasks_max[0])*nr_tasks);
+	memset(tasks_min, 0xff, sizeof(tasks_min[0])*nr_tasks);
+	memset(tasks_avg, 0, sizeof(tasks_avg[0])*nr_tasks);
+
+	for (i=0; i < nr_runs; i++) {
+		for (t=0; t < nr_tasks; t++) {
+			unsigned long long itv = intervals[i][t];
+
+			if (tasks_max[t] < itv)
+				tasks_max[t] = itv;
+			if (tasks_min[t] > itv)
+				tasks_min[t] = itv;
+			tasks_avg[t] += itv;
+		}
+	}
+
+	fprintf(f, "  \"num_threads\": %d,\n", nr_tasks);
+	fprintf(f, "  \"thread\": {\n");
+	for (i = 0; i < nr_tasks; i++) {
+		fprintf(f, "    \"%u\": {\n", i);
+		fprintf(f, "      \"prio\": %d,\n", calc_prio(i));
+		fprintf(f, "      \"min\": %lld,\n", nano2usec(tasks_min[i]));
+		fprintf(f, "      \"avg\": %lld,\n", nano2usec(tasks_avg[i]) / nr_runs);
+		fprintf(f, "      \"max\": %lld,\n", nano2usec(tasks_max[i]));
+		fprintf(f, "      \"total\": %lld\n", nano2usec(tasks_avg[i]));
+		fprintf(f, "    }%s\n", i == nr_tasks - 1 ? "" : ",");
+	}
+	fprintf(f, "  }\n");
 }
 
 static unsigned long busy_loop(unsigned long long start_time)
@@ -581,6 +660,9 @@ int main (int argc, char **argv)
 		pthread_join(threads[i], (void*)&thread_pids[i]);
 
 	print_results();
+
+	if (strlen(outfile) != 0)
+		rt_write_json(outfile, argc, argv, write_stats, NULL);
 
 	if (stop) {
 		/*
