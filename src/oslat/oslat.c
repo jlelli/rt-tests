@@ -171,6 +171,7 @@ struct global {
 	uint64_t              workload_mem_size;
 	int                   enable_bias;
 	uint64_t              bias;
+	int                   quiet;
 	int                   single_preheat_thread;
 	int                   output_omit_zero_buckets;
 	char                  outfile[MAX_PATH];
@@ -564,6 +565,7 @@ static void usage(int error)
 	       "                       Total memory usage will be this value multiplies 2*N,\n"
 	       "                       because there will be src/dst buffers for each thread, and\n"
 	       "                       N is the number of processors for testing.\n"
+	       "-q  --quiet            print a summary only on exit\n"
 	       "-s, --single-preheat   Use a single thread when measuring latency at preheat stage\n"
 	       "                       NOTE: please make sure the CPU frequency on all testing cores\n"
 	       "                       are locked before using this parmater.  If you don't know how\n"
@@ -597,8 +599,8 @@ enum option_value {
 	OPT_BUCKETSIZE=1, OPT_CPU_LIST, OPT_CPU_MAIN_THREAD,
 	OPT_DURATION, OPT_RT_PRIO, OPT_HELP, OPT_TRACE_TH,
 	OPT_WORKLOAD, OPT_WORKLOAD_MEM, OPT_BIAS, OPT_OUTPUT,
-	OPT_SINGLE_PREHEAT, OPT_ZERO_OMIT, OPT_VERSION
-
+	OPT_QUIET, OPT_SINGLE_PREHEAT, OPT_ZERO_OMIT,
+	OPT_VERSION
 };
 
 /* Process commandline options */
@@ -617,13 +619,14 @@ static void parse_options(int argc, char *argv[])
 			{ "workload",	required_argument,	NULL, OPT_WORKLOAD },
 			{ "workload-mem", required_argument,	NULL, OPT_WORKLOAD_MEM },
 			{ "bias",	no_argument,		NULL, OPT_BIAS },
+			{ "quiet",	no_argument,		NULL, OPT_QUIET },
 			{ "single-preheat", no_argument,	NULL, OPT_SINGLE_PREHEAT },
 			{ "output",	required_argument,      NULL, OPT_OUTPUT },
 			{ "zero-omit",	no_argument,		NULL, OPT_ZERO_OMIT },
 			{ "version",	no_argument,		NULL, OPT_VERSION },
 			{ NULL, 0, NULL, 0 },
 		};
-		int i, c = getopt_long(argc, argv, "b:Bc:C:D:f:hm:sw:T:vz",
+		int i, c = getopt_long(argc, argv, "b:Bc:C:D:f:hm:qsw:T:vz",
 				       options, &option_index);
 		long ncores;
 
@@ -705,6 +708,10 @@ static void parse_options(int argc, char *argv[])
 				printf("Unknown workload memory size '%s'.\n\n", optarg);
 				exit(1);
 			}
+			break;
+		case OPT_QUIET:
+		case 'q':
+			g.quiet = 1;
 			break;
 		case OPT_SINGLE_PREHEAT:
 		case 's':
@@ -833,9 +840,11 @@ int main(int argc, char *argv[])
 	signal(SIGINT, handle_alarm);
 	signal(SIGTERM, handle_alarm);
 
-	dump_globals();
+	if (!g.quiet)
+		dump_globals();
 
-	printf("Pre-heat for 1 seconds...\n");
+	if (!g.quiet)
+		printf("Pre-heat for 1 seconds...\n");
 	if (g.single_preheat_thread)
 		g.n_threads = 1;
 	else
@@ -843,12 +852,14 @@ int main(int argc, char *argv[])
 	run_expt(threads, 1);
 	record_bias(threads);
 
-	printf("Test starts...\n");
+	if (!g.quiet)
+		printf("Test starts...\n");
 	/* Reset n_threads to always run on all the cores */
 	g.n_threads = g.n_threads_total;
 	run_expt(threads, g.runtime);
 
-	printf("Test completed.\n\n");
+	if (!g.quiet)
+		printf("Test completed.\n\n");
 
 	write_summary(threads);
 
