@@ -747,9 +747,12 @@ int main(int argc, char *argv[])
 	n_cores = numa_bitmask_weight(cpu_set);
 
 	TEST(threads = calloc(1, n_cores * sizeof(threads[0])));
-	for (i = 0; i < n_cores; ++i)
-		if (numa_bitmask_isbitset(cpu_set, i) && move_to_core(i) == 0)
+	for (i = 0; n_cores && i < cpu_set->size; i++) {
+		if (numa_bitmask_isbitset(cpu_set, i) && move_to_core(i) == 0) {
 			threads[g.n_threads_total++].core_i = i;
+			n_cores--;
+		}
+	}
 
 	if (numa_bitmask_isbitset(cpu_set, 0) && g.rtprio)
 		printf("WARNING: Running SCHED_FIFO workload on CPU 0 may hang the thread\n");
