@@ -512,7 +512,6 @@ static void handle_alarm(int code)
 
 static void usage(int error)
 {
-	printf("oslat V %1.2f\n", VERSION);
 	printf("Usage:\n"
 	       "oslat <options>\n\n"
 	       "This is an OS latency detector by running busy loops on specified cores.\n"
@@ -657,8 +656,8 @@ static void parse_options(int argc, char *argv[])
 			break;
 		case 'v':
 			/*
-			 * Because we always dump the version even before parsing options,
-			 * what we need to do is to quit..
+			 * We always print the version before parsing options
+			 * so just exit
 			 */
 			exit(0);
 			break;
@@ -736,7 +735,7 @@ int main(int argc, char *argv[])
 	g.workload_mem_size = WORKLOAD_MEM_SIZE;
 	/* Run the main thread on cpu0 by default */
 	g.cpu_main_thread = 0;
-
+	printf("oslat V %1.2f\n", VERSION);
 	parse_options(argc, argv);
 
 	TEST(mlockall(MCL_CURRENT | MCL_FUTURE) == 0);
