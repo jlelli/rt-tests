@@ -785,7 +785,6 @@ int main(int argc, char *argv[])
 	struct thread *threads;
 	int i, n_cores;
 	struct bitmask *cpu_set = NULL;
-	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
 #ifdef FRC_MISSING
 	printf("This architecture is not yet supported. "
@@ -796,10 +795,6 @@ int main(int argc, char *argv[])
 		printf("ERROR: Could not initialize libnuma\n");
 		exit(1);
 	}
-
-	cpu_set = numa_allocate_cpumask();
-	if (!cpu_set)
-		fatal("oslat: Could not allocate cpumask\n");
 
 	g.app_name = argv[0];
 	g.rtprio = 0;
@@ -817,7 +812,8 @@ int main(int argc, char *argv[])
 	if (!g.cpu_list)
 		g.cpu_list = strdup("all");
 
-	if (parse_cpumask(g.cpu_list, max_cpus, &cpu_set) != 0)
+	cpu_set = numa_parse_cpustring_all(g.cpu_list);
+	if (!cpu_set)
 		fatal("oslat: parse_cpumask failed.\n");
 	n_cores = numa_bitmask_weight(cpu_set);
 
