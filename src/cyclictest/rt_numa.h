@@ -13,6 +13,8 @@
 #include "rt-utils.h"
 #include "rt-error.h"
 
+static int numa = 0;
+
 #include <numa.h>
 
 static void *
