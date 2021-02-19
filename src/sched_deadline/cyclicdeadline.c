@@ -18,7 +18,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <getopt.h>
-#include <inttypes.h>
 
 #include <sys/syscall.h>
 #include <sys/types.h>
