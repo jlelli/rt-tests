@@ -976,9 +976,9 @@ static void write_stats(FILE *f, void *data)
 	for (i = 0; i < nr_threads; i++) {
 		s = &sd[i].stat;
 		fprintf(f, "    \"%u\": {\n", i);
-		fprintf(f, "	 \"cycles\": %" PRIu64 ",\n", s->cycles);
-		fprintf(f, "	 \"min\": %" PRIu64 ",\n", s->min);
-		fprintf(f, "	 \"max\": %" PRIu64 ",\n", s->max);
+		fprintf(f, "	 \"cycles\": %ld,\n", s->cycles);
+		fprintf(f, "	 \"min\": %ld,\n", s->min);
+		fprintf(f, "	 \"max\": %ld\n", s->max);
 		fprintf(f, "	 \"avg\": %.2f\n", s->avg/s->cycles);
 		fprintf(f, "    }%s\n", i == nr_threads - 1 ? "" : ",");
 	}
