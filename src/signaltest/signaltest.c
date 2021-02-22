@@ -253,9 +253,7 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 			/* smp sets AFFINITY_USEALL in OPT_SMP */
 			if (smp)
 				break;
-			if (numa_initialize())
-				fatal("Couldn't initialize libnuma");
-			numa = 1;
+			numa = numa_initialize();
 			if (optarg) {
 				parse_cpumask(optarg, max_cpus, &affinity_mask);
 				setaffinity = AFFINITY_SPECIFIED;
@@ -339,9 +337,7 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 
 	/* if smp wasn't requested, test for numa automatically */
 	if (!smp) {
-		if (numa_initialize())
-			fatal("Couldn't initialize libnuma");
-		numa = 1;
+		numa = numa_initialize();
 		if (setaffinity == AFFINITY_UNSPECIFIED)
 			setaffinity = AFFINITY_USEALL;
 	}

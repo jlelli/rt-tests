@@ -13,19 +13,24 @@
 #include "rt-error.h"
 #include "rt-numa.h"
 
-/* numa_available() must be called before any other calls to the numa library */
+/*
+ * numa_available() must be called before any other calls to the numa library
+ * returns 0 if numa is available, or 1 if numa is not available
+ */
 int numa_initialize(void)
 {
-	static int is_initialized;
+	static int is_initialized;	// Only call numa_available once
+	static int numa;
 
 	if (is_initialized == 1)
-		return 0;
+		return numa;
 
-	if (numa_available() == -1)
-		return -1;
+	if (numa_available() != -1)
+		numa = 1;
 
 	is_initialized = 1;
-	return 0;
+
+	return numa;
 }
 
 int get_available_cpus(struct bitmask *cpumask)
