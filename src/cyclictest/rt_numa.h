@@ -83,16 +83,4 @@ static inline void rt_bitmask_free(struct bitmask *mask)
 	numa_bitmask_free(mask);
 }
 
-/** Returns number of bits set in mask. */
-static inline unsigned int rt_numa_bitmask_count(const struct bitmask *mask)
-{
-	unsigned int num_bits = 0, i;
-	for (i = 0; i < mask->size; i++) {
-		if (rt_numa_bitmask_isbitset(mask, i))
-			num_bits++;
-	}
-	/* Could stash this instead of recomputing every time. */
-	return num_bits;
-}
-
 #endif	/* _RT_NUMA_H */
