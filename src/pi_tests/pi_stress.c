@@ -1274,23 +1274,29 @@ int process_sched_line(const char *arg)
 	return retval;
 }
 
+enum option_values {
+	OPT_DEBUG=1, OPT_DURATION, OPT_GROUPS, OPT_HELP, OPT_INVERSIONS,
+	OPT_MLOCKALL, OPT_PROMPT, OPT_QUIET, OPT_RR, OPT_SCHED,
+	OPT_UNIPROCESSOR, OPT_VERBOSE, OPT_VERSION,
+};
+
 void process_command_line(int argc, char **argv)
 {
 	for (;;) {
 		struct option options[] = {
-			{"debug",		no_argument,		NULL, 'd'},
-			{"duration",		required_argument,	NULL, 'D'},
-			{"groups",		required_argument,	NULL, 'g'},
-			{"help",		no_argument,		NULL, 'h'},
-			{"inversions",		required_argument,	NULL, 'i'},
-			{"mlockall",		no_argument,		NULL, 'm'},
-			{"prompt",		no_argument,		NULL, 'p'},
-			{"quiet",		no_argument,		NULL, 'q'},
-			{"rr",			no_argument,		NULL, 'r'},
-			{"sched",		required_argument,	NULL, 's'},
-			{"uniprocessor",	no_argument,		NULL, 'u'},
-			{"verbose",		no_argument,		NULL, 'v'},
-			{"version",		no_argument,		NULL, 'V'},
+			{"debug",		no_argument,		NULL, OPT_DEBUG},
+			{"duration",		required_argument,	NULL, OPT_DURATION},
+			{"groups",		required_argument,	NULL, OPT_GROUPS},
+			{"help",		no_argument,		NULL, OPT_HELP},
+			{"inversions",		required_argument,	NULL, OPT_INVERSIONS},
+			{"mlockall",		no_argument,		NULL, OPT_MLOCKALL},
+			{"prompt",		no_argument,		NULL, OPT_PROMPT},
+			{"quiet",		no_argument,		NULL, OPT_QUIET},
+			{"rr",			no_argument,		NULL, OPT_RR},
+			{"sched",		required_argument,	NULL, OPT_SCHED},
+			{"uniprocessor",	no_argument,		NULL, OPT_UNIPROCESSOR},
+			{"verbose",		no_argument,		NULL, OPT_VERBOSE},
+			{"version",		no_argument,		NULL, OPT_VERSION},
 			{NULL, 0, NULL, 0},
 		};
 
@@ -1298,12 +1304,15 @@ void process_command_line(int argc, char **argv)
 		if (c == -1)
 			break;
 		switch (c) {
+		case OPT_DEBUG:
 		case 'd':
 			debugging = 1;
 			break;
+		case OPT_DURATION:
 		case 'D':
 			duration = parse_time_string(optarg);
 			break;
+		case OPT_GROUPS:
 		case 'g':
 			ngroups = strtol(optarg, NULL, 10);
 			if (ngroups > num_processors) {
@@ -1314,37 +1323,47 @@ void process_command_line(int argc, char **argv)
 			}
 			pi_info("number of groups set to %d\n", ngroups);
 			break;
+		case OPT_HELP:
 		case 'h':
 			usage(0);
 			break;
+		case OPT_INVERSIONS:
 		case 'i':
 			inversions = strtol(optarg, NULL, 10);
 			pi_info("doing %d inversion per group\n", inversions);
 			break;
+		case OPT_MLOCKALL:
 		case 'm':
 			lockall = 1;
 			break;
+		case OPT_PROMPT:
 		case 'p':
 			prompt = 1;
 			break;
+		case OPT_QUIET:
 		case 'q':
 			verbose = 0;
 			quiet = 1;
 			break;
+		case OPT_RR:
 		case 'r':
 			policy = SCHED_RR;
 			break;
+		case OPT_SCHED:
 		case 's':
 			if (process_sched_line(optarg))
 				pi_error("ignoring invalid options '%s'\n", optarg);
 			break;
+		case OPT_UNIPROCESSOR:
 		case 'u':
 			uniprocessor = 1;
 			break;
+		case OPT_VERBOSE:
 		case 'v':
 			verbose = 1;
 			quiet = 0;
 			break;
+		case OPT_VERSION:
 		case 'V':
 			printf("pi_stress v%1.2f ", VERSION);
 			exit(0);
