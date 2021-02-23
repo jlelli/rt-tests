@@ -189,6 +189,7 @@ static void display_help(int error)
 		"-h       --help            display usage information\n"
 		"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 		"-m       --mlockall        lock current and future memory allocations\n"
+		"         --output=FILENAME write final results into FILENAME, JSON formatted\n"
 		"-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 		"-q       --quiet           print a summary only on exit\n"
 		"-t NUM   --threads=NUM     number of threads: default=2\n"
