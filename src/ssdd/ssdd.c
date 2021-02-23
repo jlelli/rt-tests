@@ -64,9 +64,11 @@ static const char *get_state_name(int state)
 
 #define unused __attribute__((unused))
 
+static int quiet;
+
 static int got_sigchld;
 
-enum option_value { OPT_NFORKS=1, OPT_NITERS, OPT_HELP };
+enum option_value { OPT_NFORKS=1, OPT_NITERS, OPT_HELP, OPT_QUIET };
 
 static void usage(int error)
 {
@@ -75,6 +77,7 @@ static void usage(int error)
 	       "ssdd <options>\n\n"
 	       "-f       --forks=NUM       number of forks\n"
 	       "-h       --help            print this message\n"
+	       "-q       --quiet           suppress running output\n"
 	       "-i       --iters=NUM       number of iterations\n"
 	       );
 	exit(error);
@@ -176,7 +179,8 @@ static int forktests(int testid)
 	if (!child)
 		child_process();
 
-	printf("forktest#%d/%d/%d: STARTING\n", testid, parent, child);
+	if (!quiet)
+		printf("forktest#%d/%d/%d: STARTING\n", testid, parent, child);
 
 	act.sa_sigaction = sigchld;
 	sigemptyset(&act.sa_mask);
@@ -278,8 +282,8 @@ static int forktests(int testid)
 	/* There is no need for the tracer to kill the tracee. It will
 	 * automatically exit when its owner, ie, us, exits.
 	 */
-
-	printf("forktest#%d/%d: EXITING, no error\n", testid, parent);
+	if (!quiet)
+		printf("forktest#%d/%d: EXITING, no error\n", testid, parent);
 	exit(0);
 }
 
@@ -297,10 +301,11 @@ int main(int argc, char **argv)
 		static struct option long_options[] = {
 			{"forks",		required_argument,	NULL, OPT_NFORKS},
 			{"help",		no_argument,		NULL, OPT_HELP},
+			{"quiet",		no_argument,		NULL, OPT_QUIET},
 			{"iters",		required_argument,	NULL, OPT_NITERS},
 			{NULL, 0, NULL, 0},
 		};
-		int c = getopt_long(argc, argv, "f:hi:", long_options, &option_index);
+		int c = getopt_long(argc, argv, "f:hqi:", long_options, &option_index);
 		if (c == -1)
 			break;
 		switch(c) {
@@ -312,6 +317,10 @@ int main(int argc, char **argv)
 		case OPT_HELP:
 			usage(0);
 			break;
+		case OPT_QUIET:
+		case 'q':
+			quiet = 1;
+			break;
 		case 'i':
 		case OPT_NITERS:
 			nsteps = atoi(optarg);
@@ -322,10 +331,12 @@ int main(int argc, char **argv)
 		}
 	}
 
-	printf("#main : %d\n", getpid());
-	printf("#forks: %d\n", nforks);
-	printf("#steps: %d\n", nsteps);
-	printf("\n");
+	if (!quiet) {
+		printf("#main : %d\n", getpid());
+		printf("#forks: %d\n", nforks);
+		printf("#steps: %d\n", nsteps);
+		printf("\n");
+	}
 
 	for (i = 0; i < nforks; i++) {
 		child = fork();
