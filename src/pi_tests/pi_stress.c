@@ -99,6 +99,9 @@ int debugging = 0;
 
 int quiet = 0;	/* turn off all prints, default = 0 (off) */
 
+/* filename for JSON output */
+char outfile[MAX_PATH];
+
 /* prompt to start test */
 int prompt = 0;
 
@@ -209,6 +212,7 @@ int create_group(struct group_parameters *group);
 unsigned long total_inversions(void);
 void banner(void);
 void summary(void);
+void write_stats(FILE *f, void *data);
 void wait_for_termination(void);
 int barrier_init(pthread_barrier_t *b, const pthread_barrierattr_t *attr,
 		 unsigned int count, const char *name);
@@ -235,6 +239,7 @@ int main(int argc, char **argv)
 
 
 	/* process command line arguments */
+	rt_init(argc, argv);
 	process_command_line(argc, argv);
 
 	/* set default sched attributes */
@@ -299,6 +304,7 @@ int main(int argc, char **argv)
 	}
 	/* report */
 	banner();
+	rt_test_start();
 	start = time(NULL);
 
 	/* turn loose the threads */
@@ -335,6 +341,10 @@ int main(int argc, char **argv)
 		kill(0, SIGTERM);
 	finish = time(NULL);
 	summary();
+
+	if (strlen(outfile) != 0)
+		rt_write_json(outfile, retval, write_stats, NULL);
+
 	if (lockall)
 		munlockall();
 	exit(retval);
@@ -983,6 +993,7 @@ void usage(int error)
 	       "-h       --help            print this message\n"
 	       "-i INV   --inversions=INV  number of inversions per group (default is infinite)\n"
 	       "-m       --mlockall        lock current and future memory\n"
+	       "         --output=FILENAME write final results into FILENAME, JSON formatted\n"
 	       "-p       --prompt          prompt before starting the test\n"
 	       "-q       --quiet           suppress running output\n"
 	       "-r       --rr              use SCHED_RR for test threads [SCHED_FIFO]\n"
@@ -1276,7 +1287,7 @@ int process_sched_line(const char *arg)
 
 enum option_values {
 	OPT_DEBUG=1, OPT_DURATION, OPT_GROUPS, OPT_HELP, OPT_INVERSIONS,
-	OPT_MLOCKALL, OPT_PROMPT, OPT_QUIET, OPT_RR, OPT_SCHED,
+	OPT_MLOCKALL, OPT_OUTPUT, OPT_PROMPT, OPT_QUIET, OPT_RR, OPT_SCHED,
 	OPT_UNIPROCESSOR, OPT_VERBOSE, OPT_VERSION,
 };
 
@@ -1290,6 +1301,7 @@ void process_command_line(int argc, char **argv)
 			{"help",		no_argument,		NULL, OPT_HELP},
 			{"inversions",		required_argument,	NULL, OPT_INVERSIONS},
 			{"mlockall",		no_argument,		NULL, OPT_MLOCKALL},
+			{"output",		required_argument,	NULL, OPT_OUTPUT},
 			{"prompt",		no_argument,		NULL, OPT_PROMPT},
 			{"quiet",		no_argument,		NULL, OPT_QUIET},
 			{"rr",			no_argument,		NULL, OPT_RR},
@@ -1335,6 +1347,9 @@ void process_command_line(int argc, char **argv)
 		case OPT_MLOCKALL:
 		case 'm':
 			lockall = 1;
+			break;
+		case OPT_OUTPUT:
+			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case OPT_PROMPT:
 		case 'p':
@@ -1437,6 +1452,11 @@ void summary(void)
 	printf("Total inversion performed: %lu\n", total_inversions());
 	printf("Test Duration: %d days, %d hours, %d minutes, %d seconds\n",
 	       t->tm_yday, t->tm_hour, t->tm_min, t->tm_sec);
+}
+
+void write_stats(FILE *f, void *data)
+{
+	fprintf(f, "  \"inversion\": %lu\n", total_inversions());
 }
 
 int
