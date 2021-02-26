@@ -560,13 +560,11 @@ static void destroy_cpuset(const char *name, int print)
 	sleep(1);
 	ret = rmdir(path);
 	if (ret < 0) {
-		if (retry++ < 5)
-			goto again;
-		err_msg_n(errno, "Failed to remove %s\n", path);
 		if (retry++ < 5) {
 			err_msg("Trying again\n");
 			goto again;
 		}
+		err_msg_n(errno, "Failed to remove %s\n", path);
 	}
 }
 
