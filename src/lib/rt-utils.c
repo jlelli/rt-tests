@@ -30,6 +30,7 @@
 
 #define  TRACEBUFSIZ  1024
 #define  MAX_COMMAND_LINE 4096
+#define  MAX_TS_SIZE 64
 
 static char debugfileprefix[MAX_PATH];
 static char *fileprefix;
@@ -37,6 +38,7 @@ static int trace_fd = -1;
 static int tracemark_fd = -1;
 static __thread char tracebuf[TRACEBUFSIZ];
 static char test_cmdline[MAX_COMMAND_LINE];
+static char ts_start[MAX_TS_SIZE];
 
 /*
  * Finds the tracing directory in a mounted debugfs
@@ -514,17 +516,32 @@ void rt_init(int argc, char *argv[])
 	}
 }
 
+static void get_timestamp(char *tsbuf)
+{
+	struct timeval tv;
+	struct tm *tm;
+	time_t t;
+
+	gettimeofday(&tv, NULL);
+	t = tv.tv_sec;
+	tm = localtime(&t);
+	/* RFC 2822-compliant date format */
+	strftime(tsbuf, MAX_TS_SIZE, "%a, %d %b %Y %T %z", tm);
+}
+
+void rt_test_start(void)
+{
+	get_timestamp(ts_start);
+}
+
 void rt_write_json(const char *filename,
 		  void (*cb)(FILE *, void *),
 		  void *data)
 {
 	unsigned char buf[1];
 	struct utsname uts;
-	struct timeval tv;
-	char tsbuf[64];
-	struct tm *tm;
+	char ts_end[MAX_TS_SIZE];
 	FILE *f, *s;
-	time_t t;
 	size_t n;
 	int rt = 0;
 
@@ -536,11 +553,7 @@ void rt_write_json(const char *filename,
 			err_exit(errno, "Failed to open '%s'\n", filename);
 	}
 
-	gettimeofday(&tv, NULL);
-	t = tv.tv_sec;
-	tm = localtime(&t);
-	/* RFC 2822-compliant date format */
-	strftime(tsbuf, sizeof(tsbuf), "%a, %d %b %Y %T %z", tm);
+	get_timestamp(ts_end);
 
 	s = fopen("/sys/kernel/realtime", "r");
 	if (s) {
@@ -557,7 +570,8 @@ void rt_write_json(const char *filename,
 	fprintf(f, "  \"file_version\": 1,\n");
 	fprintf(f, "  \"cmdline:\": \"%s\",\n", test_cmdline);
 	fprintf(f, "  \"rt_test_version:\": \"%1.2f\",\n", VERSION);
-	fprintf(f, "  \"finished\": \"%s\",\n", tsbuf);
+	fprintf(f, "  \"start_time\": \"%s\",\n", ts_start);
+	fprintf(f, "  \"end_time\": \"%s\",\n", ts_end);
 	fprintf(f, "  \"sysinfo\": {\n");
 	fprintf(f, "    \"sysname\": \"%s\",\n", uts.sysname);
 	fprintf(f, "    \"nodename\": \"%s\",\n", uts.nodename);
