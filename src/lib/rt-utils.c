@@ -29,12 +29,15 @@
 #include "rt-error.h"
 
 #define  TRACEBUFSIZ  1024
+#define  MAX_COMMAND_LINE 4096
 
 static char debugfileprefix[MAX_PATH];
 static char *fileprefix;
 static int trace_fd = -1;
 static int tracemark_fd = -1;
 static __thread char tracebuf[TRACEBUFSIZ];
+static char test_cmdline[MAX_COMMAND_LINE];
+static int rt_init_run;
 
 /*
  * Finds the tracing directory in a mounted debugfs
@@ -486,6 +489,34 @@ void disable_trace_mark(void)
 	close_tracemark_fd();
 }
 
+void rt_init(int argc, char *argv[])
+{
+	int offset = 0;
+	int len, i;
+
+	test_cmdline[0] = '\0';
+
+	/*
+	 * getopt_long() permutes the contents of argv as it scans, so
+	 * that eventually all the nonoptions are at the end. Make a
+	 * copy before calling getopt_long().
+	 */
+	for (i = 0; i < argc;) {
+		len = strlen(argv[i]);
+		if (offset + len + 1 >= MAX_COMMAND_LINE)
+			break;
+
+		strcat(test_cmdline, argv[i]);
+		i++;
+		if (i < argc)
+			strcat(test_cmdline, " ");
+
+		offset += len + 1;
+	}
+
+	rt_init_run = 1;
+}
+
 static char *get_cmdline(int argc, char *argv[])
 {
 	char *cmdline;
@@ -519,7 +550,7 @@ void rt_write_json(const char *filename, int argc, char *argv[],
 	struct timeval tv;
 	char tsbuf[64];
 	struct tm *tm;
-	char *cmdline;
+	char *cmdline = NULL;
 	FILE *f, *s;
 	time_t t;
 	size_t n;
@@ -533,10 +564,11 @@ void rt_write_json(const char *filename, int argc, char *argv[],
 			err_exit(errno, "Failed to open '%s'\n", filename);
 	}
 
-	cmdline = get_cmdline(argc, argv);
-	if (!cmdline)
-		err_exit(ENOMEM, "get_cmdline()");
-
+	if (!rt_init_run) {
+		cmdline = get_cmdline(argc, argv);
+		if (!cmdline)
+			err_exit(ENOMEM, "get_cmdline()");
+	}
 
 	gettimeofday(&tv, NULL);
 	t = tv.tv_sec;
@@ -557,7 +589,7 @@ void rt_write_json(const char *filename, int argc, char *argv[],
 
 	fprintf(f, "{\n");
 	fprintf(f, "  \"file_version\": 1,\n");
-	fprintf(f, "  \"cmdline:\": \"%s\",\n", cmdline);
+	fprintf(f, "  \"cmdline:\": \"%s\",\n", rt_init_run? test_cmdline : cmdline);
 	fprintf(f, "  \"rt_test_version:\": \"%1.2f\",\n", VERSION);
 	fprintf(f, "  \"finished\": \"%s\",\n", tsbuf);
 	fprintf(f, "  \"sysinfo\": {\n");
@@ -573,7 +605,8 @@ void rt_write_json(const char *filename, int argc, char *argv[],
 
 	fprintf(f, "}\n");
 
-	free(cmdline);
+	if (!rt_init_run)
+		free(cmdline);
 
 	if (!filename || strcmp("-", filename))
 		fclose(f);
