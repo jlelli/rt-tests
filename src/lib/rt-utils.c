@@ -534,7 +534,7 @@ void rt_test_start(void)
 	get_timestamp(ts_start);
 }
 
-void rt_write_json(const char *filename,
+void rt_write_json(const char *filename, int return_code,
 		  void (*cb)(FILE *, void *),
 		  void *data)
 {
@@ -572,6 +572,7 @@ void rt_write_json(const char *filename,
 	fprintf(f, "  \"rt_test_version:\": \"%1.2f\",\n", VERSION);
 	fprintf(f, "  \"start_time\": \"%s\",\n", ts_start);
 	fprintf(f, "  \"end_time\": \"%s\",\n", ts_end);
+	fprintf(f, "  \"return_code\": %d,\n", return_code);
 	fprintf(f, "  \"sysinfo\": {\n");
 	fprintf(f, "    \"sysname\": \"%s\",\n", uts.sysname);
 	fprintf(f, "    \"nodename\": \"%s\",\n", uts.nodename);
@@ -579,9 +580,13 @@ void rt_write_json(const char *filename,
 	fprintf(f, "    \"version\": \"%s\",\n", uts.version);
 	fprintf(f, "    \"machine\": \"%s\",\n", uts.machine);
 	fprintf(f, "    \"realtime\": %d\n", rt);
-	fprintf(f, "  },\n");
 
-	(cb)(f, data);
+	if (cb) {
+		fprintf(f, "  },\n");
+		(cb)(f, data);
+	} else {
+		fprintf(f, "  }\n");
+	}
 
 	fprintf(f, "}\n");
 

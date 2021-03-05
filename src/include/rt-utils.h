@@ -84,7 +84,7 @@ void rt_init(int argc, char *argv[]);
 
 void rt_test_start(void);
 
-void rt_write_json(const char *filename,
+void rt_write_json(const char *filename, int return_code,
 		   void (*cb)(FILE *, void *),
 		   void *data);
 

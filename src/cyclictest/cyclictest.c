@@ -2135,7 +2135,7 @@ int main(int argc, char **argv)
 		printf("\033[%dB", num_threads + 2);
 
 	if (strlen(outfile) != 0)
-		rt_write_json(outfile, write_stats, NULL);
+		rt_write_json(outfile, ret, write_stats, NULL);
 
 	if (quiet)
 		quiet = 2;

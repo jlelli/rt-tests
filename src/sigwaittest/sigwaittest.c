@@ -707,7 +707,7 @@ int main(int argc, char *argv[])
 			.receiver = receiver,
 			.sender = sender,
 		};
-		rt_write_json(outfile, write_stats, &ps);
+		rt_write_json(outfile, 0, write_stats, &ps);
 	}
 
 nomem:
