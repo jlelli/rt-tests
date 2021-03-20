@@ -1213,6 +1213,7 @@ int main(int argc, char **argv)
 	if (duration)
 		alarm(duration);
 
+	rt_test_start();
 	loop(sched_data, nr_threads);
 
 	for (i = 0; i < nr_threads; i++) {
