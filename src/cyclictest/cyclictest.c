@@ -615,6 +615,7 @@ static void *timerthread(void *param)
 		setitimer(ITIMER_REAL, &itimer, NULL);
 	}
 
+	rt_test_start();
 	stat->threadstarted++;
 
 	while (!shutdown) {
