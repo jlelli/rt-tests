@@ -468,6 +468,7 @@ int main(int argc, char *argv[])
 	maindelay.tv_sec = 0;
 	maindelay.tv_nsec = 50000000; /* 50 ms */
 
+	rt_test_start();
 	while (!shutdown) {
 		for (i = 0; i < num_threads; i++)
 			shutdown |= receiver[i].shutdown | sender[i].shutdown;
