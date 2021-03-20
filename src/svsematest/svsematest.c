@@ -514,6 +514,7 @@ int main(int argc, char *argv[])
 	if (myfile == NULL)
 		myfile = argv[0];
 
+	rt_init(argc, argv);
 	process_options(argc, argv);
 
 	if (check_privs())
