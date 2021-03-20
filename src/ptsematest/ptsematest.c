@@ -401,6 +401,7 @@ int main(int argc, char *argv[])
 	sigset_t sigset;
 	struct timespec maindelay;
 
+	rt_init(argc, argv);
 	process_options(argc, argv);
 
 	if (check_privs())
