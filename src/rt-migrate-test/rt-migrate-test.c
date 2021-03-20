@@ -535,6 +535,7 @@ int main (int argc, char **argv)
 	struct timespec intv;
 	struct sched_param param;
 
+	rt_init(argc, argv);
 	parse_options(argc, argv);
 
 	signal(SIGINT, stop_log);
