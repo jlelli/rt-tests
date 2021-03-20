@@ -1778,6 +1778,7 @@ int main(int argc, char **argv)
 	int i, ret = -1;
 	int status;
 
+	rt_init(argc, argv);
 	process_options(argc, argv, max_cpus);
 
 	if (check_privs())
