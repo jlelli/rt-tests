@@ -652,6 +652,7 @@ int main(int argc, char *argv[])
 			    &sender[i]);
 	}
 
+	rt_test_start();
 	while (!mustshutdown) {
 		for (i = 0; i < num_threads; i++)
 			mustshutdown |= receiver[i].shutdown |
