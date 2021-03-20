@@ -558,7 +558,7 @@ int main(int argc, char **argv)
 			free(stat[i].values);
 	}
 	if (strlen(outfile) != 0)
-		rt_write_json(outfile, argc, argv, write_stats, par);
+		rt_write_json(outfile, write_stats, par);
 
 	free(stat);
  outpar:

@@ -519,7 +519,7 @@ int main(int argc, char *argv[])
 			.receiver = receiver,
 			.sender = sender,
 		};
-		rt_write_json(outfile, argc, argv, write_stats, &ps);
+		rt_write_json(outfile, write_stats, &ps);
 	}
 
 nomem:

@@ -37,7 +37,6 @@ static int trace_fd = -1;
 static int tracemark_fd = -1;
 static __thread char tracebuf[TRACEBUFSIZ];
 static char test_cmdline[MAX_COMMAND_LINE];
-static int rt_init_run;
 
 /*
  * Finds the tracing directory in a mounted debugfs
@@ -513,35 +512,9 @@ void rt_init(int argc, char *argv[])
 
 		offset += len + 1;
 	}
-
-	rt_init_run = 1;
 }
 
-static char *get_cmdline(int argc, char *argv[])
-{
-	char *cmdline;
-	int len, i;
-
-	len = 0;
-	for (i = 0; i < argc; i++)
-		len += strlen(argv[i]) + 1;
-
-	cmdline = malloc(len);
-	if (!cmdline)
-		err_exit(ENOMEM, "Could not copy cmdline");
-
-	memset(cmdline, 0, len);
-	for (i = 0; i < argc;) {
-		cmdline = strcat(cmdline, argv[i]);
-		i++;
-		if (i < argc)
-			cmdline = strcat(cmdline, " ");
-	}
-
-	return cmdline;
-}
-
-void rt_write_json(const char *filename, int argc, char *argv[],
+void rt_write_json(const char *filename,
 		  void (*cb)(FILE *, void *),
 		  void *data)
 {
@@ -550,7 +523,6 @@ void rt_write_json(const char *filename, int argc, char *argv[],
 	struct timeval tv;
 	char tsbuf[64];
 	struct tm *tm;
-	char *cmdline = NULL;
 	FILE *f, *s;
 	time_t t;
 	size_t n;
@@ -562,12 +534,6 @@ void rt_write_json(const char *filename, int argc, char *argv[],
 		f = fopen(filename, "w");
 		if (!f)
 			err_exit(errno, "Failed to open '%s'\n", filename);
-	}
-
-	if (!rt_init_run) {
-		cmdline = get_cmdline(argc, argv);
-		if (!cmdline)
-			err_exit(ENOMEM, "get_cmdline()");
 	}
 
 	gettimeofday(&tv, NULL);
@@ -589,7 +555,7 @@ void rt_write_json(const char *filename, int argc, char *argv[],
 
 	fprintf(f, "{\n");
 	fprintf(f, "  \"file_version\": 1,\n");
-	fprintf(f, "  \"cmdline:\": \"%s\",\n", rt_init_run? test_cmdline : cmdline);
+	fprintf(f, "  \"cmdline:\": \"%s\",\n", test_cmdline);
 	fprintf(f, "  \"rt_test_version:\": \"%1.2f\",\n", VERSION);
 	fprintf(f, "  \"finished\": \"%s\",\n", tsbuf);
 	fprintf(f, "  \"sysinfo\": {\n");
@@ -604,9 +570,6 @@ void rt_write_json(const char *filename, int argc, char *argv[],
 	(cb)(f, data);
 
 	fprintf(f, "}\n");
-
-	if (!rt_init_run)
-		free(cmdline);
 
 	if (!filename || strcmp("-", filename))
 		fclose(f);

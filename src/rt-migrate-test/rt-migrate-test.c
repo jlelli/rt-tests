@@ -663,7 +663,7 @@ int main (int argc, char **argv)
 	print_results();
 
 	if (strlen(outfile) != 0)
-		rt_write_json(outfile, argc, argv, write_stats, NULL);
+		rt_write_json(outfile, write_stats, NULL);
 
 	if (stop) {
 		/*

@@ -862,8 +862,7 @@ int main(int argc, char *argv[])
 	write_summary(threads);
 
 	if (strlen(g.outfile) != 0)
-		rt_write_json(g.outfile, argc, argv,
-			write_summary_json, threads);
+		rt_write_json(g.outfile, write_summary_json, threads);
 
 	if (g.cpu_list) {
 		free(g.cpu_list);

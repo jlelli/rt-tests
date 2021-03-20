@@ -1227,7 +1227,7 @@ int main(int argc, char **argv)
 	}
 
 	if (strlen(outfile) != 0)
-		rt_write_json(outfile, argc, argv, write_stats, sched_data);
+		rt_write_json(outfile, write_stats, sched_data);
 
 	if (setcpu_buf)
 		free(setcpu_buf);
