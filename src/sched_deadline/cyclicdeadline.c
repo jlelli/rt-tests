@@ -1009,6 +1009,8 @@ int main(int argc, char **argv)
 	int i;
 	int c;
 
+	rt_init(argc, argv);
+
 	cpu_count = sysconf(_SC_NPROCESSORS_CONF);
 	if (cpu_count < 1)
 		err_quit("Can not calculate number of CPUS\n");
