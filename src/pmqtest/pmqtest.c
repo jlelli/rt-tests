@@ -502,6 +502,7 @@ int main(int argc, char *argv[])
 	mqstat.mq_msgsize = 8;
 	mqstat.mq_flags = 0;
 
+	rt_init(argc, argv);
 	process_options(argc, argv);
 
 	if (check_privs())
