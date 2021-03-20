@@ -473,6 +473,7 @@ int main(int argc, char *argv[])
 	char f_opt[14];
 	struct timespec launchdelay, maindelay;
 
+	rt_init(argc, argv);
 	process_options(argc, argv);
 
 	if (check_privs())
