@@ -854,6 +854,7 @@ int main(int argc, char *argv[])
 		printf("Test starts...\n");
 	/* Reset n_threads to always run on all the cores */
 	g.n_threads = g.n_threads_total;
+	rt_test_start();
 	run_expt(threads, g.runtime);
 
 	if (!g.quiet)
