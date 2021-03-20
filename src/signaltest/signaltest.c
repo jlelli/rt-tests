@@ -414,6 +414,7 @@ int main(int argc, char **argv)
 	int status, cpu;
 	int max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
+	rt_init(argc, argv);
 	process_options(argc, argv, max_cpus);
 
 	if (check_privs())
