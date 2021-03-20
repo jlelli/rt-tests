@@ -796,6 +796,8 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	rt_init(argc, argv);
+
 	g.app_name = argv[0];
 	g.rtprio = 0;
 	g.bucket_size = BUCKET_SIZE;
