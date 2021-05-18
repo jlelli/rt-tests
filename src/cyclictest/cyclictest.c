@@ -1768,6 +1768,17 @@ static void write_stats(FILE *f, void *data)
 	fprintf(f, "  }\n");
 }
 
+static void set_main_thread_affinity(struct bitmask *cpumask)
+{
+	int res;
+
+	errno = 0;
+	res = numa_sched_setaffinity(getpid(), cpumask);
+	if (res != 0)
+		warn("Couldn't setaffinity in main thread: %s\n",
+		     strerror(errno));
+}
+
 int main(int argc, char **argv)
 {
 	sigset_t sigset;
@@ -1792,13 +1803,7 @@ int main(int argc, char **argv)
 
 	/* Restrict the main pid to the affinity specified by the user */
 	if (affinity_mask != NULL) {
-		int res;
-
-		errno = 0;
-		res = numa_sched_setaffinity(getpid(), affinity_mask);
-		if (res != 0)
-			warn("Couldn't setaffinity in main thread: %s\n", strerror(errno));
-
+		set_main_thread_affinity(affinity_mask);
 		if (verbose)
 			printf("Using %u cpus.\n",
 				numa_bitmask_weight(affinity_mask));
