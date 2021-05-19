@@ -977,7 +977,7 @@ static void write_stats(FILE *f, void *data)
 		fprintf(f, "    \"%u\": {\n", i);
 		fprintf(f, "	 \"cycles\": %ld,\n", s->cycles);
 		fprintf(f, "	 \"min\": %ld,\n", s->min);
-		fprintf(f, "	 \"max\": %ld\n", s->max);
+		fprintf(f, "	 \"max\": %ld,\n", s->max);
 		fprintf(f, "	 \"avg\": %.2f\n", s->avg/s->cycles);
 		fprintf(f, "    }%s\n", i == nr_threads - 1 ? "" : ",");
 	}
