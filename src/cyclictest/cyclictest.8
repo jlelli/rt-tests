@@ -17,8 +17,8 @@ cyclictest \- High resolution test program
 .SH SYNOPSIS
 .SY cyclictest
 .RI "[ \-hfmnqrsvMS ] [\-a " proc " ] [\-A " align " ] [\-b " usec " ] [\-c " clock " ] [\-d " dist " ] \
-[\-h " histogram " ] [\-i " intv " ] [\-l " loop " ] [\-o " red " ] [\-p " prio " ] \
-[\-t " num " ] [\-D " time "] [\-w] [\-W] [\-y " policy " ] [ \-S | \-U ]"
+[\-h " histogram " ] [\-i " intv " ] [\-\-json " filename " ] [\-l " loop " ] [\-o " red " ] \
+[\-p " prio " ] [\-t " num " ] [\-D " time "] [\-w] [\-W] [\-y " policy " ] [ \-S | \-U ]"
 
 .\" .SH DESCRIPTION
 .\" This manual page documents briefly the
@@ -84,6 +84,9 @@ Dump the latency histogram to <path> instead of stdout.
 .TP
 .B \-i, \-\-interval=INTV
 Set the base interval of the thread(s) in microseconds (default is 1000us). This sets the interval of the first thread. See also \-d.
+.TP
+.B \-\-json=FILENAME
+Write final results into FILENAME, JSON formatted.
 .TP
 .B \-l, \-\-loops=LOOPS
 Set the number of loops. The default is 0 (endless). This option is useful for automated tests with a given number of test cycles. Cyclictest is stopped once the number of timer intervals has been reached.
