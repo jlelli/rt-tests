@@ -10,7 +10,7 @@
 pi_stress \- a stress test for POSIX Priority Inheritance mutexes
 .\"}}}
 .\"{{{ Synopsis
-.\" Usage:  pi_stress [-d] [-D TIME] [-g N] [-h] [-i N ] [-m] [-p] [-q] [-r] [-s OPTS] [-u] [-v] [-V]
+.\" Usage:  pi_stress [-d] [-D TIME] [-g N] [-h] [-i N ] [--json FILENAME ] [-m] [-p] [-q] [-r] [-s OPTS] [-u] [-v] [-V]
 .SH SYNOPSIS
 .B pi_stress
 .RB [ \-d|\-\-debug]
@@ -20,6 +20,8 @@ pi_stress \- a stress test for POSIX Priority Inheritance mutexes
 .IR N ]
 .RB [ \-i|\-\-inversions
 .IR INV ]
+.RB [ \-\-json
+.IR FILENAME ]
 .RB [ \-m|\-\-mlockall ]
 .RB [ \-p|\-\-prompt ]
 .RB [ \-q|\-\-quiet ]
@@ -58,6 +60,10 @@ Display a short help message and options.
 .I N
 number of inversion conditions. This is the total number of inversions
 for all inversion groups. Default is \-1 for infinite.
+.IP "\-\-json=FILENAME"
+Write final results into
+.I FILENAME
+, JSON formatted.
 .IP "\-m|\-\-mlockall"
 Call mlockall to lock current and future memory allocations and
 prevent being paged out
