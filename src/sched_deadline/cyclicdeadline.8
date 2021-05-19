@@ -17,7 +17,7 @@ cyclicdeadline \- This program is used to test the deadline scheduler (SCHED_DEA
 .PP
 .SH SYNOPSIS
 .B cyclicdeadline
-.RI "[-a [CPUSET]] [-D TIME] [-h]  [-i INTV] [-s STEP] [-t NUM] [-q]"
+.RI "[-a [CPUSET]] [-D TIME] [-h]  [-i INTV] [--json FILENAME] [-s STEP] [-t NUM] [-q]"
 .PP
 .SH DESCRIPTION
 .B cyclicdeadline
@@ -37,6 +37,9 @@ Show this help menu
 .TP
 .B \-i \-\-interval INTV
 The shortest deadline for the tasks in us. (default 1000us)
+.TP
+.B \-\-json=FILENAME
+Write final results into FILENAME, JSON formatted.
 .TP
 .B \-s \-\-step STEP
 The amount to increase the deadline for each task in us. (default 500us)
