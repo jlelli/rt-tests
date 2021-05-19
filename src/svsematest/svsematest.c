@@ -233,8 +233,8 @@ static void display_help(int error)
 	       "                           days.\n"
 	       "-f [OPT] --fork[=OPT]      fork new processes instead of creating threads\n"
 	       "-i INTV  --interval=INTV   base interval of thread in us default=1000\n"
+	       "         --json=FILENAME   write final results into FILENAME, JSON formatted\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
-	       "         --output=FILENAME write final results into FILENAME, JSON formatted\n"
 	       "-p PRIO  --prio=PRIO       priority\n"
 	       "-S       --smp             SMP testing: options -a -t and same priority\n"
 	       "                           of all threads\n"
@@ -257,11 +257,11 @@ static int distance = 500;
 static int smp;
 static int sameprio;
 static int quiet;
-static char outfile[MAX_PATH];
+static char jsonfile[MAX_PATH];
 
 enum option_value {
 	OPT_AFFINITY=1, OPT_BREAKTRACE, OPT_DISTANCE, OPT_DURATION,
-	OPT_FORK, OPT_HELP, OPT_INTERVAL, OPT_LOOPS, OPT_OUTPUT,
+	OPT_FORK, OPT_HELP, OPT_INTERVAL, OPT_JSON, OPT_LOOPS,
 	OPT_PRIORITY, OPT_QUIET, OPT_SMP, OPT_THREADS
 };
 
@@ -282,8 +282,8 @@ static void process_options(int argc, char *argv[])
 			{"fork",	optional_argument,	NULL, OPT_FORK},
 			{"help",	no_argument,		NULL, OPT_HELP},
 			{"interval",	required_argument,	NULL, OPT_INTERVAL},
+			{"json",	required_argument,      NULL, OPT_JSON},
 			{"loops",	required_argument,	NULL, OPT_LOOPS},
-			{"output",	required_argument,      NULL, OPT_OUTPUT},
 			{"priority",	required_argument,	NULL, OPT_PRIORITY},
 			{"quiet",	no_argument,		NULL, OPT_QUIET},
 			{"smp",		no_argument,		NULL, OPT_SMP},
@@ -343,12 +343,12 @@ static void process_options(int argc, char *argv[])
 		case 'i':
 			interval = atoi(optarg);
 			break;
+		case OPT_JSON:
+			strncpy(jsonfile, optarg, strnlen(optarg, MAX_PATH-1));
+			break;
 		case OPT_LOOPS:
 		case 'l':
 			max_cycles = atoi(optarg);
-			break;
-		case OPT_OUTPUT:
-			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case OPT_PRIORITY:
 		case 'p':
@@ -774,12 +774,12 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (strlen(outfile) != 0) {
+	if (strlen(jsonfile) != 0) {
 		struct params_stats ps = {
 			.receiver = receiver,
 			.sender = sender,
 		};
-		rt_write_json(outfile, 0, write_stats, &ps);
+		rt_write_json(jsonfile, 0, write_stats, &ps);
 	}
 
 nosem:
