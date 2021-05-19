@@ -89,7 +89,7 @@ static int nr_threads;
 static int use_nsecs;
 static int mark_fd;
 static int quiet;
-static char outfile[MAX_PATH];
+static char jsonfile[MAX_PATH];
 
 static int find_mount(const char *mount, char *debugfs)
 {
@@ -605,7 +605,7 @@ static void usage(int error)
 	       "-h       --help            Show this help menu.\n"
 	       "-i INTV  --interval        The shortest deadline for the tasks in us\n"
 	       "                           (default 1000us).\n"
-	       "         --output=FILENAME write final results into FILENAME, JSON formatted\n"
+	       "         --json=FILENAME   write final results into FILENAME, JSON formatted\n"
 	       "-s STEP  --step            The amount to increase the deadline for each task in us\n"
 	       "                           (default 500us).\n"
 	       "-t NUM   --threads         The number of threads to run as deadline (default 1).\n"
@@ -986,7 +986,7 @@ static void write_stats(FILE *f, void *data)
 
 enum options_valud {
 	OPT_AFFINITY=1, OPT_DURATION, OPT_HELP, OPT_INTERVAL,
-	OPT_OUTPUT, OPT_STEP, OPT_THREADS, OPT_QUIET
+	OPT_JSON, OPT_STEP, OPT_THREADS, OPT_QUIET
 };
 
 int main(int argc, char **argv)
@@ -1021,7 +1021,7 @@ int main(int argc, char **argv)
 			{ "duration",	required_argument,	NULL,	OPT_DURATION },
 			{ "help",	no_argument,		NULL,	OPT_HELP },
 			{ "interval",	required_argument,	NULL,	OPT_INTERVAL },
-			{ "output",	required_argument,	NULL,	OPT_OUTPUT },
+			{ "json",	required_argument,	NULL,	OPT_JSON },
 			{ "step",	required_argument,	NULL,	OPT_STEP },
 			{ "threads",	required_argument,	NULL,	OPT_THREADS },
 			{ "quiet",	no_argument,		NULL,	OPT_QUIET },
@@ -1047,8 +1047,8 @@ int main(int argc, char **argv)
 		case 'i':
 			interval = atoi(optarg);
 			break;
-		case OPT_OUTPUT:
-			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
+		case OPT_JSON:
+			strncpy(jsonfile, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case OPT_STEP:
 		case 's':
@@ -1227,8 +1227,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (strlen(outfile) != 0)
-		rt_write_json(outfile, 0, write_stats, sched_data);
+	if (strlen(jsonfile) != 0)
+		rt_write_json(jsonfile, 0, write_stats, sched_data);
 
 	if (setcpu_buf)
 		free(setcpu_buf);
