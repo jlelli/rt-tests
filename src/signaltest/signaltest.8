@@ -5,7 +5,7 @@
 signaltest \- signal roundtrip test software
 .SH SYNOPSIS
 .LP
-signaltest [ -a|--affinity NUM] [ -b|--backtrace USEC ] [-D|--duration TIME] [-h|--help] [-l|--loops LOOPS ] [-p|--prio PRIO] [-q|--quiet] [-S|--smp] [-t|--threads NUM] [-m|--mlockall ] [-v|--verbose ]
+signaltest [ -a|--affinity NUM] [ -b|--backtrace USEC ] [-D|--duration TIME] [-h|--help] [--json FILENAME] [-l|--loops LOOPS ] [-p|--prio PRIO] [-q|--quiet] [-S|--smp] [-t|--threads NUM] [-m|--mlockall ] [-v|--verbose ]
 .SH OPTIONS
 These programs follow the usual GNU command line syntax, with long options
 starting with two dashes ('\-\-').
@@ -34,6 +34,9 @@ Append 'm', 'h', or 'd' to specify minutes, hours or days.
 .B \-\-help
 .br
 display usage information
+.TP
+.B \-\-json=FILENAME
+Write final results into FILENAME, JSON formatted.
 .TP
 .B \-l, \-\-loops=LOOPS
 Number of loops: default=0 (endless)
