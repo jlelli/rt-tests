@@ -187,9 +187,9 @@ static void display_help(int error)
 		"                           Append 'm', 'h', or 'd' to specify minutes, hours or\n"
 		"                           days.\n"
 		"-h       --help            display usage information\n"
+		"         --json=FILENAME   write final results into FILENAME, JSON formatted\n"
 		"-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 		"-m       --mlockall        lock current and future memory allocations\n"
-		"         --output=FILENAME write final results into FILENAME, JSON formatted\n"
 		"-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 		"-q       --quiet           print a summary only on exit\n"
 		"-t NUM   --threads=NUM     number of threads: default=2\n"
@@ -210,12 +210,12 @@ static struct bitmask *affinity_mask = NULL;
 static int smp = 0;
 static int numa = 0;
 static int setaffinity = AFFINITY_UNSPECIFIED;
-static char outfile[MAX_PATH];
+static char jsonfile[MAX_PATH];
 
 enum option_values {
 	OPT_AFFINITY=1, OPT_BREAKTRACE,
-	OPT_DURATION, OPT_HELP, OPT_LOOPS,
-	OPT_MLOCKALL, OPT_OUTPUT, OPT_PRIORITY,
+	OPT_DURATION, OPT_HELP, OPT_JSON,
+	OPT_LOOPS, OPT_MLOCKALL, OPT_PRIORITY,
 	OPT_QUIET, OPT_SMP, OPT_THREADS, OPT_VERBOSE
 };
 
@@ -233,9 +233,9 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 			{"breaktrace",	required_argument,	NULL, OPT_BREAKTRACE},
 			{"duration",	required_argument,	NULL, OPT_DURATION},
 			{"help",	no_argument,		NULL, OPT_HELP},
+			{"json",	required_argument,	NULL, OPT_JSON},
 			{"loops",	required_argument,	NULL, OPT_LOOPS},
 			{"mlockall",	no_argument,		NULL, OPT_MLOCKALL},
-			{"output",	required_argument,	NULL, OPT_OUTPUT},
 			{"priority",	required_argument,	NULL, OPT_PRIORITY},
 			{"quiet",	no_argument,		NULL, OPT_QUIET},
 			{"smp",		no_argument,		NULL, OPT_SMP},
@@ -287,6 +287,9 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 		case 'h':
 			display_help(0);
 			break;
+		case OPT_JSON:
+			strncpy(jsonfile, optarg, strnlen(optarg, MAX_PATH-1));
+			break;
 		case OPT_LOOPS:
 		case 'l':
 			max_cycles = atoi(optarg);
@@ -294,9 +297,6 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 		case OPT_MLOCKALL:
 		case 'm':
 			lockall = 1;
-			break;
-		case OPT_OUTPUT:
-			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case OPT_PRIORITY:
 		case 'p':
@@ -558,8 +558,8 @@ int main(int argc, char **argv)
 		if (stat[i].values)
 			free(stat[i].values);
 	}
-	if (strlen(outfile) != 0)
-		rt_write_json(outfile, ret, write_stats, par);
+	if (strlen(jsonfile) != 0)
+		rt_write_json(jsonfile, ret, write_stats, par);
 
 	free(stat);
  outpar:
