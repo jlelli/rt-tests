@@ -5,8 +5,9 @@ oslat \- OS Latency Detector
 .SH SYNOPSIS
 .SY oslat
 .RI "[ \-shvz ] [ \-b " bucket-size " ] [ \-B " bias " ] [ \-c " cpu-list " ] \
-[ \-C " cpu-main-thread " ] [ \-f " rt-prio " ] [ \-m " workload-mem " ] \
-[\-t " runtime " ] [ \-T " trace-threshold " ] [ \-w " workload " ]"
+[ \-C " cpu-main-thread " ] [ \-f " rt-prio " ] [ \-\-json " filename " ] \
+[ \-m " workload-mem " ] [\-t " runtime " ] [ \-T " trace-threshold " ] \
+[ \-w " workload " ]"
 .SH DESCRIPTION
 .B oslat
 is an open source userspace polling mode stress program to detect OS level
@@ -29,6 +30,9 @@ Specify which CPU the main thread runs on.  Default is cpu0.
 .B \-f, \-\-rtprio=PRIORITY
 Using specific SCHED_FIFO priority (1-99).  Otherwise use the default
 priority, normally it will be SCHED_OTHER.
+.TP
+.B \-\-json=FILENAME
+Write final results into FILENAME, JSON formatted.
 .TP
 .B \-m, \-\-workload-mem=SIZE
 Size of the memory to use for the workload (e.g., 4K, 1M).
