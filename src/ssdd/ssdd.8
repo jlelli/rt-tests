@@ -3,7 +3,7 @@
 ssdd \- have a tracer do a bunch of PTRACE_SINGLESTEPs
 .SH SYNOPSIS
 .LP
-ssdd [-f|--forks NUM] [-h|--help] [-i|--iters NUM]
+ssdd [-f|--forks NUM] [-h|--help] [-i|--iters NUM] [--json FILENAME]
 .SH DESCRIPTION
 Have a tracer do a bunch of PTRACE_SINGLESTEPs against a tracee as
 fast as possible. Create several of these tracer/tracee pairs and
@@ -25,6 +25,9 @@ number of PTRACE_SINGLESTEP iterations to do before declaring
 success, for each tracer tracee pair set up.
 .br
 Default is 10,000.
+.TP
+.B \-\-json=FILENAME
+Write final results into FILENAME, JSON formatted.
 .SH AUTHOR
 ssdd was written by Joe Korty <joe.korty@concurrent-rt.com>
 .PP
