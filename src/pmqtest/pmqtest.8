@@ -4,7 +4,7 @@
 \fBpmqtest\fR \- Start pairs of threads and measure the latency of interprocess communication with POSIX messages queues
 .SH "SYNTAX"
 .LP
-pmqtest [-a|-a PROC] [-b USEC] [-d DIST] [-D TIME] [-f TO] [-h] [-i INTV] [-l LOOPS] [-p PRIO] [-q] [-S] [-t|-t NUM]
+pmqtest [-a|-a PROC] [-b USEC] [-d DIST] [-D TIME] [-f TO] [-h] [-i INTV] [--json FILENAME] [-l LOOPS] [-p PRIO] [-q] [-S] [-t|-t NUM]
 .br
 .SH "DESCRIPTION"
 .LP
@@ -34,6 +34,9 @@ Set an artificial delay of the send function to force timeout of the receiver, r
 .TP
 .B \-i, \-\-interval=INTV
 Set the base interval of the thread(s) in microseconds (default is 1000 us). This sets the interval of the first thread. See also -d.
+.TP
+.B \-\-json=FILENAME
+Write final results into FILENAME, JSON formatted.
 .TP
 .B \-l, \-\-loops=LOOPS
 Set the number of loops. The default is 0 (endless). This option is useful for automated tests with a given number of test cycles. pmqtest is stopped once the number of timer intervals has been reached.
