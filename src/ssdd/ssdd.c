@@ -67,11 +67,11 @@ static const char *get_state_name(int state)
 #define unused __attribute__((unused))
 
 static int quiet;
-static char outfile[MAX_PATH];
+static char jsonfile[MAX_PATH];
 
 static int got_sigchld;
 
-enum option_value { OPT_NFORKS=1, OPT_NITERS, OPT_HELP, OPT_OUTPUT, OPT_QUIET };
+enum option_value { OPT_NFORKS=1, OPT_NITERS, OPT_HELP, OPT_JSON, OPT_QUIET };
 
 static void usage(int error)
 {
@@ -80,7 +80,7 @@ static void usage(int error)
 	       "ssdd <options>\n\n"
 	       "-f       --forks=NUM       number of forks\n"
 	       "-h       --help            print this message\n"
-	       "         --output=FILENAME write final results into FILENAME, JSON formatted\n"
+	       "         --json=FILENAME   write final results into FILENAME, JSON formatted\n"
 	       "-q       --quiet           suppress running output\n"
 	       "-i       --iters=NUM       number of iterations\n"
 	       );
@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 		static struct option long_options[] = {
 			{"forks",		required_argument,	NULL, OPT_NFORKS},
 			{"help",		no_argument,		NULL, OPT_HELP},
-			{"output",		required_argument,	NULL, OPT_OUTPUT},
+			{"json",		required_argument,	NULL, OPT_JSON},
 			{"quiet",		no_argument,		NULL, OPT_QUIET},
 			{"iters",		required_argument,	NULL, OPT_NITERS},
 			{NULL, 0, NULL, 0},
@@ -323,8 +323,8 @@ int main(int argc, char **argv)
 		case OPT_HELP:
 			usage(0);
 			break;
-		case OPT_OUTPUT:
-			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
+		case OPT_JSON:
+			strncpy(jsonfile, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case OPT_QUIET:
 		case 'q':
@@ -374,8 +374,8 @@ int main(int argc, char **argv)
 		"One or more tests FAILED" :
 		"All tests PASSED");
 
-	if (strlen(outfile) != 0)
-		rt_write_json(outfile, error, NULL, NULL);
+	if (strlen(jsonfile) != 0)
+		rt_write_json(jsonfile, error, NULL, NULL);
 
 	exit(error);
 }
