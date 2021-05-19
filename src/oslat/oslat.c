@@ -174,7 +174,7 @@ struct global {
 	int                   quiet;
 	int                   single_preheat_thread;
 	int                   output_omit_zero_buckets;
-	char                  outfile[MAX_PATH];
+	char                  jsonfile[MAX_PATH];
 
 	/* Mutable state. */
 	volatile enum command cmd;
@@ -560,6 +560,7 @@ static void usage(int error)
 	       "-C, --cpu-main-thread  Specify which CPU the main thread runs on.  Default is cpu0.\n"
 	       "-D, --duration         Specify test duration, e.g., 60, 20m, 2H\n"
 	       "                       (m/M: minutes, h/H: hours, d/D: days)\n"
+	       "    --json=FILENAME    write final results into FILENAME, JSON formatted\n"
 	       "-f, --rtprio           Using SCHED_FIFO priority (1-99)\n"
 	       "-m, --workload-mem     Size of the memory to use for the workload (e.g., 4K, 1M).\n"
 	       "                       Total memory usage will be this value multiplies 2*N,\n"
@@ -570,7 +571,6 @@ static void usage(int error)
 	       "                       NOTE: please make sure the CPU frequency on all testing cores\n"
 	       "                       are locked before using this parmater.  If you don't know how\n"
 	       "                       to lock the freq then please don't use this parameter.\n"
-	       "    --output=FILENAME  write final results into FILENAME, JSON formatted\n"
 	       "-T, --trace-threshold  Stop the test when threshold triggered (in us),\n"
 	       "                       print a marker in ftrace and stop ftrace too.\n"
 	       "-v, --version          Display the version of the software.\n"
@@ -597,8 +597,8 @@ static int workload_select(char *name)
 
 enum option_value {
 	OPT_BUCKETSIZE=1, OPT_CPU_LIST, OPT_CPU_MAIN_THREAD,
-	OPT_DURATION, OPT_RT_PRIO, OPT_HELP, OPT_TRACE_TH,
-	OPT_WORKLOAD, OPT_WORKLOAD_MEM, OPT_BIAS, OPT_OUTPUT,
+	OPT_DURATION, OPT_JSON, OPT_RT_PRIO, OPT_HELP, OPT_TRACE_TH,
+	OPT_WORKLOAD, OPT_WORKLOAD_MEM, OPT_BIAS,
 	OPT_QUIET, OPT_SINGLE_PREHEAT, OPT_ZERO_OMIT,
 	OPT_VERSION
 };
@@ -613,6 +613,7 @@ static void parse_options(int argc, char *argv[])
 			{ "cpu-list",	required_argument,	NULL, OPT_CPU_LIST },
 			{ "cpu-main-thread", required_argument, NULL, OPT_CPU_MAIN_THREAD},
 			{ "duration",	required_argument,	NULL, OPT_DURATION },
+			{ "json",	required_argument,      NULL, OPT_JSON },
 			{ "rtprio",	required_argument,	NULL, OPT_RT_PRIO },
 			{ "help",	no_argument,		NULL, OPT_HELP },
 			{ "trace-threshold", required_argument,	NULL, OPT_TRACE_TH },
@@ -621,7 +622,6 @@ static void parse_options(int argc, char *argv[])
 			{ "bias",	no_argument,		NULL, OPT_BIAS },
 			{ "quiet",	no_argument,		NULL, OPT_QUIET },
 			{ "single-preheat", no_argument,	NULL, OPT_SINGLE_PREHEAT },
-			{ "output",	required_argument,      NULL, OPT_OUTPUT },
 			{ "zero-omit",	no_argument,		NULL, OPT_ZERO_OMIT },
 			{ "version",	no_argument,		NULL, OPT_VERSION },
 			{ NULL, 0, NULL, 0 },
@@ -677,8 +677,8 @@ static void parse_options(int argc, char *argv[])
 				exit(1);
 			}
 			break;
-		case OPT_OUTPUT:
-			strncpy(g.outfile, optarg, strnlen(optarg, MAX_PATH-1));
+		case OPT_JSON:
+			strncpy(g.jsonfile, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case OPT_TRACE_TH:
 		case 'T':
@@ -862,8 +862,8 @@ int main(int argc, char *argv[])
 
 	write_summary(threads);
 
-	if (strlen(g.outfile) != 0)
-		rt_write_json(g.outfile, 0, write_summary_json, threads);
+	if (strlen(g.jsonfile) != 0)
+		rt_write_json(g.jsonfile, 0, write_summary_json, threads);
 
 	if (g.cpu_list) {
 		free(g.cpu_list);
