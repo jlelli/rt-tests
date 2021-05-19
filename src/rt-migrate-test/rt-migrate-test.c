@@ -102,7 +102,7 @@ static int done;
 static int loop;
 static int duration;
 static int quiet;
-static char outfile[MAX_PATH];
+static char jsonfile[MAX_PATH];
 
 static pthread_barrier_t start_barrier;
 static pthread_barrier_t end_barrier;
@@ -162,9 +162,9 @@ static void usage(int error)
 	       "                           days.\n"
 	       "-e       --equal           Use equal prio for #CPU-1 tasks (requires > 2 CPUS)\n"
 	       "-h       --help            Print this help message\n"
+	       "         --json=FILENAME   write final results into FILENAME, JSON formatted\n"
 	       "-l LOOPS --loops=LOOPS     Number of iterations to run (50)\n"
 	       "-m TIME  --maxerr=TIME     Max allowed error (microsecs)\n"
-	       "         --output=FILENAME write final results into FILENAME, JSON formatted\n"
 	       "-p PRIO  --prio=PRIO       base priority to start RT tasks with (2)\n"
 	       "-q       --quiet           print a summary only on exit\n"
 	       "-r TIME  --run-time=TIME   Run time (ms) to busy loop the threads (20)\n"
@@ -175,8 +175,8 @@ static void usage(int error)
 }
 
 enum option_value {
-	OPT_CHECK=1, OPT_DURATION, OPT_EQUAL, OPT_HELP, OPT_LOOPS,
-	OPT_MAXERR, OPT_OUTPUT, OPT_PRIO, OPT_QUIET, OPT_RUN_TIME,
+	OPT_CHECK=1, OPT_DURATION, OPT_EQUAL, OPT_HELP, OPT_JSON,
+	OPT_LOOPS, OPT_MAXERR, OPT_PRIO, OPT_QUIET, OPT_RUN_TIME,
 	OPT_SLEEP_TIME
 };
 
@@ -190,9 +190,9 @@ static void parse_options(int argc, char *argv[])
 			{"duration",	required_argument,	NULL, OPT_DURATION},
 			{"equal",	no_argument,		NULL, OPT_EQUAL},
 			{"help",	no_argument,		NULL, OPT_HELP},
+			{"json",	required_argument,      NULL, OPT_JSON},
 			{"loops",	required_argument,	NULL, OPT_LOOPS},
 			{"maxerr",	required_argument,	NULL, OPT_MAXERR},
-			{"output",	required_argument,      NULL, OPT_OUTPUT },
 			{"prio",	required_argument,	NULL, OPT_PRIO},
 			{"quiet",	no_argument,		NULL, OPT_QUIET},
 			{"run-time",	required_argument,	NULL, OPT_RUN_TIME},
@@ -221,6 +221,9 @@ static void parse_options(int argc, char *argv[])
 		case 'h':
 			usage(0);
 			break;
+		case OPT_JSON:
+			strncpy(jsonfile, optarg, strnlen(optarg, MAX_PATH-1));
+			break;
 		case OPT_LOOPS:
 		case 'l':
 			nr_runs = atoi(optarg);
@@ -228,9 +231,6 @@ static void parse_options(int argc, char *argv[])
 		case OPT_MAXERR:
 		case 'm':
 			max_err = usec2nano(atoi(optarg));
-			break;
-		case OPT_OUTPUT:
-			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case OPT_PRIO:
 		case 'p':
@@ -663,8 +663,8 @@ int main (int argc, char **argv)
 
 	print_results();
 
-	if (strlen(outfile) != 0)
-		rt_write_json(outfile, check < 0, write_stats, NULL);
+	if (strlen(jsonfile) != 0)
+		rt_write_json(jsonfile, check < 0, write_stats, NULL);
 
 	if (stop) {
 		/*
