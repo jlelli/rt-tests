@@ -100,7 +100,7 @@ int debugging = 0;
 int quiet = 0;	/* turn off all prints, default = 0 (off) */
 
 /* filename for JSON output */
-char outfile[MAX_PATH];
+char jsonfile[MAX_PATH];
 
 /* prompt to start test */
 int prompt = 0;
@@ -342,8 +342,8 @@ int main(int argc, char **argv)
 	finish = time(NULL);
 	summary();
 
-	if (strlen(outfile) != 0)
-		rt_write_json(outfile, retval, write_stats, NULL);
+	if (strlen(jsonfile) != 0)
+		rt_write_json(jsonfile, retval, write_stats, NULL);
 
 	if (lockall)
 		munlockall();
@@ -992,8 +992,8 @@ void usage(int error)
 	       "-g N     --groups=N        set the number of inversion groups\n"
 	       "-h       --help            print this message\n"
 	       "-i INV   --inversions=INV  number of inversions per group (default is infinite)\n"
+	       "         --json=FILENAME   write final results into FILENAME, JSON formatted\n"
 	       "-m       --mlockall        lock current and future memory\n"
-	       "         --output=FILENAME write final results into FILENAME, JSON formatted\n"
 	       "-p       --prompt          prompt before starting the test\n"
 	       "-q       --quiet           suppress running output\n"
 	       "-r       --rr              use SCHED_RR for test threads [SCHED_FIFO]\n"
@@ -1287,7 +1287,7 @@ int process_sched_line(const char *arg)
 
 enum option_values {
 	OPT_DEBUG=1, OPT_DURATION, OPT_GROUPS, OPT_HELP, OPT_INVERSIONS,
-	OPT_MLOCKALL, OPT_OUTPUT, OPT_PROMPT, OPT_QUIET, OPT_RR, OPT_SCHED,
+	OPT_JSON, OPT_MLOCKALL, OPT_PROMPT, OPT_QUIET, OPT_RR, OPT_SCHED,
 	OPT_UNIPROCESSOR, OPT_VERBOSE, OPT_VERSION,
 };
 
@@ -1300,8 +1300,8 @@ void process_command_line(int argc, char **argv)
 			{"groups",		required_argument,	NULL, OPT_GROUPS},
 			{"help",		no_argument,		NULL, OPT_HELP},
 			{"inversions",		required_argument,	NULL, OPT_INVERSIONS},
+			{"json",		required_argument,	NULL, OPT_JSON},
 			{"mlockall",		no_argument,		NULL, OPT_MLOCKALL},
-			{"output",		required_argument,	NULL, OPT_OUTPUT},
 			{"prompt",		no_argument,		NULL, OPT_PROMPT},
 			{"quiet",		no_argument,		NULL, OPT_QUIET},
 			{"rr",			no_argument,		NULL, OPT_RR},
@@ -1344,12 +1344,12 @@ void process_command_line(int argc, char **argv)
 			inversions = strtol(optarg, NULL, 10);
 			pi_info("doing %d inversion per group\n", inversions);
 			break;
+		case OPT_JSON:
+			strncpy(jsonfile, optarg, strnlen(optarg, MAX_PATH-1));
+			break;
 		case OPT_MLOCKALL:
 		case 'm':
 			lockall = 1;
-			break;
-		case OPT_OUTPUT:
-			strncpy(outfile, optarg, strnlen(optarg, MAX_PATH-1));
 			break;
 		case OPT_PROMPT:
 		case 'p':
