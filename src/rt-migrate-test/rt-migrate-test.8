@@ -5,7 +5,7 @@
 rt-migrate-test \- real-time task migration program
 .SH SYNOPSIS
 .LP
-rt-migrate-test [-c|--check] [-D|--duration TIME] [-e|--equal] [-h|--help] [-l|--loops LOOPS] [-m|--maxerr TIME] [-p|--prio PRIO] [-r|--run-time TIME] [-s|--sleep-time TIME] [NR_TASKS]
+rt-migrate-test [-c|--check] [-D|--duration TIME] [-e|--equal] [-h|--help] [--json FILENAME] [-l|--loops LOOPS] [-m|--maxerr TIME] [-p|--prio PRIO] [-r|--run-time TIME] [-s|--sleep-time TIME] [NR_TASKS]
 .SH DESCRIPTION
 Test real-time multiprocessor scheduling of tasks to ensure the highest priority tasks are running on all available CPUs
 .SH OPTIONS
@@ -29,6 +29,10 @@ Use equal prio for #CPU-1 tasks (requires > 2 CPUS)
 .TP
 .B \-h, \-\-help
 Display usage
+.br
+.TP
+.B \-\-json=FILENAME
+Write final results into FILENAME, JSON formatted.
 .br
 .TP
 .B \-l \-\-loops=LOOPS
