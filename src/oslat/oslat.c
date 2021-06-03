@@ -150,6 +150,7 @@ struct workload {
 
 struct thread {
 	int                  core_i;
+	int		     last;
 	pthread_t            thread_id;
 
 	/* NOTE! this is also how many ticks per us */
@@ -215,6 +216,39 @@ struct global {
 };
 
 static struct global g;
+
+/*
+ * vmstat_update trick
+ */
+static void poke_vmstat_refresh(void)
+{
+	struct stat s;
+	int err;
+	int stat_refresh_fd = -1;
+	int num = 1;
+
+	errno = 0;
+	err = stat("/proc/sys/vm/stat_refresh", &s);
+	if (err == -1) {
+		err_msg_n(errno, "WARN: stat /proc/sys/vm/stat_refresh failed");
+		return;
+	}
+
+	errno = 0;
+	stat_refresh_fd = open("/proc/sys/vm/stat_refresh", O_RDWR);
+	if (stat_refresh_fd == -1) {
+		err_msg_n(errno, "WARN: open ");
+		return;
+	}
+
+	errno = 0;
+	err = write(stat_refresh_fd, &num, 1);
+	if (err < 1)
+		err_msg_n(errno, "# error poking vmstat_refresh!");
+
+	close(stat_refresh_fd);
+	printf("# vmstat_refresh poked\n");
+}
 
 static void workload_nop(char *dst, char *src, size_t size)
 {
@@ -427,10 +461,16 @@ static void *thread_main(void *arg)
 
 	thread_init(t);
 
+	if (t->last) {
+		printf("# last thread (core=%d)\n", t->core_i);
+		poke_vmstat_refresh();
+		sleep(3);
+	}
+
 	/* Ensure we all start at the same time. */
 	atomic_inc(&g.n_threads_running);
 	while (g.n_threads_running != g.n_threads)
-		relax();
+		usleep(1000);
 
 	frc(&t->frc_start);
 	doit(t);
@@ -857,9 +897,11 @@ int main(int argc, char *argv[])
 	for (i = 0; n_cores && i < cpu_set->size; i++) {
 		if (numa_bitmask_isbitset(cpu_set, i) && move_to_core(i) == 0) {
 			threads[g.n_threads_total++].core_i = i;
+			threads[g.n_threads_total - 1].last = 0;
 			n_cores--;
 		}
 	}
+	threads[g.n_threads_total - 1].last = 1;
 
 	if (numa_bitmask_isbitset(cpu_set, 0) && g.rtprio)
 		printf("WARNING: Running SCHED_FIFO workload on CPU 0 may hang the thread\n");
