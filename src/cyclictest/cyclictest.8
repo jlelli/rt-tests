@@ -94,6 +94,9 @@ Set the number of loops. The default is 0 (endless). This option is useful for a
 .B \-\-laptop
 Save battery when running cyclictest. This will give you poorer realtime results, but will not drain your battery so quickly.
 .TP
+.B \-\-mainaffinity=CPUSET
+Run the main thread on CPU #N. This only affects the main thread and not the measurement threads
+.TP
 .B \-m, \-\-mlockall
 Lock current and future memory allocations to prevent being paged out
 .TP
