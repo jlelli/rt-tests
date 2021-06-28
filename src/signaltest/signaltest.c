@@ -500,7 +500,6 @@ int main(int argc, char **argv)
 			      strerror(status));
 	}
 
-	rt_test_start();
 	while (!shutdown) {
 		int allstarted = 1;
 

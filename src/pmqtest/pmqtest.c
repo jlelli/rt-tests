@@ -582,7 +582,6 @@ int main(int argc, char *argv[])
 	sigemptyset(&sigset);
 	pthread_sigmask(SIG_SETMASK, &sigset, NULL);
 
-	rt_test_start();
 	do {
 		int newsamples = 0, newtimeoutcount = 0;
 		int minsamples = INT_MAX;

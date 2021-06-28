@@ -304,7 +304,6 @@ int main(int argc, char **argv)
 	}
 	/* report */
 	banner();
-	rt_test_start();
 	start = time(NULL);
 
 	/* turn loose the threads */

@@ -621,7 +621,6 @@ int main (int argc, char **argv)
 
 	setup_ftrace_marker();
 
-	rt_test_start();
 	for (loop=0; loop < nr_runs; loop++) {
 		unsigned long long end;
 

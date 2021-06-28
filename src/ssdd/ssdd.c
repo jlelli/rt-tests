@@ -357,7 +357,6 @@ int main(int argc, char **argv)
 			forktests(i);
 	}
 
-	rt_test_start();
 	for (i = 0; i < nforks; i++) {
 		status = do_wait(&wait_pid, &ret_sig);
 		if (status != STATE_EXITED) {
