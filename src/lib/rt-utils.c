@@ -490,6 +490,19 @@ void disable_trace_mark(void)
 	close_tracemark_fd();
 }
 
+static void get_timestamp(char *tsbuf)
+{
+	struct timeval tv;
+	struct tm *tm;
+	time_t t;
+
+	gettimeofday(&tv, NULL);
+	t = tv.tv_sec;
+	tm = localtime(&t);
+	/* RFC 2822-compliant date format */
+	strftime(tsbuf, MAX_TS_SIZE, "%a, %d %b %Y %T %z", tm);
+}
+
 void rt_init(int argc, char *argv[])
 {
 	int offset = 0;
@@ -514,24 +527,12 @@ void rt_init(int argc, char *argv[])
 
 		offset += len + 1;
 	}
-}
 
-static void get_timestamp(char *tsbuf)
-{
-	struct timeval tv;
-	struct tm *tm;
-	time_t t;
-
-	gettimeofday(&tv, NULL);
-	t = tv.tv_sec;
-	tm = localtime(&t);
-	/* RFC 2822-compliant date format */
-	strftime(tsbuf, MAX_TS_SIZE, "%a, %d %b %Y %T %z", tm);
+	get_timestamp(ts_start);
 }
 
 void rt_test_start(void)
 {
-	get_timestamp(ts_start);
 }
 
 void rt_write_json(const char *filename, int return_code,
