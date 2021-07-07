@@ -29,6 +29,7 @@
 #include <numa.h>
 #include <math.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -150,6 +151,7 @@ struct thread {
 struct global {
 	/* Configuration. */
 	unsigned int          runtime_secs;
+	bool		      preheat;
 	/*
 	 * Number of threads running for current test
 	 * (either pre heat or real run)
@@ -299,7 +301,7 @@ static void insert_bucket(struct thread *t, stamp_t value)
 	us = index + 1;
 	assert(us > 0);
 
-	if (g.trace_threshold && us >= g.trace_threshold) {
+	if (!g.preheat && g.trace_threshold && us >= g.trace_threshold) {
 		char *line = "%s: Trace threshold (%d us) triggered with %u us!\n"
 		    "Stopping the test.\n";
 		tracemark(line, g.app_name, g.trace_threshold, us);
@@ -515,11 +517,12 @@ static void write_summary_json(FILE *f, void *data)
 	fprintf(f, "  }\n");
 }
 
-static void run_expt(struct thread *threads, int runtime_secs)
+static void run_expt(struct thread *threads, int runtime_secs, bool preheat)
 {
 	int i;
 
 	g.runtime_secs = runtime_secs;
+	g.preheat = preheat;
 	g.n_threads_started = 0;
 	g.n_threads_running = 0;
 	g.n_threads_finished = 0;
@@ -846,14 +849,14 @@ int main(int argc, char *argv[])
 		g.n_threads = 1;
 	else
 		g.n_threads = g.n_threads_total;
-	run_expt(threads, 1);
+	run_expt(threads, 1, true);
 	record_bias(threads);
 
 	if (!g.quiet)
 		printf("Test starts...\n");
 	/* Reset n_threads to always run on all the cores */
 	g.n_threads = g.n_threads_total;
-	run_expt(threads, g.runtime);
+	run_expt(threads, g.runtime, false);
 
 	if (!g.quiet)
 		printf("Test completed.\n\n");
