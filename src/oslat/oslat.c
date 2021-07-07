@@ -29,7 +29,6 @@
 #include <numa.h>
 #include <math.h>
 #include <limits.h>
-#include <inttypes.h>
 
 #include <sys/prctl.h>
 #include <sys/stat.h>
