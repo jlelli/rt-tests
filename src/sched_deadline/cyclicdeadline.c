@@ -1092,7 +1092,7 @@ int main(int argc, char **argv)
 
 	/* Default cpu to use is the last one */
 	if (!all_cpus && !setcpu) {
-		setcpu_buf = malloc(10);
+		setcpu_buf = malloc(12);
 		if (!setcpu_buf)
 			fatal("malloc");
 		sprintf(setcpu_buf, "%d", cpu_count - 1);
