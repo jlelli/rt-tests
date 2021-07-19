@@ -68,15 +68,13 @@ int cpu_for_thread_sp(int thread_num, int max_cpus, struct bitmask *cpumask)
 int cpu_for_thread_ua(int thread_num, int max_cpus)
 {
 	int res, num_cpus, i, m, cpu;
-	pthread_t thread;
 	cpu_set_t cpuset;
 
-	thread = pthread_self();
 	CPU_ZERO(&cpuset);
 
-	res = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+	res = sched_getaffinity(0, sizeof(cpu_set_t), &cpuset);
 	if (res != 0)
-		fatal("pthread_getaffinity_np failed: %s\n", strerror(res));
+		fatal("sched_getaffinity failed: %s\n", strerror(res));
 
 	num_cpus = CPU_COUNT(&cpuset);
 	m = thread_num % num_cpus;
