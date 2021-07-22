@@ -230,12 +230,53 @@ found:
 	mark_fd = open(files, O_WRONLY);
 }
 
+/*
+ * Return true if file exists
+ */
+static int check_file_exists(char *path)
+{
+	int ret;
+	struct stat st;
+
+	ret = !stat(path, &st);
+
+	return ret;
+
+}
+
+/*
+ * Return 0 on success
+ */
+
+static int fill_sched_features(char *path)
+{
+	int ret;
+	const char *debugfs;
+
+	debugfs = find_debugfs();
+	if (strlen(debugfs) == 0)
+		return -1;
+
+	snprintf(path, MAX_PATH, "%s/sched/features", debugfs);
+	ret = check_file_exists(path);
+	if (ret)
+		return 0;
+
+	snprintf(path, MAX_PATH, "%s/sched_features", debugfs);
+	ret = check_file_exists(path);
+	if (ret)
+		return 0;
+
+	memset(path, 0, MAX_PATH);
+
+	return ret;
+
+}
+
 static int setup_hr_tick(void)
 {
-	const char *debugfs = find_debugfs();
-	char files[strlen(debugfs) + strlen("/sched_features") + 1];
+	char path[MAX_PATH];
 	char buf[500];
-	struct stat st;
 	static int set = 0;
 	char *p;
 	int ret;
@@ -244,27 +285,23 @@ static int setup_hr_tick(void)
 
 	if (set)
 		return 1;
-
 	set = 1;
 
-	if (strlen(debugfs) == 0)
+	ret = fill_sched_features(path);
+	if (ret)
 		return 0;
 
-	sprintf(files, "%s/sched_features", debugfs);
-	ret = stat(files, &st);
-	if (ret < 0)
+	fd = open(path, O_RDWR);
+	if (fd < 0) {
+		perror(path);
 		return 0;
-
-	fd = open(files, O_RDWR);
-	perror(files);
-	if (fd < 0)
-		return 0;
+	}
 
 	len = sizeof(buf);
 
 	ret = read(fd, buf, len);
 	if (ret < 0) {
-		perror(files);
+		perror(path);
 		close(fd);
 		return 0;
 	}
