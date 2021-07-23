@@ -278,6 +278,7 @@ static int setup_hr_tick(void)
 	char path[MAX_PATH];
 	char buf[500];
 	static int set = 0;
+	int hrtick_dl = 0;
 	char *p;
 	int ret;
 	int len;
@@ -311,15 +312,31 @@ static int setup_hr_tick(void)
 
 	ret = 1;
 
-	p = strstr(buf, "HRTICK");
-	if (p + 3 >= buf) {
+	p = strstr(buf, "HRTICK_DL");
+	if (p && p - 3 >= buf) {
+		hrtick_dl = 1;
 		p -= 3;
-		if (strncmp(p, "NO_HRTICK", 9) == 0) {
-			ret = write(fd, "HRTICK", 6);
-			if (ret != 6)
+		if (strncmp(p, "NO_HRTICK_DL", 12) == 0) {
+			ret = write(fd, "HRTICK_DL", 9);
+			if (ret != 9)
 				ret = 0;
 			else
 				ret = 1;
+		}
+	}
+
+	/* Backwards compatibility for kernel that only have HRTICK */
+	if (!hrtick_dl) {
+		p = strstr(buf, "HRTICK");
+		if (p && p - 3 >= buf) {
+			p -=3;
+			if (strncmp(p, "NO_HRTICK", 9) == 0) {
+				ret = write(fd, "HRTICK", 6);
+				if (ret != 6)
+					ret = 0;
+				else
+					ret = 1;
+			}
 		}
 	}
 
