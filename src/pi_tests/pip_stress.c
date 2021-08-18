@@ -254,7 +254,7 @@ long process_shared_mutex_available(void)
 	res = sysconf(_SC_THREAD_PROCESS_SHARED);
 	if (res == -1) {
 		int err = errno;	/* save the error number */
-		err_msg("%s: sysconf(_SC_THREAD_PROCESS_SHARED): ");
+		err_msg("%s: sysconf(_SC_THREAD_PROCESS_SHARED): ", __func__);
 		err_exit(err, NULL);
 	}
 #else
