@@ -873,10 +873,6 @@ static void destroy_cpuset(const char *name, int print)
 			goto again;
 		fprintf(stderr, "Failed to remove %s\n", path);
 		perror("rmdir");
-		if (retry++ < 5) {
-			fprintf(stderr, "Trying again\n");
-			goto again;
-		}
 	}
 }
 
