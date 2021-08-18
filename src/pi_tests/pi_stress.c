@@ -668,7 +668,7 @@ void *low_priority(void *arg)
 		}
 
 		/* initial state */
-		pi_debug("low_priority[%d]: entering start wait (%d)\n", p->id,
+		pi_debug("low_priority[%d]: entering start wait (%ld)\n", p->id,
 		      count++);
 		status = pthread_barrier_wait(&p->start_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -796,7 +796,7 @@ void *med_priority(void *arg)
 		}
 
 		/* start state */
-		pi_debug("med_priority[%d]: entering start state (%d)\n", p->id,
+		pi_debug("med_priority[%d]: entering start state (%ld)\n", p->id,
 		      count++);
 		status = pthread_barrier_wait(&p->start_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -949,8 +949,7 @@ void *high_priority(void *arg)
 		status = pthread_barrier_wait(&p->finish_barrier);
 		if (status && status != PTHREAD_BARRIER_SERIAL_THREAD) {
 			pi_error
-			    ("high_priority[%d]: pthread_barrier_wait(finish): %x",
-			     status);
+			    ("high_priority[%d]: pthread_barrier_wait(finish): %x", p->id, status);
 			return NULL;
 		}
 		/* update the group stats */
