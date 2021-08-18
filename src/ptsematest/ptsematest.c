@@ -58,7 +58,6 @@ struct params {
 void *semathread(void *param)
 {
 	int mustgetcpu = 0;
-	int first = 1;
 	struct params *par = param;
 	cpu_set_t mask;
 	int policy = SCHED_FIFO;
@@ -92,11 +91,6 @@ void *semathread(void *param)
 			if (mustgetcpu)
 				par->cpu = get_cpu();
 		} else {
-			/* Receiver */
-			if (!first) {
-				pthread_mutex_lock(&syncmutex[par->num]);
-				first = 1;
-			}
 			pthread_mutex_lock(&testmutex[par->num]);
 
 			/* ... Got the lock: End of latency measurement */
