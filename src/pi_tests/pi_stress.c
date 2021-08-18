@@ -1259,10 +1259,8 @@ int process_sched_line(const char *arg)
 		k = strsep(&buf, del);
 	}
 
-	if (!id) {
-		free(buf);
+	if (!id)
 		return FAILURE;
-	}
 
 	/* We do not validate the options, instead we pass all garbage
 	 * to the kernel and see what's happening */
@@ -1280,7 +1278,6 @@ int process_sched_line(const char *arg)
 		retval = FAILURE;
 	}
 
-	free(buf);
 	return retval;
 }
 
