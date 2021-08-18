@@ -728,11 +728,11 @@ static const char *make_cpuset(const char *name, const char *cpus,
 		int *pids;
 		int i;
 
-		va_start(ap, flags);
-
 		fd = open_cpuset(path, "tasks");
 		if (fd < 0)
 			return "open tasks";
+
+		va_start(ap, flags);
 
 		ret = 0;
 		pids = va_arg(ap, int *);
