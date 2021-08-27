@@ -1817,6 +1817,11 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
+	if (nr_threads < 1) {
+		fprintf(stderr, "The number of threads must be at least 1\n");
+		exit(-1);
+	}
+
 	if (setcpu) {
 		nr_cpus = calc_nr_cpus(setcpu, &setcpu_buf);
 		if (nr_cpus < 0) {
