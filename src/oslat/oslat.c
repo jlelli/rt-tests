@@ -74,6 +74,16 @@ static inline void frc(uint64_t *pval)
 # elif defined(__aarch64__)
 #  define relax()          __asm__ __volatile("yield" : : : "memory")
 
+#define arch_measure_counter_mhz
+static unsigned int measure_counter_mhz(void)
+{
+	unsigned int val;
+
+	__asm__ __volatile__("mrs %0, cntfrq_el0" : "=r" (val));
+
+	return val / 1e6;
+}
+
 static inline void frc(uint64_t *pval)
 {
 	/*
@@ -241,6 +251,7 @@ static int move_to_core(int core_i)
 	return sched_setaffinity(0, sizeof(cpus), &cpus);
 }
 
+#ifndef arch_measure_counter_mhz
 static cycles_t __measure_counter_hz(void)
 {
 	struct timeval tvs, tve;
@@ -273,6 +284,7 @@ static unsigned int measure_counter_mhz(void)
 
 	return (unsigned int) (m / 1000000);
 }
+#endif
 
 static void thread_init(struct thread *t)
 {
