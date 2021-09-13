@@ -71,6 +71,19 @@ static inline void frc(uint64_t *pval)
 {
 	__asm__ __volatile__("mfspr %0, 268\n" : "=r" (*pval));
 }
+# elif defined(__aarch64__)
+#  define relax()          __asm__ __volatile("yield" : : : "memory")
+
+static inline void frc(uint64_t *pval)
+{
+	/*
+	 * This isb() is required to prevent that the counter value
+	 * is speculated.
+	 */
+	__asm__ __volatile__("isb" : : : "memory");
+	__asm__ __volatile__("mrs %0, cntvct_el0" : "=r" (*pval) :: "memory");
+
+}
 # else
 #  define relax()          do { } while (0)
 #  define frc(x)
