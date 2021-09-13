@@ -123,7 +123,7 @@ struct thread {
 	pthread_t            thread_id;
 
 	/* NOTE! this is also how many ticks per us */
-	unsigned int         cpu_mhz;
+	unsigned int         counter_mhz;
 	cycles_t             int_total;
 	stamp_t              frc_start;
 	stamp_t              frc_stop;
@@ -228,7 +228,7 @@ static int move_to_core(int core_i)
 	return sched_setaffinity(0, sizeof(cpus), &cpus);
 }
 
-static cycles_t __measure_cpu_hz(void)
+static cycles_t __measure_counter_hz(void)
 {
 	struct timeval tvs, tve;
 	stamp_t s, e;
@@ -244,13 +244,13 @@ static cycles_t __measure_cpu_hz(void)
 	return (cycles_t) ((e - s) / sec);
 }
 
-static unsigned int measure_cpu_mhz(void)
+static unsigned int measure_counter_mhz(void)
 {
 	cycles_t m, mprev, d;
 
-	mprev = __measure_cpu_hz();
+	mprev = __measure_counter_hz();
 	do {
-		m = __measure_cpu_hz();
+		m = __measure_counter_hz();
 		if (m > mprev)
 			d = m - mprev;
 		else
@@ -263,7 +263,7 @@ static unsigned int measure_cpu_mhz(void)
 
 static void thread_init(struct thread *t)
 {
-	t->cpu_mhz = measure_cpu_mhz();
+	t->counter_mhz = measure_counter_mhz();
 	t->maxlat = 0;
 	t->overflow_sum = 0;
 	t->minlat = (uint64_t)-1;
@@ -288,7 +288,7 @@ static void thread_init(struct thread *t)
 
 static float cycles_to_sec(const struct thread *t, uint64_t cycles)
 {
-	return cycles / (t->cpu_mhz * 1e6);
+	return cycles / (t->counter_mhz * 1e6);
 }
 
 static void insert_bucket(struct thread *t, stamp_t value)
@@ -296,7 +296,7 @@ static void insert_bucket(struct thread *t, stamp_t value)
 	int index, us;
 	uint64_t extra;
 
-	index = value / t->cpu_mhz;
+	index = value / t->counter_mhz;
 	assert(index >= 0);
 	us = index + 1;
 	assert(us > 0);
@@ -450,7 +450,7 @@ static void write_summary(struct thread *t)
 	calculate(t);
 
 	putfield("Core", t[i].core_i, "d", "");
-	putfield("CPU Freq", t[i].cpu_mhz, "u", " (Mhz)");
+	putfield("Counter Freq", t[i].counter_mhz, "u", " (Mhz)");
 
 	for (j = 0; j < g.bucket_size; j++) {
 		if (j < g.bucket_size-1 && g.output_omit_zero_buckets) {
@@ -494,7 +494,7 @@ static void write_summary_json(FILE *f, void *data)
 	for (i = 0; i < g.n_threads; ++i) {
 		fprintf(f, "    \"%u\": {\n", i);
 		fprintf(f, "      \"cpu\": %d,\n", t[i].core_i);
-		fprintf(f, "      \"freq\": %d,\n", t[i].cpu_mhz);
+		fprintf(f, "      \"freq\": %d,\n", t[i].counter_mhz);
 		fprintf(f, "      \"min\": %" PRIu64 ",\n", t[i].minlat);
 		fprintf(f, "      \"avg\": %3lf,\n", t[i].average);
 		fprintf(f, "      \"max\": %" PRIu64 ",\n", t[i].maxlat);
