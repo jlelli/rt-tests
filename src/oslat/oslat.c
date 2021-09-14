@@ -92,6 +92,13 @@ static inline void frc(uint64_t *pval)
 	 */
 	__asm__ __volatile__("isb" : : : "memory");
 	__asm__ __volatile__("mrs %0, cntvct_el0" : "=r" (*pval) :: "memory");
+	/*
+	 * This isb() is required to prevent the processor from accessing
+	 * memory appearing in program order after the read of the counter
+	 * before the counter has been read. Which would skew the counter value
+	 * to a later point than intended.
+	 */
+	__asm__ __volatile__("isb" : : : "memory");
 
 }
 # else
