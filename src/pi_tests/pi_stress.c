@@ -996,7 +996,7 @@ void usage(int error)
 	       "-q       --quiet           suppress running output\n"
 	       "-r       --rr              use SCHED_RR for test threads [SCHED_FIFO]\n"
 	       "-s OPTS  --sched OPTS      scheduling options per thread type:\n"
-	       "   tid=[high|med|low]      select thread\n"
+	       "   id=[high|med|low]      select thread\n"
 	       "   ,policy=[fifo,rr]       scheduling class [SCHED_FIFO, SCHED_RR]\n"
 	       "     ,priority=N           scheduling priority\n"
 	       "   ,policy=[deadline]      scheduling class [DEADLINE]\n"
