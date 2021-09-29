@@ -200,6 +200,7 @@ class Detector(object):
         if os.path.exists('/usr/sbin/rdmsr'):
             self.have_msr = True
             self.initsmi = self.getsmicounts()
+        self.dma_latency_handle = None
 
     def getsmicounts(self):
         counts = []
@@ -210,20 +211,23 @@ class Detector(object):
         return counts
 
     # methods for preventing/enabling c-state transitions
-    # openinging /dev/cpu_dma_latency and writeing a 32-bit zero to that file will prevent
-    # c-state transitions while the file descriptor is open.
+    #
+    # opening /dev/cpu_dma_latency and writing a 32-bit zero to that file will
+    # prevent c-state transitions while the file descriptor is open.
+    #
     # use c_states_off() to disable c-state transitions
     # use c_states_on() to close the file descriptor and re-enable c-states
     #
     def c_states_off(self):
-        self.dma_latency_handle = os.open("/dev/cpu_dma_latency", os.O_WRONLY)
-        os.write(self.dma_latency_handle, b'\x00\x00\x00\x00')
-        debug("c-states disabled")
+        if os.path.exists("/dev/cpu_dma_latency"):
+            self.dma_latency_handle = os.open("/dev/cpu_dma_latency", os.O_WRONLY)
+            os.write(self.dma_latency_handle, b'\x00\x00\x00\x00')
+            debug("c-states disabled")
 
     def c_states_on(self):
         if self.dma_latency_handle:
             os.close(self.dma_latency_handle)
-        debug("c-states enabled")
+            debug("c-states enabled")
 
     def cleanup(self):
         raise RuntimeError("must override base method 'cleanup'!")
