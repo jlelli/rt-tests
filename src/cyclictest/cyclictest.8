@@ -67,9 +67,6 @@ Specify a length for the test run.
 .br
 Append 'm', 'h', or 'd' to specify minutes, hours or days.
 .TP
-.B \-\-latency=PM_Q0S
-write PM_Q0S to /dev/cpu_dma_latency
-.TP
 .B \-F, \-\-fifo=<path>
 Create a named pipe at path and write stats to it
 .TP
@@ -88,11 +85,14 @@ Set the base interval of the thread(s) in microseconds (default is 1000us). This
 .B \-\-json=FILENAME
 Write final results into FILENAME, JSON formatted.
 .TP
-.B \-l, \-\-loops=LOOPS
-Set the number of loops. The default is 0 (endless). This option is useful for automated tests with a given number of test cycles. Cyclictest is stopped once the number of timer intervals has been reached.
-.TP
 .B \-\-laptop
 Save battery when running cyclictest. This will give you poorer realtime results, but will not drain your battery so quickly.
+.TP
+.B \-\-latency=PM_Q0S
+power management latency target value. This value is written to /dev/cpu_dma_latency and affects c-states. The default is 0
+.TP
+.B \-l, \-\-loops=LOOPS
+Set the number of loops. The default is 0 (endless). This option is useful for automated tests with a given number of test cycles. Cyclictest is stopped once the number of timer intervals has been reached.
 .TP
 .B \-\-mainaffinity=CPUSET
 Run the main thread on CPU #N. This only affects the main thread and not the measurement threads
