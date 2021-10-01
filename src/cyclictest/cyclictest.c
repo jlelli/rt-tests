@@ -194,6 +194,7 @@ static int ct_debug;
 static int use_fifo = 0;
 static pthread_t fifo_threadid;
 static int laptop = 0;
+static int power_management = 0;
 static int use_histfile = 0;
 
 #ifdef ARCH_HAS_SMI_COUNTER
@@ -253,6 +254,11 @@ static void set_latency_target(void)
 
 	if (laptop) {
 		warn("not setting cpu_dma_latency to save battery power\n");
+		return;
+	}
+
+	if (power_management) {
+		warn("not setting cpu_dma_latency from cyclictest\n");
 		return;
 	}
 
@@ -820,6 +826,10 @@ static void display_help(int error)
 	       "-c CLOCK --clock=CLOCK     select clock\n"
 	       "                           0 = CLOCK_MONOTONIC (default)\n"
 	       "                           1 = CLOCK_REALTIME\n"
+	       "         --default-system  Don't attempt to tune the system from cyclictest.\n"
+	       "                           Power management is not suppressed.\n"
+	       "                           This might give poorer results, but will allow you\n"
+	       "                           to discover if you need to tune the system\n"
 	       "-d DIST  --distance=DIST   distance of thread intervals in us, default=500\n"
 	       "-D       --duration=TIME   specify a length for the test run.\n"
 	       "                           Append 'm', 'h', or 'd' to specify minutes, hours or days.\n"
@@ -947,7 +957,7 @@ static char *policyname(int policy)
 
 enum option_values {
 	OPT_AFFINITY=1, OPT_BREAKTRACE, OPT_CLOCK,
-	OPT_DISTANCE, OPT_DURATION, OPT_LATENCY,
+	OPT_DEFAULT_SYSTEM, OPT_DISTANCE, OPT_DURATION, OPT_LATENCY,
 	OPT_FIFO, OPT_HISTOGRAM, OPT_HISTOFALL, OPT_HISTFILE,
 	OPT_INTERVAL, OPT_JSON, OPT_MAINAFFINITY, OPT_LOOPS, OPT_MLOCKALL,
 	OPT_REFRESH, OPT_NANOSLEEP, OPT_NSECS, OPT_OSCOPE, OPT_PRIORITY,
@@ -976,6 +986,7 @@ static void process_options(int argc, char *argv[], int max_cpus)
 			{"aligned",          optional_argument, NULL, OPT_ALIGNED },
 			{"breaktrace",       required_argument, NULL, OPT_BREAKTRACE },
 			{"clock",            required_argument, NULL, OPT_CLOCK },
+			{"default-system",   no_argument,       NULL, OPT_DEFAULT_SYSTEM },
 			{"distance",         required_argument, NULL, OPT_DISTANCE },
 			{"duration",         required_argument, NULL, OPT_DURATION },
 			{"latency",          required_argument, NULL, OPT_LATENCY },
@@ -1061,6 +1072,8 @@ static void process_options(int argc, char *argv[], int max_cpus)
 		case OPT_CLOCK:
 			clocksel = atoi(optarg); break;
 		case 'C':
+		case OPT_DEFAULT_SYSTEM:
+			power_management = 1; break;
 		case 'd':
 		case OPT_DISTANCE:
 			distance = atoi(optarg); break;

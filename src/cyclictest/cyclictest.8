@@ -59,6 +59,9 @@ select clock
 .br
 1 = CLOCK_REALTIME
 .TP
+.B \-\-default\-system
+Don't attempt to tune the system from cyclictest. Power management is not suppressed. This might give poorer results, but will allow you to discover if you need to tune the system.
+.TP
 .B \-d, \-\-distance=DIST
 Distance of thread intervals in us, default = 500
 .TP
