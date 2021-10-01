@@ -10,6 +10,7 @@
 *.bz2
 *.xz
 *.asc
+*.dat
 tmp
 patches
 ChangeLog
