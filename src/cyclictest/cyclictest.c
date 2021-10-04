@@ -1071,7 +1071,6 @@ static void process_options(int argc, char *argv[], int max_cpus)
 		case 'c':
 		case OPT_CLOCK:
 			clocksel = atoi(optarg); break;
-		case 'C':
 		case OPT_DEFAULT_SYSTEM:
 			power_management = 1; break;
 		case 'd':
@@ -1080,7 +1079,6 @@ static void process_options(int argc, char *argv[], int max_cpus)
 		case 'D':
 		case OPT_DURATION:
 			duration = parse_time_string(optarg); break;
-		case 'E':
 		case 'F':
 		case OPT_FIFO:
 			use_fifo = 1;
