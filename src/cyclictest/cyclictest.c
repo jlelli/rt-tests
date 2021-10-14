@@ -2059,7 +2059,6 @@ int main(int argc, char **argv)
 			memset(stat->values, 0, bufsize);
 			par->bufmsk = VALBUF_SIZE - 1;
 			if (smi) {
-				int bufsize = VALBUF_SIZE * sizeof(long);
 				stat->smis = threadalloc(bufsize, node);
 				if (!stat->smis)
 					goto outall;
