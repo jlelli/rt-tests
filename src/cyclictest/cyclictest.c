@@ -99,10 +99,6 @@ extern int clock_nanosleep(clockid_t __clock_id, int __flags,
 /* Must be power of 2 ! */
 #define VALBUF_SIZE		16384
 
-#define KVARS			32
-#define KVARNAMELEN		32
-#define KVALUELEN		32
-
 #if (defined(__i386__) || defined(__x86_64__))
 #define ARCH_HAS_SMI_COUNTER
 #endif
