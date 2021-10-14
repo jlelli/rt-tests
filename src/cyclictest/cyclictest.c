@@ -507,7 +507,7 @@ static void *timerthread(void *param)
 	struct sigevent sigev;
 	sigset_t sigset;
 	timer_t timer;
-	struct timespec now, next, interval, stop;
+	struct timespec now, next, interval, stop = { 0 };
 	struct itimerval itimer;
 	struct itimerspec tspec;
 	struct thread_stat *stat = par->stats;
@@ -515,8 +515,6 @@ static void *timerthread(void *param)
 	cpu_set_t mask;
 	pthread_t thread;
 	unsigned long smi_now, smi_old = 0;
-
-	memset(&stop, 0, sizeof(stop));
 
 	/* if we're running in numa mode, set our memory node */
 	if (par->node != -1)
@@ -598,7 +596,6 @@ static void *timerthread(void *param)
 	tsnorm(&next);
 
 	if (duration) {
-		memset(&stop, 0, sizeof(stop)); /* grrr */
 		stop = now;
 		stop.tv_sec += duration;
 	}
