@@ -31,7 +31,7 @@ def info(str):
 # discovers that debugfs is already mounted, it will leave
 # it mounted.
 #
-class DebugFS(object):
+class DebugFS:
     '''class to manage mounting/umounting the debugfs'''
     def __init__(self):
         self.premounted = False
@@ -116,7 +116,7 @@ class DetectorNotAvailable(Exception):
 # above, if the module is already loaded, this class will
 # leave it alone when cleaning up.
 #
-class Kmod(object):
+class Kmod:
     ''' class to manage loading and unloading of kernel modules'''
 
     names = ("hwlat_detector", "smi_detector")
@@ -184,7 +184,7 @@ class Kmod(object):
 #
 # base class for detection modules
 #
-class Detector(object):
+class Detector:
     '''base class for detector modules'''
     def __init__(self):
         self.type = "unknown"
@@ -293,7 +293,7 @@ class Tracer(Detector):
         'threshold' : "tracing_thresh",
     }
 
-    class Sample(object):
+    class Sample:
         'private class for tracer sample data'
         __slots__ = 'timestamp', 'inner', 'outer',
         def __init__(self, line):
