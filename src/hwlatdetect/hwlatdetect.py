@@ -19,10 +19,12 @@ quiet = False
 watch = False
 
 def debug(str):
-    if debugging: print(str)
+    if debugging:
+        print(str)
 
 def info(str):
-    if not quiet: print(str)
+    if not quiet:
+        print(str)
 
 #
 # Class used to manage mounting and umounting the debugfs
@@ -358,7 +360,8 @@ class Tracer(Detector):
                 val = self.get_sample()
                 while val:
                     self.samples.append(val)
-                    if watch: val.display()
+                    if watch:
+                        val.display()
                     val = self.get_sample()
                 time.sleep(0.1)
         except KeyboardInterrupt as e:
@@ -425,7 +428,8 @@ class Hwlat(Detector):
                 while val:
                     val = val.strip()
                     self.samples.append(val)
-                    if watch: print(val)
+                    if watch:
+                        print(val)
                     val = self.get_sample()
                 time.sleep(0.1)
         except KeyboardInterrupt as e:
