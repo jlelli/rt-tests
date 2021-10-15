@@ -66,7 +66,7 @@ class DebugFS:
             return True
         debug("umounting debugfs")
         cmd = ['/bin/umount', self.mountpoint]
-        self.mounted = not (subprocess.call(cmd) == 0)
+        self.mounted = subprocess.call(cmd) != 0
         if self.mounted:
             raise RuntimeError("Failed to umount debugfs")
         return not self.mounted
