@@ -239,7 +239,7 @@ class Detector:
         '''set a value in a debugfs field'''
         raise RuntimeError("must override base method 'set'!")
 
-    def save(self, reportfile=None):
+    def save(self, output=None):
         '''save sample data to reportfile'''
         raise RuntimeError("must override base method 'save'!")
 
