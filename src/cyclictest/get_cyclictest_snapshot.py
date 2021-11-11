@@ -21,10 +21,11 @@ class Snapshot:
 
     warned = False
 
-    def print_warning():
+    @classmethod
+    def print_warning(cls):
         """ print a warning one time only even if called multiple times """
-        if not Snapshot.warned:
-            Snapshot.warned = True
+        if not cls.warned:
+            cls.warned = True
             print("No cyclictest instance found")
 
     def __init__(self):
