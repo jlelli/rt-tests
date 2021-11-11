@@ -174,14 +174,14 @@ class Kmod:
             debug("not loading %s (already loaded)" % self.name)
             return True
         cmd = ['/sbin/modprobe', self.name]
-        return (subprocess.call(cmd) == 0)
+        return subprocess.call(cmd) == 0
 
     def unload(self):
         if self.preloaded or self.builtin:
             debug("Not unloading %s" % self.name)
             return True
         cmd = ['/sbin/modprobe', '-r', self.name]
-        return (subprocess.call(cmd) == 0)
+        return subprocess.call(cmd) == 0
 
 #
 # base class for detection modules
@@ -494,11 +494,11 @@ def microseconds(str):
     if str.isdigit():
         return int(str)
     elif str[-2:] == 'ms':
-        return (int(str[0:-2]) * 1000)
+        return int(str[0:-2]) * 1000
     elif str[-2:] == 'us':
         return int(str[0:-2])
     elif str[-1:] == 's':
-        return (int(str[0:-1]) * 1000 * 1000)
+        return int(str[0:-1]) * 1000 * 1000
     else:
         raise RuntimeError("invalid input for microseconds: '%s'" % str)
 
