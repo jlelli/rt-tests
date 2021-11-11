@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+""" Module to detect smis """
 
 # SPDX-License-Identifier: GPL-2.0-only
 
@@ -6,12 +7,13 @@
 # (C) 2015,2016 Clark Williams <williams@redhat.com>
 # (C) 2009 Clark Williams <williams@redhat.com>
 
-import sys
-import os
-import time
-import subprocess
+import abc
 import errno
+import os
 import os.path
+import subprocess
+import sys
+import time
 
 version = "0.8"
 debugging = False
@@ -72,7 +74,7 @@ class DebugFS:
 
     def getval(self, item, nonblocking=False):
         path = os.path.join(self.mountpoint, item)
-        if nonblocking == False:
+        if nonblocking is False:
             with open(path) as f:
                 val = f.readline()
         else:
@@ -228,24 +230,25 @@ class Detector:
             os.close(self.dma_latency_handle)
             debug("c-states enabled")
 
+    @abc.abstractmethod
     def cleanup(self):
-        raise RuntimeError("must override base method 'cleanup'!")
+        ''' abstract cleanup method, must override '''
 
+    @abc.abstractmethod
     def get(self, field):
-        '''get the value of a debugfs field'''
-        raise RuntimeError("must override base method 'get'!")
+        ''' get the value of a debugfs field '''
 
+    @abc.abstractmethod
     def set(self, field, val):
-        '''set a value in a debugfs field'''
-        raise RuntimeError("must override base method 'set'!")
+        ''' set a value in a debugfs field '''
 
+    @abc.abstractmethod
     def save(self, output=None):
-        '''save sample data to reportfile'''
-        raise RuntimeError("must override base method 'save'!")
+        ''' save sample data to output '''
 
+    @abc.abstractmethod
     def display(self):
-        '''output the sample data as a string'''
-        raise RuntimeError("must override base method 'display'!")
+        ''' output the sample data as a string '''
 
     def start(self):
         count = 0
@@ -277,9 +280,9 @@ class Detector:
         self.c_states_on()
         debug("detector module disabled")
 
+    @abc.abstractmethod
     def detect(self):
-        '''get detector output'''
-        raise RuntimeError("must override base method 'detect'!")
+        ''' get detector output '''
 #
 # class to handle running the hwlat tracer module of ftrace
 #
@@ -294,7 +297,7 @@ class Tracer(Detector):
 
     class Sample:
         'private class for tracer sample data'
-        __slots__ = 'timestamp', 'inner', 'outer',
+        __slots__ = 'timestamp', 'inner', 'outer'
         def __init__(self, line):
             fields = line.split()
             i,o = fields[6].split('/')
