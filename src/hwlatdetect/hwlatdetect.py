@@ -21,14 +21,16 @@ quiet = False
 watch = False
 
 
-def debug(str):
+def debug(dstr):
+    """ print debugging string if debugging is on """
     if debugging:
-        print(str)
+        print(dstr)
 
 
-def info(str):
+def info(istr):
+    " print info string if quiet is not on """
     if not quiet:
-        print(str)
+        print(istr)
 
 
 #
@@ -39,7 +41,7 @@ def info(str):
 # it mounted.
 #
 class DebugFS:
-    '''class to manage mounting/umounting the debugfs'''
+    """ class to manage mounting/umounting the debugfs """
     def __init__(self):
         self.premounted = False
         self.mounted = False
@@ -53,6 +55,7 @@ class DebugFS:
                     break
 
     def mount(self, path='/sys/kernel/debug'):
+        """ mount debugfs unless already mounted """
         if self.premounted or self.mounted:
             debug("not mounting debugfs")
             return True
@@ -65,6 +68,7 @@ class DebugFS:
         return self.mounted
 
     def umount(self):
+        """ unmount debugfs if not premounted """
         if self.premounted or not self.mounted:
             debug("not umounting debugfs")
             return True
@@ -76,6 +80,7 @@ class DebugFS:
         return not self.mounted
 
     def getval(self, item, nonblocking=False):
+        """ get value of mountpoint/item """
         path = os.path.join(self.mountpoint, item)
         if nonblocking is False:
             with open(path) as f:
@@ -90,21 +95,18 @@ class DebugFS:
                     val = None
                 else:
                     raise
-            except IOError as e:
-                if e.errno == errno.EAGAIN:
-                    val = None
-                else:
-                    raise
             f.close()
         return val
 
     def putval(self, item, value):
+        """ write value to mountpoint/item """
         path = os.path.join(self.mountpoint, item)
         with open(path, "w") as f:
             f.write(str(value))
             f.flush()
 
     def getpath(self, item):
+        """ get mountpoint/item """
         return os.path.join(self.mountpoint, item)
 
 
@@ -153,12 +155,14 @@ class Detector:
     # use c_states_on() to close the file descriptor and re-enable c-states
     #
     def c_states_off(self):
+        """ disable c-state transitions """
         if os.path.exists("/dev/cpu_dma_latency"):
             self.dma_latency_handle = os.open("/dev/cpu_dma_latency", os.O_WRONLY)
             os.write(self.dma_latency_handle, b'\x00\x00\x00\x00')
             debug("c-states disabled")
 
     def c_states_on(self):
+        """ close the file descriptor and re-enable c-states """
         if self.dma_latency_handle:
             os.close(self.dma_latency_handle)
             debug("c-states enabled")
@@ -184,6 +188,7 @@ class Detector:
         ''' output the sample data as a string '''
 
     def start(self):
+        """ enable the detector """
         count = 0
         threshold = int(self.get("threshold"))
         self.c_states_off()
@@ -201,6 +206,7 @@ class Detector:
         debug("detector module enabled (threshold: %d)" % int(self.get("threshold")))
 
     def stop(self):
+        """ disable the detector """
         count = 0
         debug("disabling detector module")
         self.set("enable", 0)
@@ -244,12 +250,12 @@ class Tracer(Detector):
             return "ts: %s, inner:%d, outer:%d" % (self.timestamp, self.inner, self.outer)
 
         def display(self):
+            """ convert object to string and print """
             print(str(self))
 
         def largest(self):
-            if self.inner > self.outer:
-                return self.inner
-            return self.outer
+            """ return largest value of inner or outer """
+            return max(self.inner, self.outer)
 
     def translate(self, field):
         path = self.debugfs.getpath('tracing')
@@ -274,7 +280,7 @@ class Tracer(Detector):
     def get(self, field):
         if field == "count":
             return len(self.samples)
-        elif field == "max":
+        if field == "max":
             max = 0
             for values in self.samples:
                 s = int(values.largest())
@@ -311,6 +317,7 @@ class Tracer(Detector):
         return val
 
     def save(self, output=None):
+        """ save samples """
         if output:
             with open(output, "w") as f:
                 for s in self.samples:
@@ -328,54 +335,51 @@ class Tracer(Detector):
             raise RuntimeError("Failed to unmount debugfs")
 
 
-def seconds(str):
+def seconds(sval):
     "convert input string to value in seconds"
-    if str.isdigit():
-        return int(str)
-    elif str[-2].isalpha():
-        raise RuntimeError("illegal suffix for seconds: '%s'" % str[-2:-1])
-    elif str[-1:] == 's':
-        return int(str[0:-1])
-    elif str[-1:] == 'm':
-        return int(str[0:-1]) * 60
-    elif str[-1:] == 'h':
-        return int(str[0:-1]) * 3600
-    elif str[-1:] == 'd':
-        return int(str[0:-1]) * 86400
-    elif str[-1:] == 'w':
-        return int(str[0:-1]) * 86400 * 7
-    else:
-        raise RuntimeError("invalid input for seconds: '%s'" % str)
+    if sval.isdigit():
+        return int(sval)
+    if sval[-2].isalpha():
+        raise RuntimeError("illegal suffix for seconds: '%s'" % sval[-2:-1])
+    if sval[-1:] == 's':
+        return int(sval[0:-1])
+    if sval[-1:] == 'm':
+        return int(sval[0:-1]) * 60
+    if sval[-1:] == 'h':
+        return int(sval[0:-1]) * 3600
+    if sval[-1:] == 'd':
+        return int(sval[0:-1]) * 86400
+    if sval[-1:] == 'w':
+        return int(sval[0:-1]) * 86400 * 7
+    raise RuntimeError("invalid input for seconds: '%s'" % sval)
 
 
-def milliseconds(str):
+def milliseconds(sval):
     "convert input string to millsecond value"
-    if str.isdigit():
-        return int(str)
-    elif str[-2:] == 'ms':
-        return int(str[0:-2])
-    elif str[-1] == 's':
-        return int(str[0:-2]) * 1000
-    elif str[-1] == 'm':
-        return int(str[0:-1]) * 1000 * 60
-    elif str[-1] == 'h':
-        return int(str[0:-1]) * 1000 * 60 * 60
-    else:
-        raise RuntimeError("invalid input for milliseconds: %s" % str)
+    if sval.isdigit():
+        return int(sval)
+    if sval[-2:] == 'ms':
+        return int(sval[0:-2])
+    if sval[-1] == 's':
+        return int(sval[0:-2]) * 1000
+    if sval[-1] == 'm':
+        return int(sval[0:-1]) * 1000 * 60
+    if sval[-1] == 'h':
+        return int(sval[0:-1]) * 1000 * 60 * 60
+    raise RuntimeError("invalid input for milliseconds: %s" % sval)
 
 
-def microseconds(str):
+def microseconds(sval):
     "convert input string to microsecond value"
-    if str.isdigit():
-        return int(str)
-    elif str[-2:] == 'ms':
-        return int(str[0:-2]) * 1000
-    elif str[-2:] == 'us':
-        return int(str[0:-2])
-    elif str[-1:] == 's':
-        return int(str[0:-1]) * 1000 * 1000
-    else:
-        raise RuntimeError("invalid input for microseconds: '%s'" % str)
+    if sval.isdigit():
+        return int(sval)
+    if sval[-2:] == 'ms':
+        return int(sval[0:-2]) * 1000
+    if sval[-2:] == 'us':
+        return int(sval[0:-2])
+    if sval[-1:] == 's':
+        return int(sval[0:-1]) * 1000 * 1000
+    raise RuntimeError("invalid input for microseconds: '%s'" % sval)
 
 
 if __name__ == '__main__':
