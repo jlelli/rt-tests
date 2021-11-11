@@ -39,14 +39,13 @@ class DebugFS:
         self.premounted = False
         self.mounted = False
         self.mountpoint = ''
-        f = open('/proc/mounts')
-        for l in f:
-            field = l.split()
-            if field[2] == "debugfs":
-                self.premounted = True
-                self.mountpoint = field[1]
-                break
-        f.close()
+        with open('/proc/mounts') as f:
+            for l in f:
+                field = l.split()
+                if field[2] == "debugfs":
+                    self.premounted = True
+                    self.mountpoint = field[1]
+                    break
 
     def mount(self, path='/sys/kernel/debug'):
         if self.premounted or self.mounted:
@@ -74,9 +73,8 @@ class DebugFS:
     def getval(self, item, nonblocking=False):
         path = os.path.join(self.mountpoint, item)
         if nonblocking == False:
-            f = open(path)
-            val = f.readline()
-            f.close()
+            with open(path) as f:
+                val = f.readline()
         else:
             f = os.fdopen(os.open(path, os.O_RDONLY|os.O_NONBLOCK), "r")
             try:
@@ -97,10 +95,9 @@ class DebugFS:
 
     def putval(self, item, value):
         path = os.path.join(self.mountpoint, item)
-        f = open(path, "w")
-        f.write(str(value))
-        f.flush()
-        f.close()
+        with open(path, "w") as f:
+            f.write(str(value))
+            f.flush()
 
     def getpath(self, item):
         return os.path.join(self.mountpoint, item)
@@ -378,10 +375,10 @@ class Tracer(Detector):
 
     def save(self, output=None):
         if output:
-            f = open(output, "w")
-            for s in self.samples:
-                f.write("%s\n" % str(s))
-            print("report saved to %s (%d samples)" % (output, len(self.samples)))
+            with open(output, "w") as f:
+                for s in self.samples:
+                    f.write("%s\n" % str(s))
+                print("report saved to %s (%d samples)" % (output, len(self.samples)))
 
     def display(self):
         for s in self.samples:
@@ -443,10 +440,10 @@ class Hwlat(Detector):
 
     def save(self, output=None):
         if output:
-            f = open(output, "w")
-            for s in self.samples:
-                f.write("%s\n" % str(s))
-            print("report saved to %s (%d samples)" % (output, len(self.samples)))
+            with open(output, "w") as f:
+                for s in self.samples:
+                    f.write("%s\n" % str(s))
+                print("report saved to %s (%d samples)" % (output, len(self.samples)))
 
     def cleanup(self):
         if not self.kmod.unload():
