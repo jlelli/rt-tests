@@ -321,7 +321,7 @@ class Tracer(Detector):
         return os.path.join(path, Tracer.__field_translation[field])
 
     def __init__(self):
-        super(Tracer, self).__init__()
+        super().__init__()
         path = self.debugfs.getpath('tracing/hwlat_detector')
         if not os.path.exists(path):
             raise DetectorNotAvailable("hwlat", "hwlat tracer not available")
@@ -397,7 +397,7 @@ class Tracer(Detector):
 class Hwlat(Detector):
     '''class to wrap access to hwlat debugfs files'''
     def __init__(self):
-        super(Hwlat, self).__init__()
+        super().__init__()
         self.kmod = Kmod("hwlat_detector")
         self.type = "kmodule"
         self.kmod.load()
