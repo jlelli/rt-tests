@@ -380,6 +380,7 @@ class Tracer(Detector):
                     f.write("%s\n" % str(s))
                 print("report saved to %s (%d samples)" % (output, len(self.samples)))
 
+
     def display(self):
         for s in self.samples:
             s.display()
@@ -390,66 +391,6 @@ class Tracer(Detector):
         if not self.debugfs.umount():
             raise RuntimeError("Failed to unmount debugfs")
 
-
-#
-# Class to simplify running the hwlat kernel module
-#
-class Hwlat(Detector):
-    '''class to wrap access to hwlat debugfs files'''
-    def __init__(self):
-        super().__init__()
-        self.kmod = Kmod("hwlat_detector")
-        self.type = "kmodule"
-        self.kmod.load()
-
-    def get(self, field):
-        return int(self.debugfs.getval(os.path.join("hwlat_detector", field)))
-
-    def set(self, field, val):
-        if field == "enable" and val:
-            val = 1
-        self.debugfs.putval(os.path.join("hwlat_detector", field), str(val))
-
-    def get_sample(self):
-        return self.debugfs.getval("hwlat_detector/sample", nonblocking=True)
-
-    def detect(self):
-        self.samples = []
-        testend = time.time() + self.testduration
-        pollcnt = 0
-        self.start()
-        try:
-            while time.time() < testend:
-                pollcnt += 1
-                val = self.get_sample()
-                while val:
-                    val = val.strip()
-                    self.samples.append(val)
-                    if watch:
-                        print(val)
-                    val = self.get_sample()
-                time.sleep(0.1)
-        except KeyboardInterrupt as e:
-            print("interrupted")
-        self.stop()
-        return self.samples
-
-    def display(self):
-        for s in self.samples:
-            print(s)
-
-    def save(self, output=None):
-        if output:
-            with open(output, "w") as f:
-                for s in self.samples:
-                    f.write("%s\n" % str(s))
-                print("report saved to %s (%d samples)" % (output, len(self.samples)))
-
-    def cleanup(self):
-        if not self.kmod.unload():
-            raise RuntimeError("Failed to unload %s" % self.name)
-        if not self.debugfs.umount():
-            raise RuntimeError("Failed to unmount debugfs")
 
 def seconds(str):
     "convert input string to value in seconds"
