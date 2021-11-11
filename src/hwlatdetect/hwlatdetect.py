@@ -20,13 +20,16 @@ debugging = False
 quiet = False
 watch = False
 
+
 def debug(str):
     if debugging:
         print(str)
 
+
 def info(str):
     if not quiet:
         print(str)
+
 
 #
 # Class used to manage mounting and umounting the debugfs
@@ -78,7 +81,7 @@ class DebugFS:
             with open(path) as f:
                 val = f.readline()
         else:
-            f = os.fdopen(os.open(path, os.O_RDONLY|os.O_NONBLOCK), "r")
+            f = os.fdopen(os.open(path, os.O_RDONLY | os.O_NONBLOCK), "r")
             try:
                 val = f.readline()
             except OSError as e:
@@ -104,89 +107,19 @@ class DebugFS:
     def getpath(self, item):
         return os.path.join(self.mountpoint, item)
 
-# Exception class for when tracer is not available
+
 class DetectorNotAvailable(Exception):
+    """ Exception class for when tracer is not available """
+
     def __init__(self, name, msg):
         self.args = (name, msg)
         self.name = name
         self.msg = msg
 
-#
-# Class used to manage loading and unloading of the
-# hwlat kernel module. Like the debugfs class
-# above, if the module is already loaded, this class will
-# leave it alone when cleaning up.
-#
-class Kmod:
-    ''' class to manage loading and unloading of kernel modules'''
 
-    names = ("hwlat_detector", "smi_detector")
-
-    def __check_builtin(self):
-        for l in open(os.path.join('/lib/modules', os.uname()[2], 'modules.builtin'), "r"):
-            if self.name in l:
-                debug("found %s as builtin" % self.namename)
-                return True
-        return False
-
-    def __find_module(self):
-        debug("looking for module %s" % self.name)
-        path = os.path.join("/lib/modules",
-                            os.uname()[2],
-                            "kernel/drivers/misc")
-        debug("module path: %s" % path)
-        mpath = os.path.join(path, self.name) + ".ko"
-        debug("checking %s" % mpath)
-        if os.path.exists(mpath):
-            return True
-        return False
-
-    def __init__(self, name):
-        if name not in Kmod.names:
-            raise RuntimeError("unsupported module name: %s" % name)
-        if name == "smi_detector":
-            raise RuntimeError("smi_detector module no longer supported!")
-        self.name = name
-        self.preloaded = False
-        self.builtin = False
-
-        # check for builtin
-        if self.__check_builtin():
-            self.builtin = True
-            return
-
-        # now look for already loaded module
-        for l in open('/proc/modules'):
-            field = l.split()
-            if self.name in field[0]:
-                self.preloaded = True
-                debug("using already loaded %s" % self.name)
-                return
-        if not self.__find_module():
-            raise DetectorNotAvailable(name, "module %s does not exist!" % self.name)
-
-    def load(self):
-        if self.builtin:
-            debug("not loading %s (builtin)" % self.name)
-            return True
-        if self.preloaded:
-            debug("not loading %s (already loaded)" % self.name)
-            return True
-        cmd = ['/sbin/modprobe', self.name]
-        return subprocess.call(cmd) == 0
-
-    def unload(self):
-        if self.preloaded or self.builtin:
-            debug("Not unloading %s" % self.name)
-            return True
-        cmd = ['/sbin/modprobe', '-r', self.name]
-        return subprocess.call(cmd) == 0
-
-#
-# base class for detection modules
-#
 class Detector:
-    '''base class for detector modules'''
+    """ base class for detector modules """
+
     def __init__(self):
         self.type = "unknown"
         if os.getuid() != 0:
@@ -195,7 +128,7 @@ class Detector:
         if not self.debugfs.mount():
             raise RuntimeError("failed to mount debugfs")
         self.samples = []
-        self.testduration = 30 # ten seconds
+        self.testduration = 30  # ten seconds
         self.have_msr = False
         self.initsmi = []
         if os.path.exists('/usr/sbin/rdmsr'):
@@ -283,11 +216,11 @@ class Detector:
     @abc.abstractmethod
     def detect(self):
         ''' get detector output '''
-#
-# class to handle running the hwlat tracer module of ftrace
-#
+
+
 class Tracer(Detector):
-    '''class to wrap access to ftrace hwlat tracer'''
+    """ Class to handle running the hwlat tracer module of ftrace """
+
     __field_translation = {
         'width'     : "hwlat_detector/width",
         'window'    : "hwlat_detector/window",
@@ -298,9 +231,10 @@ class Tracer(Detector):
     class Sample:
         'private class for tracer sample data'
         __slots__ = 'timestamp', 'inner', 'outer'
+
         def __init__(self, line):
             fields = line.split()
-            i,o = fields[6].split('/')
+            i, o = fields[6].split('/')
             ts = fields[7][3:]
             self.timestamp = str(ts)
             self.inner = int(i)
@@ -383,7 +317,6 @@ class Tracer(Detector):
                     f.write("%s\n" % str(s))
                 print("report saved to %s (%d samples)" % (output, len(self.samples)))
 
-
     def display(self):
         for s in self.samples:
             s.display()
@@ -414,6 +347,7 @@ def seconds(str):
     else:
         raise RuntimeError("invalid input for seconds: '%s'" % str)
 
+
 def milliseconds(str):
     "convert input string to millsecond value"
     if str.isdigit():
@@ -443,9 +377,6 @@ def microseconds(str):
     else:
         raise RuntimeError("invalid input for microseconds: '%s'" % str)
 
-#
-# main starts here
-#
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -533,7 +464,7 @@ if __name__ == '__main__':
     if args.duration:
         detect.testduration = seconds(args.duration)
     else:
-        detect.testduration = 120 # 2 minutes
+        detect.testduration = 120  # 2 minutes
     debug("test duration is %ds" % detect.testduration)
 
     if args.watch:
@@ -569,7 +500,7 @@ if __name__ == '__main__':
     if detect.have_msr:
         finishsmi = detect.getsmicounts()
         total_smis = 0
-        for i,count in enumerate(finishsmi):
+        for i, count in enumerate(finishsmi):
             if count > detect.initsmi[i]:
                 smis = count - detect.initsmi[i]
                 total_smis += smis
