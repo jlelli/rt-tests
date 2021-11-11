@@ -1089,7 +1089,10 @@ static void process_options(int argc, char *argv[], int max_cpus)
 			histofall = 1; /* fall through */
 		case 'h':
 		case OPT_HISTOGRAM:
-			histogram = atoi(optarg); break;
+			histogram = atoi(optarg);
+			if (!histogram)
+				display_help(1);
+			break;
 		case OPT_HISTFILE:
 			use_histfile = 1;
 			strncpy(histfile, optarg, strnlen(optarg, MAX_PATH-1));
