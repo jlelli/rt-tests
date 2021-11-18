@@ -358,6 +358,32 @@ static int mounted(const char *path, long magic)
 #define CGROUP_PATH "/sys/fs/cgroup"
 #define CPUSET_PATH CGROUP_PATH "/cpuset"
 
+/**
+ * cgroup_mounted - test if the path /sys/fs/cgroup exists
+ * and is a supported type
+ *
+ * Returns -1 if the path does not exist
+ * Returns 0 if the path exists but is not a cgroup type
+ * Returns 1 if the path exists and supports cgroups
+ */
+static int cgroup_mounted(void)
+{
+	int ret;
+
+	ret = mounted(CGROUP_PATH, TMPFS_MAGIC);
+	if (ret == -1)
+		return -1;	/* path doesn't exist */
+	if (ret == 1)
+		return 1;	/* tmpfs */
+	ret = mounted(CGROUP_PATH, CGROUP_SUPER_MAGIC);
+	if (ret == 1)
+		return 1;	/* cgroup v1 */
+	ret = mounted(CGROUP_PATH, CGROUP2_SUPER_MAGIC);
+	if (ret == 1)
+		return 1;	/* cgroup v2 */
+	return 0;	/* path exists but type is not recognized */
+}
+
 static int open_cpuset(const char *path, const char *name)
 {
 	char buf[MAXPATH];
@@ -383,14 +409,13 @@ static int mount_cpuset(void)
 	int fd;
 
 	/* Check if cgroups is already mounted. */
-	ret = mounted(CGROUP_PATH, TMPFS_MAGIC);
-	if (ret < 0)
+	ret = cgroup_mounted();
+	if (ret < 0)	/* /sys/fs/cgroup doesn't exist */
 		return ret;
-	if (!ret) {
-		ret = mount("cgroup_root", CGROUP_PATH, "tmpfs", 0, NULL);
-		if (ret < 0)
-			return ret;
-	}
+
+	if (!ret) /* /sys/fs/cgroup exists, but we don't recognize the type */
+		return -1;
+
 	ret = stat(CPUSET_PATH, &st);
 	if (ret < 0) {
 		ret = mkdir(CPUSET_PATH, 0755);
