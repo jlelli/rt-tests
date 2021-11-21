@@ -137,7 +137,7 @@ Check clock resolution, calling clock_gettime() many times. List of lock_gettime
 align thread wakeups to the next full second and apply the optional offset.
 .TP
 .B \-s, \-\-system
-Use sys_nanosleep and sys_setitimer instead of posix timers. Note, that \-s can only be used with one thread because itimers are per process and not per thread. \-s in combination with \-n uses the nanosleep syscall and is not restricted to one thread.
+Use sys_nanosleep and sys_setitimer instead of posix timers. Note, that \-s can only be used with one thread because itimers are per process and not per thread. \-s uses the nanosleep syscall and is not restricted to one thread.
 .TP
 .B \\-S, \-\-smp
 Set options for standard testing on SMP systems. Equivalent to using
