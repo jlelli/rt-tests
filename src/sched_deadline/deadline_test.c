@@ -2087,7 +2087,7 @@ int main(int argc, char **argv)
 		printf("\tavg_time: %lldus\n", sd->total_time / sd->nr_periods);
 		printf("ctx switches vol:%d nonvol:%d migration:%d\n",
 		       sd->vol, sd->nonvol, sd->migrate);
-		printf("highes prime: %lld\n", sd->prime);
+		printf("highest prime: %lld\n", sd->prime);
 		printf("\n");
 	}
 
