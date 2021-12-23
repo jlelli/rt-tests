@@ -15,7 +15,7 @@
 
 /*
  * numa_available() must be called before any other calls to the numa library
- * returns 0 if numa is available, or 1 if numa is not available
+ * returns 1 if numa is available, or 0 if numa is not available
  */
 int numa_initialize(void)
 {
