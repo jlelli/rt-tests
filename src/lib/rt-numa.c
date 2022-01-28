@@ -131,7 +131,8 @@ int parse_cpumask(char *str, int max_cpus, struct bitmask **cpumask)
 		return 0;
 	}
 
-	use_current_cpuset(max_cpus, mask);
+	if (strchr(str, '!') != NULL || strchr(str, '+') != NULL)
+		use_current_cpuset(max_cpus, mask);
 	*cpumask = mask;
 
 	return 0;
