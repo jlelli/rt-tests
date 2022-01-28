@@ -850,7 +850,7 @@ int main(int argc, char *argv[])
 
 	cpu_set = numa_parse_cpustring_all(g.cpu_list);
 	if (!cpu_set)
-		fatal("oslat: parse_cpumask failed.\n");
+		fatal("oslat: numa_parse_cpustring_all failed.\n");
 	n_cores = numa_bitmask_weight(cpu_set);
 
 	TEST(threads = calloc(1, n_cores * sizeof(threads[0])));

@@ -261,7 +261,9 @@ static void process_options(int argc, char *argv[], unsigned int max_cpus)
 			} else if (optind < argc &&
 				   (atoi(argv[optind]) ||
 				    argv[optind][0] == '0' ||
-				    argv[optind][0] == '!')) {
+				    argv[optind][0] == '!' ||
+				    argv[optind][0] == '+' ||
+				    argv[optind][0] == 'a')) {
 				parse_cpumask(argv[optind], max_cpus, &affinity_mask);
 				setaffinity = AFFINITY_SPECIFIED;
 			} else {
