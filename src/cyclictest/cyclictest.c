@@ -1064,7 +1064,7 @@ static void process_options (int argc, char *argv[])
 			{"nanosleep", no_argument, NULL, 'n'},
 			{"nsecs", no_argument, NULL, 'N'},
 			{"oscope", required_argument, NULL, 'o'},
-			{"priority", required_argument, NULL, 'p'},
+			{"prio", required_argument, NULL, 'p'},
                         {"policy", required_argument, NULL, 'y'},
 			{"preemptoff", no_argument, NULL, 'P'},
 			{"quiet", no_argument, NULL, 'q'},
