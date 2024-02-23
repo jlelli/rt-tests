@@ -23,7 +23,7 @@ endif
 CFLAGS ?= -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/include
 LDFLAGS ?=
 
-PYLIB  := $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
+PYLIB  := $(shell python2 -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 
 ifndef DEBUG
 	CFLAGS	+= -O2
