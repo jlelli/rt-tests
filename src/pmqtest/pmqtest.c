@@ -45,9 +45,10 @@
 
 #define USEC_PER_SEC 1000000
 
-#define SYNCMQ_NAME "/syncmsg%d"
-#define TESTMQ_NAME "/testmsg%d"
-#define MSG_SIZE 8
+#define SYNCMQ_NAME "/syncmsg%010d"
+#define TESTMQ_NAME "/testmsg%010d"
+#define MSG_SIZE 8 
+#define SIZEOF_MQNAME 19
 #define MSEC_PER_SEC 1000
 #define NSEC_PER_SEC 1000000000
 
@@ -358,13 +359,10 @@ static void process_options (int argc, char *argv[])
 		}
 	}
 
-	if (num_threads < 0 || num_threads > 255)
+	if (num_threads < 1 || num_threads > 255)
 		error = 1;
 
 	if (priority < 0 || priority > 99)
-		error = 1;
-
-	if (num_threads < 1)
 		error = 1;
 
 	if (forcetimeout && !timeout)
@@ -429,7 +427,7 @@ int main(int argc, char *argv[])
 		goto nomem;
 
 	for (i = 0; i < num_threads; i++) {
-		char mqname[16];
+		char mqname[SIZEOF_MQNAME];
 
 		sprintf(mqname, SYNCMQ_NAME, i);
 		receiver[i].syncmq = mq_open(mqname, oflag, 0777, &mqstat);
@@ -512,12 +510,12 @@ int main(int argc, char *argv[])
 					(int) ((receiver[i].sumdiff / receiver[i].samples) + 0.5),
 					receiver[i].maxdiff);
 				if (receiver[i].error[0] != '\0') {
-					printf(receiver[i].error);
+					printf("%s", receiver[i].error);
 					errorlines++;
 					receiver[i].error[0] = '\0';
 				}
 				if (sender[i].error[0] != '\0') {
-					printf(sender[i].error);
+					printf("%s", sender[i].error);
 					errorlines++;
 					receiver[i].error[0] = '\0';
 				}
@@ -556,7 +554,7 @@ int main(int argc, char *argv[])
 	}
 	nanosleep(&maindelay, NULL);
 	for (i = 0; i < num_threads; i++) {
-		char mqname[16];
+		char mqname[SIZEOF_MQNAME];
 
 		mq_close(receiver[i].syncmq);
 		sprintf(mqname, SYNCMQ_NAME, i);
