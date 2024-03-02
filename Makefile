@@ -20,10 +20,10 @@ ifneq ($(filter x86_64 i386 ia64 mips powerpc,$(machinetype)),)
 NUMA 	:= 1
 endif
 
-CFLAGS ?= -D_GNU_SOURCE -Wall -Wno-nonnull -Isrc/include
+CFLAGS ?= -D_GNU_SOURCE -Wall -Wno-nonnull -Wno-unused-result -Isrc/include
 LDFLAGS ?=
 
-PYLIB  := $(shell python -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
+PYLIB  := $(shell python2 -c 'import distutils.sysconfig;  print distutils.sysconfig.get_python_lib()')
 
 ifndef DEBUG
 	CFLAGS	+= -O2
